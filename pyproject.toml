@@ -1,0 +1,12 @@
+[project]
+name = 'rdiff'
+version = '0.0'
+authors = [
+    {name = "Artem Pulkin", email = "gpulkin@gmail.com"}
+]
+description = "Rich file comparison with a focus on structured and tabular data"
+license = {text = "BSD-2-Clause"}
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
