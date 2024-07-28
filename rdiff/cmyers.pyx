@@ -1,0 +1,365 @@
+# cython: language_level=3
+from cpython.ref cimport PyObject
+from cpython cimport array
+import array
+import cython
+
+
+ctypedef double (*compare_type)(void*, void*, Py_ssize_t, Py_ssize_t)
+cdef struct compare_protocol:
+    compare_type kernel
+    void* a
+    void* b
+
+
+cdef double compare_call(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+    return (<object>a)(i, j)
+
+
+cdef double compare_str(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+    return (<unicode>a)[i] == (<unicode>b)[j]
+
+
+cdef double compare_array(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+    return (<long*>a)[i] == (<long*>b)[j]
+
+
+cdef double compare_object(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+    return (<object>a)[i] == (<object>b)[j]
+
+
+cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
+    """
+    Figures out the compare protocol from the argument.
+
+    Parameters
+    ----------
+    n, m
+        The size of objects being compared.
+    compare
+        A callable or a tuple of entities to compare.
+
+    Returns
+    -------
+    The resulting protocol.
+    """
+    cdef:
+        unicode a_unicode, b_unicode
+        long[::1] a_buffer, b_buffer
+        compare_protocol result
+
+    if isinstance(compare, tuple):
+        a, b = compare
+        assert len(a) == n
+        assert len(b) == m
+
+        if type(a) == type(b):
+            if type(a) is str:
+                a_unicode = a
+                b_unicode = b
+                result.kernel = &compare_str
+                result.a = <void*>a_unicode
+                result.b = <void*>b_unicode
+
+            elif isinstance(a, array.array) and a.typecode == b.typecode == 'q':
+                a_buffer = a
+                b_buffer = b
+                result.kernel = &compare_array
+                with cython.boundscheck(False):
+                    result.a = <void*>&a_buffer[0]
+                    result.b = <void*>&b_buffer[0]
+            
+            else:
+                result.kernel = &compare_object
+                result.a = <void*>a
+                result.b = <void*>b
+
+    else:
+        compare(0, 0)  # test it can be indeed called
+        result.kernel = &compare_call
+        result.a = <PyObject*>compare
+    return result
+
+
+def test_get_protocol_obj():
+    _keep_this_ref = ([0, 2], [1, 0])
+    cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
+    assert cmp.kernel == &compare_object
+    assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
+    assert cmp.kernel(cmp.a, cmp.b, 0, 1)
+
+
+def test_get_protocol_call():
+    def f(i, j):
+        return i == 0 and j == 1
+    cdef compare_protocol cmp = _get_protocol(2, 2, f)
+    assert cmp.kernel == &compare_call
+    assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
+    assert cmp.kernel(cmp.a, cmp.b, 0, 1)
+
+
+def test_get_protocol_str():
+    _keep_this_ref = ("ac", "ba")
+    cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
+    assert cmp.kernel == &compare_str
+    assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
+    assert cmp.kernel(cmp.a, cmp.b, 0, 1)
+
+
+def test_get_protocol_array():
+    _keep_this_ref = (array.array('q', (0, 2)), array.array('q', (1, 0)))
+    cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
+    assert cmp.kernel == &compare_array
+    assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
+    assert cmp.kernel(cmp.a, cmp.b, 0, 1)
+
+
+cdef long _search_graph_recursive(
+    Py_ssize_t n,
+    Py_ssize_t m,
+    compare_protocol similarity_ratio_getter,
+    double accept,
+    Py_ssize_t max_cost,
+    char[::1] out,
+    Py_ssize_t i,
+    Py_ssize_t j,
+):
+    """See the description and details in the pure-python implementation"""
+    cdef:
+        Py_ssize_t ix, nm, n_m, cost, diag_src, diag_dst
+        char is_reverse_front, reverse_as_sign
+        Py_ssize_t[::1] front_forward, front_reverse, front_updated, front_facing
+    max_cost = min(max_cost, n + m)
+
+    # strip matching ends of the sequence
+    # forward
+    while n * m > 0 and similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, i, j) >= accept:
+        ix = i + j
+        out[ix] = 3
+        out[ix + 1] = 0
+        i += 1
+        j += 1
+        n -= 1
+        m -= 1
+    # ... and reverse
+    while n * m > 0 and similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, i + n - 1, j + m - 1) >= accept:
+        ix = i + j + n + m - 2
+        out[ix] = 3
+        out[ix + 1] = 0
+        n -= 1
+        m -= 1
+
+    if n * m == 0:
+        for ix in range(i + j, i + j + n):
+            out[ix] = 1
+        for ix in range(i + j + n, i + j + n + m):
+            out[ix] = 2
+        return n + m
+
+    nm = min(n, m) + 1
+    n_m = n + m
+    front_forward = array.array('q', (0,) * nm)
+    # the progress of the reverse front starts at n + m
+    front_reverse = array.array('q', (n_m,) * nm)
+    fronts = (front_forward, front_reverse)
+    dimensions = (n, m)
+
+    # we, effectively, iterate over the cost itself
+    # though it may also be seen as a round counter
+    for cost in range(max_cost + 1):
+        # first, figure out whether step is reverse or not
+        is_reverse_front = cost % 2
+        reverse_as_sign = 1 - 2 * is_reverse_front  # +- 1 depending on the direction
+
+        # one of the fronts is updated, another one we "face"
+        front_updated = fronts[is_reverse_front]
+        front_facing = fronts[1 - is_reverse_front]
+
+        # figure out the range of diagonals we are dealing with
+        diag_src = dimensions[1 - is_reverse_front]
+        diag_dst = dimensions[is_reverse_front]
+
+        # the range of diagonals here
+        _p = cost // 2
+        diag_updated_from = abs(diag_src - _p)
+        diag_updated_to = n_m - abs(diag_dst - _p)
+        # the range of diagonals facing
+        # (to check for return)
+        _p = (cost - 1) // 2 + 1
+        diag_facing_from = abs(diag_dst - _p)
+        diag_facing_to = n_m - abs(diag_src - _p)
+
+        # phase 1: propagate diagonals
+        # every second diagonal is propagated during each iteration
+        for diag in range(diag_updated_from, diag_updated_to + 2, 2):
+            # we simply use modulo size for indexing
+            # you can also keep diag_from to always correspond to the 0th
+            # element of the front or any other alignment but having
+            # modulo is just the simplest
+            ix = (diag // 2) % nm
+
+            # remember the progress coordinates: starting, current
+            progress = progress_start = front_updated[ix]
+
+            # now, turn (diag, progress) coordinates into (x, y)
+            # progress = x + y
+            # diag = x - y + m
+            # since the (x, y) -> (x + 1, y + 1) diag is polled through similarity_ratio_getter(x, y)
+            # we need to shift the (x, y) coordinates when reverse
+            x = (progress + diag - m) // 2 - is_reverse_front
+            y = (progress - diag + m) // 2 - is_reverse_front
+
+            # slide down the progress coordinate
+            while (0 <= x < n and
+                   0 <= y < m and
+                   similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, x, y) >= accept):
+                progress += 2 * reverse_as_sign
+                x += reverse_as_sign
+                y += reverse_as_sign
+            front_updated[ix] = progress
+
+            # if front and reverse overlap we are done
+            # to figure this out we first check whether we are facing ANY diagonal
+            if diag_facing_from <= diag <= diag_facing_to and (diag - diag_facing_from) % 2 == 0:
+                # second, we are checking the progress
+                if front_forward[ix] >= front_reverse[ix]:  # check if the two fronts (start) overlap
+                    # write the diagonal
+                    for ix in range(progress_start - 2 * is_reverse_front, progress - 2 * is_reverse_front, 2 * reverse_as_sign):
+                        out[i + j + ix] = 3
+                        out[i + j + ix + 1] = 0
+
+                    # recursive calls
+                    x = (progress_start + diag - m) // 2
+                    y = (progress_start - diag + m) // 2
+                    x2 = (progress + diag - m) // 2
+                    y2 = (progress - diag + m) // 2
+                    if is_reverse_front:
+                        # swap these two around
+                        x, y, x2, y2 = x2, y2, x, y
+
+                    _search_graph_recursive(
+                        n=x,
+                        m=y,
+                        similarity_ratio_getter=similarity_ratio_getter,
+                        accept=accept,
+                        max_cost=cost // 2 + cost % 2,
+                        out=out,
+                        i=i,
+                        j=j,
+                    )
+                    _search_graph_recursive(
+                        n=n - x2,
+                        m=m - y2,
+                        similarity_ratio_getter=similarity_ratio_getter,
+                        accept=accept,
+                        max_cost=cost // 2,
+                        out=out,
+                        i=i + x2,
+                        j=j + y2,
+                    )
+                    print(f"  rtn {cost}")
+                    return cost
+
+        # phase 2: make "horizontal" and "vertical" steps into adjacent diagonals
+        cost_2_ = cost // 2 + 1
+        diag_updated_from_ = abs(diag_src - cost_2_)
+        diag_updated_to_ = n_m - abs(diag_dst - cost_2_)
+
+        ix = -1
+        previous = -1
+
+        for diag_ in range(diag_updated_from_, diag_updated_to_ + 2, 2):
+
+            # source and destination indexes for the update
+            progress_left = front_updated[((diag_ - 1) // 2) % nm]
+            progress_right = front_updated[((diag_ + 1) // 2) % nm]
+
+            if diag_ == diag_updated_from - 1:  # possible in cases 2, 4
+                progress = progress_right
+            elif diag_ == diag_updated_to + 1:  # possible in cases 1, 3
+                progress = progress_left
+            elif is_reverse_front:
+                progress = min(progress_left, progress_right)
+            else:
+                progress = max(progress_left, progress_right)
+
+            # the idea here is to delay updating the front by one iteration
+            # such that the new progress values do not interfer with the original ones
+            if ix != -1:
+                front_updated[ix] = previous + reverse_as_sign
+
+            previous = progress
+            ix = (diag_ // 2) % nm
+
+        front_updated[ix] = previous + reverse_as_sign
+
+    return n + m
+
+
+def search_graph_recursive(
+    Py_ssize_t n,
+    Py_ssize_t m,
+    similarity_ratio_getter,
+    double accept=1,
+    Py_ssize_t max_cost=0xFFFFFFFF,
+    out=None,
+):
+    """See the description of the pure-python implementation."""
+    cdef:
+        char[::1] cout
+
+    if out is None:
+        out = array.array('b', b'\x01' * n + b'\x02' * m)
+    cout = out
+
+    return _search_graph_recursive(
+        n=n,
+        m=m,
+        similarity_ratio_getter=_get_protocol(n, m, similarity_ratio_getter),
+        accept=accept,
+        max_cost=max_cost,
+        out=cout,
+        i=0,
+        j=0,
+    ), out
+
+
+def search_graph_dummy(
+    Py_ssize_t n,
+    Py_ssize_t m,
+    diag,
+):
+    """
+    Simply follows the diagonal without actually
+    searching the graph.
+
+    Parameters
+    ----------
+    n, m
+        The destination.
+    diag
+        The diagonal difference score from 0 (different)
+        to 1 (same).
+
+    Returns
+    -------
+    A list of graph nodes.
+    """
+    cdef:
+        compare_protocol _diag = _get_protocol(n, m, diag)
+        Py_ssize_t i, nm = min(n, m)
+        char[::1] out = array.array('b', b'\x00' * (n + m))
+        double cost = 0, delta
+
+    for i in range(nm):
+        if (delta := _diag.kernel(_diag.a, _diag.b, i, i)) > 0:
+            out[2 * i] = 3
+            out[2 * i + 1] = 0
+            cost += 2 * (1.0 - delta)
+        else:
+            out[2 * i] = 1
+            out[2 * i + 1] = 2
+            cost += 2
+    for i in range(2 * nm, n + m):
+        out[i] = 1 + (n < m)
+    return cost + n + m - 2 * nm, out

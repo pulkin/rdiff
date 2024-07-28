@@ -1,6 +1,7 @@
 import pytest
 
 from rdiff.myers import search_graph_recursive
+from rdiff.cmyers import search_graph_recursive as csearch_graph_recursive
 
 
 def canonize(codes):
@@ -27,7 +28,7 @@ def compute_cost(codes):
     return sum(i % 3 != 0 for i in codes)
 
 
-@pytest.mark.parametrize("driver", [search_graph_recursive])
+@pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 @pytest.mark.parametrize("n, m", [(1, 1), (2, 2), (7, 4), (7, 7)])
 def test_empty(driver, n, m):
     def complicated_graph(i: int, j: int) -> float:
@@ -40,7 +41,7 @@ def test_empty(driver, n, m):
     assert list(result) == [1] * n + [2] * m
 
 
-@pytest.mark.parametrize("driver", [search_graph_recursive])
+@pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 def test_impl_quantized_1(driver):
     def complicated_graph(i: int, j: int) -> float:
         return i == 2 * j
@@ -52,7 +53,7 @@ def test_impl_quantized_1(driver):
     assert list(result) == [3, 0, 1, 3, 0, 1, 3, 0, 1, 3, 0]
 
 
-@pytest.mark.parametrize("driver", [search_graph_recursive])
+@pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 def test_impl_dummy_1(driver):
     def complicated_graph(i: int, j: int) -> float:
         return i == j and i % 2
@@ -64,7 +65,7 @@ def test_impl_dummy_1(driver):
     assert list(result) == [1, 2, 3, 0, 1, 2, 3, 0, 1, 1, 1]
 
 
-@pytest.mark.parametrize("driver", [search_graph_recursive])
+@pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 def test_impl_dummy_2(driver):
     def complicated_graph(i: int, j: int) -> float:
         return i == j and i % 2
@@ -80,7 +81,7 @@ def test_impl_dummy_2(driver):
     (2, 7, [3, 0] + [1] * 5 + [2] * 2 + [3, 0]),
     (3, 3.0, [3, 0, 1, 3, 0, 1, 3, 0, 1, 3, 0]),  # 3 is the the breakpoint for this case
 ])
-@pytest.mark.parametrize("driver", [search_graph_recursive])
+@pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 def test_max_cost_quantized(driver, max_cost, expected_cost, expected):
     def complicated_graph(i: int, j: int) -> float:
         return i == 2 * j
