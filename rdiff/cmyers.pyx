@@ -1,6 +1,8 @@
 # cython: language_level=3
 from cpython.ref cimport PyObject
+from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from cpython cimport array
+from libc.stdio cimport printf, fflush, stdout
 import array
 import cython
 
@@ -61,7 +63,7 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
                 result.a = <void*>a_unicode
                 result.b = <void*>b_unicode
 
-            elif isinstance(a, array.array) and a.typecode == b.typecode == 'q':
+            elif isinstance(a, array.array) and a.typecode == b.typecode and a.typecode in 'qQ':
                 a_buffer = a
                 b_buffer = b
                 result.kernel = &compare_array
@@ -114,21 +116,33 @@ def test_get_protocol_array():
     assert cmp.kernel(cmp.a, cmp.b, 0, 1)
 
 
-cdef long _search_graph_recursive(
+cdef inline Py_ssize_t labs(long i) noexcept:
+    return i if i >= 0 else -i
+
+
+@cython.cdivision
+cdef Py_ssize_t _search_graph_recursive(
     Py_ssize_t n,
     Py_ssize_t m,
-    compare_protocol similarity_ratio_getter,
-    double accept,
+    const compare_protocol similarity_ratio_getter,
+    const double accept,
     Py_ssize_t max_cost,
     char[::1] out,
     Py_ssize_t i,
     Py_ssize_t j,
+    Py_ssize_t* front_forward,
+    Py_ssize_t* front_reverse,
 ):
     """See the description and details in the pure-python implementation"""
     cdef:
-        Py_ssize_t ix, nm, n_m, cost, diag_src, diag_dst
-        char is_reverse_front, reverse_as_sign
-        Py_ssize_t[::1] front_forward, front_reverse, front_updated, front_facing
+        Py_ssize_t ix, nm, n_m, cost, diag, diag_src, diag_dst, diag_facing_from, diag_facing_to, diag_updated_from,\
+            diag_updated_to, diag_, diag_updated_from_, diag_updated_to_, _p, x, y, x2, y2, progress, progress_start,\
+            previous, is_reverse_front, reverse_as_sign
+        Py_ssize_t* front_updated
+        Py_ssize_t* front_facing
+        Py_ssize_t** fronts = [front_forward, front_reverse]
+        Py_ssize_t* dimensions = [0, 0]
+
     max_cost = min(max_cost, n + m)
 
     # strip matching ends of the sequence
@@ -149,6 +163,8 @@ cdef long _search_graph_recursive(
         n -= 1
         m -= 1
 
+    dimensions[0], dimensions[1] = n, m
+
     if n * m == 0:
         for ix in range(i + j, i + j + n):
             out[ix] = 1
@@ -158,11 +174,10 @@ cdef long _search_graph_recursive(
 
     nm = min(n, m) + 1
     n_m = n + m
-    front_forward = array.array('q', (0,) * nm)
-    # the progress of the reverse front starts at n + m
-    front_reverse = array.array('q', (n_m,) * nm)
-    fronts = (front_forward, front_reverse)
-    dimensions = (n, m)
+    for ix in range(nm):
+        front_forward[ix] = 0
+        front_reverse[ix] = n_m
+    # dimensions = (n, m)
 
     # we, effectively, iterate over the cost itself
     # though it may also be seen as a round counter
@@ -181,13 +196,13 @@ cdef long _search_graph_recursive(
 
         # the range of diagonals here
         _p = cost // 2
-        diag_updated_from = abs(diag_src - _p)
-        diag_updated_to = n_m - abs(diag_dst - _p)
+        diag_updated_from = labs(diag_src - _p)
+        diag_updated_to = n_m - labs(diag_dst - _p)
         # the range of diagonals facing
         # (to check for return)
         _p = (cost - 1) // 2 + 1
-        diag_facing_from = abs(diag_dst - _p)
-        diag_facing_to = n_m - abs(diag_src - _p)
+        diag_facing_from = labs(diag_dst - _p)
+        diag_facing_to = n_m - labs(diag_src - _p)
 
         # phase 1: propagate diagonals
         # every second diagonal is propagated during each iteration
@@ -212,7 +227,7 @@ cdef long _search_graph_recursive(
             # slide down the progress coordinate
             while (0 <= x < n and
                    0 <= y < m and
-                   similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, x, y) >= accept):
+                   similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, x + i, y + j) >= accept):
                 progress += 2 * reverse_as_sign
                 x += reverse_as_sign
                 y += reverse_as_sign
@@ -224,9 +239,13 @@ cdef long _search_graph_recursive(
                 # second, we are checking the progress
                 if front_forward[ix] >= front_reverse[ix]:  # check if the two fronts (start) overlap
                     # write the diagonal
-                    for ix in range(progress_start - 2 * is_reverse_front, progress - 2 * is_reverse_front, 2 * reverse_as_sign):
+                    # cython does not support range(a, b, c)
+                    # (probably because of the unknown sign of c)
+                    ix = progress_start - 2 * is_reverse_front
+                    while ix != progress - 2 * is_reverse_front:
                         out[i + j + ix] = 3
                         out[i + j + ix + 1] = 0
+                        ix += 2 * reverse_as_sign
 
                     # recursive calls
                     x = (progress_start + diag - m) // 2
@@ -246,6 +265,8 @@ cdef long _search_graph_recursive(
                         out=out,
                         i=i,
                         j=j,
+                        front_forward=front_forward,
+                        front_reverse=front_reverse,
                     )
                     _search_graph_recursive(
                         n=n - x2,
@@ -256,14 +277,15 @@ cdef long _search_graph_recursive(
                         out=out,
                         i=i + x2,
                         j=j + y2,
+                        front_forward=front_forward,
+                        front_reverse=front_reverse,
                     )
-                    print(f"  rtn {cost}")
                     return cost
 
         # phase 2: make "horizontal" and "vertical" steps into adjacent diagonals
-        cost_2_ = cost // 2 + 1
-        diag_updated_from_ = abs(diag_src - cost_2_)
-        diag_updated_to_ = n_m - abs(diag_dst - cost_2_)
+        _p = cost // 2 + 1
+        diag_updated_from_ = labs(diag_src - _p)
+        diag_updated_to_ = n_m - labs(diag_dst - _p)
 
         ix = -1
         previous = -1
@@ -307,21 +329,30 @@ def search_graph_recursive(
     """See the description of the pure-python implementation."""
     cdef:
         char[::1] cout
+        Py_ssize_t nm = min(n, m) + 1
+        Py_ssize_t* buffer_1 = <Py_ssize_t *>PyMem_Malloc(8 * nm)
+        Py_ssize_t* buffer_2 = <Py_ssize_t *>PyMem_Malloc(8 * nm)
 
     if out is None:
         out = array.array('b', b'\x01' * n + b'\x02' * m)
     cout = out
 
-    return _search_graph_recursive(
-        n=n,
-        m=m,
-        similarity_ratio_getter=_get_protocol(n, m, similarity_ratio_getter),
-        accept=accept,
-        max_cost=max_cost,
-        out=cout,
-        i=0,
-        j=0,
-    ), out
+    try:
+        return _search_graph_recursive(
+            n=n,
+            m=m,
+            similarity_ratio_getter=_get_protocol(n, m, similarity_ratio_getter),
+            accept=accept,
+            max_cost=max_cost,
+            out=cout,
+            i=0,
+            j=0,
+            front_forward=buffer_1,
+            front_reverse=buffer_2,
+        ), out
+    finally:
+        PyMem_Free(buffer_1)
+        PyMem_Free(buffer_2)
 
 
 def search_graph_dummy(

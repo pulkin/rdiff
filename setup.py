@@ -9,8 +9,8 @@ setuptools.setup(
                 "*",
                 ["rdiff/cmyers.pyx"],
                 language="c",
-                annotate=True,
             )
-        ]
+        ],
+        annotate=True,
     ),
 )

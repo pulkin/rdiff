@@ -238,7 +238,7 @@ def search_graph_recursive(
             # slide down the progress coordinate
             while (0 <= x < n and
                    0 <= y < m and
-                   similarity_ratio_getter(x, y) >= accept):
+                   similarity_ratio_getter(x + i, y + j) >= accept):
                 progress += 2 * reverse_as_sign
                 x += reverse_as_sign
                 y += reverse_as_sign
