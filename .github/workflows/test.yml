@@ -28,4 +28,4 @@ jobs:
     - name: Test
       run: |
         pip install pytest pytest-benchmark
-        pytest -v --benchmark-disable -W ignore::PytestCollectionWarning
+        pytest -v --benchmark-disable -W ignore::pytest.PytestCollectionWarning
