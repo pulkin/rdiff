@@ -67,7 +67,7 @@ def search_graph_recursive(
     max_cost = min(max_cost, n + m)
 
     if out is None:
-        out = array('b', b'\x00' * (i + j) + b'\x01' * n + b'\x02' * m)
+        out = array('b', b'\xFF' * (i + j + n + m))
 
     # strip the sequence from matching ends
     # this optimizes the most common case (matching beginning and end of sequence)
@@ -359,4 +359,8 @@ def search_graph_recursive(
 
         front_updated[ix] = previous + reverse_as_sign
 
+    for ix in range(i + j, i + j + n):
+        out[ix] = 1
+    for ix in range(i + j + n, i + j + n + m):
+        out[ix] = 2
     return n + m, out

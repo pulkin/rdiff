@@ -315,6 +315,10 @@ cdef Py_ssize_t _search_graph_recursive(
 
         front_updated[ix] = previous + reverse_as_sign
 
+    for ix in range(i + j, i + j + n):
+        out[ix] = 1
+    for ix in range(i + j + n, i + j + n + m):
+        out[ix] = 2
     return n + m
 
 
@@ -334,7 +338,7 @@ def search_graph_recursive(
         Py_ssize_t* buffer_2 = <Py_ssize_t *>PyMem_Malloc(8 * nm)
 
     if out is None:
-        out = array.array('b', b'\x01' * n + b'\x02' * m)
+        out = array.array('b', b'\xFF' * (n + m))
     cout = out
 
     try:

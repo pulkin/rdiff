@@ -4,26 +4,7 @@ import pytest
 
 from rdiff.myers import search_graph_recursive
 from rdiff.cmyers import search_graph_recursive as csearch_graph_recursive
-
-
-def canonize(codes):
-    n_horizontal = n_vertical = 0
-    n = len(codes)
-    for code_i in range(n + 1):
-        if code_i != n:
-            code = codes[code_i]
-        else:
-            code = 0
-        if code == 1:
-            n_horizontal += 1
-        elif code == 2:
-            n_vertical += 1
-        elif n_horizontal + n_vertical:
-            for i in range(code_i - n_horizontal - n_vertical, code_i - n_vertical):
-                codes[i] = 1
-            for i in range(code_i - n_vertical, code_i):
-                codes[i] = 2
-            n_horizontal = n_vertical = 0
+from rdiff.sequence import canonize
 
 
 def compute_cost(codes):
