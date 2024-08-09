@@ -9,12 +9,12 @@ def search_graph_recursive(
         n: int,
         m: int,
         similarity_ratio_getter: Callable[[int, int], float],
+        out: array,
         accept: float = 1,
         max_cost: int = 0xFFFFFFFF,
-        out: Optional[array] = None,
         i: int = 0,
         j: int = 0,
-) -> array:
+) -> float:
     """
     Myers algorithm: Looks for the shortest path from
     (0, 0) to (n, m) in a graph representing edit
@@ -37,6 +37,8 @@ def search_graph_recursive(
         A callable(i, j) telling the similarity ratio between
         element i of the first sequence and element j
         of the second sequence.
+    out
+        The buffer to write the edit script to.
     accept
         The minimal similarity ratio to accept as "equal".
     max_cost
@@ -44,8 +46,6 @@ def search_graph_recursive(
         (edit script). This has the meaning of the
         maximal number of additions and deletions allowed
         in the final diff.
-    out
-        The buffer to write the edit script to.
     i, j
         Offsets for calling similarity_ratio_getter and
         writing the edit script.
@@ -66,9 +66,6 @@ def search_graph_recursive(
 
     max_cost = min(max_cost, n + m)
 
-    if out is None:
-        out = array('b', b'\xFF' * (i + j + n + m))
-
     # strip the sequence from matching ends
     # this optimizes the most common case (matching beginning and end of sequence)
     # and exits the recursion for cost = 0, 1
@@ -78,8 +75,9 @@ def search_graph_recursive(
     # forward
     while n * m > 0 and similarity_ratio_getter(i, j) >= accept:
         ix = i + j
-        out[ix] = 3
-        out[ix + 1] = 0
+        if out is not None:
+            out[ix] = 3
+            out[ix + 1] = 0
         i += 1
         j += 1
         n -= 1
@@ -88,17 +86,19 @@ def search_graph_recursive(
     # ... and reverse
     while n * m > 0 and similarity_ratio_getter(i + n - 1, j + m - 1) >= accept:
         ix = i + j + n + m - 2
-        out[ix] = 3
-        out[ix + 1] = 0
+        if out is not None:
+            out[ix] = 3
+            out[ix + 1] = 0
         n -= 1
         m -= 1
 
     if n * m == 0:
-        for ix in range(i + j, i + j + n):
-            out[ix] = 1
-        for ix in range(i + j + n, i + j + n + m):
-            out[ix] = 2
-        return n + m, out
+        if out is not None:
+            for ix in range(i + j, i + j + n):
+                out[ix] = 1
+            for ix in range(i + j + n, i + j + n + m):
+                out[ix] = 2
+        return n + m
 
     """
     adapted from http://blog.robertelder.org/diff-algorithm/
@@ -249,41 +249,42 @@ def search_graph_recursive(
             if diag_facing_from <= diag <= diag_facing_to and (diag - diag_facing_from) % 2 == 0:
                 # second, we are checking the progress
                 if front_forward[ix] >= front_reverse[ix]:  # check if the two fronts (start) overlap
-                    # write the diagonal
-                    for ix in range(progress_start - 2 * is_reverse_front, progress - 2 * is_reverse_front, 2 * reverse_as_sign):
-                        out[i + j + ix] = 3
-                        out[i + j + ix + 1] = 0
+                    if out is not None:
+                        # write the diagonal
+                        for ix in range(progress_start - 2 * is_reverse_front, progress - 2 * is_reverse_front, 2 * reverse_as_sign):
+                            out[i + j + ix] = 3
+                            out[i + j + ix + 1] = 0
 
-                    # recursive calls
-                    x = (progress_start + diag - m) // 2
-                    y = (progress_start - diag + m) // 2
-                    x2 = (progress + diag - m) // 2
-                    y2 = (progress - diag + m) // 2
-                    if is_reverse_front:
-                        # swap these two around
-                        x, y, x2, y2 = x2, y2, x, y
+                        # recursive calls
+                        x = (progress_start + diag - m) // 2
+                        y = (progress_start - diag + m) // 2
+                        x2 = (progress + diag - m) // 2
+                        y2 = (progress - diag + m) // 2
+                        if is_reverse_front:
+                            # swap these two around
+                            x, y, x2, y2 = x2, y2, x, y
 
-                    search_graph_recursive(
-                        n=x,
-                        m=y,
-                        similarity_ratio_getter=similarity_ratio_getter,
-                        accept=accept,
-                        max_cost=cost // 2 + cost % 2,
-                        out=out,
-                        i=i,
-                        j=j,
-                    )
-                    search_graph_recursive(
-                        n=n - x2,
-                        m=m - y2,
-                        similarity_ratio_getter=similarity_ratio_getter,
-                        accept=accept,
-                        max_cost=cost // 2,
-                        out=out,
-                        i=i + x2,
-                        j=j + y2,
-                    )
-                    return cost, out
+                        search_graph_recursive(
+                            n=x,
+                            m=y,
+                            similarity_ratio_getter=similarity_ratio_getter,
+                            accept=accept,
+                            max_cost=cost // 2 + cost % 2,
+                            out=out,
+                            i=i,
+                            j=j,
+                        )
+                        search_graph_recursive(
+                            n=n - x2,
+                            m=m - y2,
+                            similarity_ratio_getter=similarity_ratio_getter,
+                            accept=accept,
+                            max_cost=cost // 2,
+                            out=out,
+                            i=i + x2,
+                            j=j + y2,
+                        )
+                    return cost
 
         # phase 2: make "horizontal" and "vertical" steps into adjacent diagonals
         #
@@ -359,8 +360,9 @@ def search_graph_recursive(
 
         front_updated[ix] = previous + reverse_as_sign
 
-    for ix in range(i + j, i + j + n):
-        out[ix] = 1
-    for ix in range(i + j + n, i + j + n + m):
-        out[ix] = 2
-    return n + m, out
+    if out is not None:
+        for ix in range(i + j, i + j + n):
+            out[ix] = 1
+        for ix in range(i + j + n, i + j + n + m):
+            out[ix] = 2
+    return n + m

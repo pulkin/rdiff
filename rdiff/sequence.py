@@ -22,6 +22,7 @@ def diff(
         accept: float = 0.75,
         min_ratio: float = 0.75,
         kernel: Optional[str] = None,
+        rtn_diff: bool = True,
 ) -> Diff:
     """
     Computes a diff between sequences.
@@ -47,38 +48,54 @@ def diff(
         the algorithm to crack through even completely dissimilar sequences.
     kernel
         The kernel to use:
-        - 'py': python implementation of Myers
-        - 'c': cython implementation of Myers
+        - 'py': python implementation of Myers diff algorithm
+        - 'c': cython implementation of Myers diff algorithm
+    rtn_diff
+        If True, computes and returns the diff. Otherwise, returns the
+        similarity ratio only. Computing the similarity ratio only is
+        typically faster and consumes less memory.
 
     Returns
     -------
     A list of diff chunks telling which sub-sequences are aligned and which
     ones are mismatching.
     """
+    n = len(a)
+    m = len(b)
     if eq is None:
         eq = (a, b)
     if isinstance(eq, tuple):
         _a, _b = eq
-        assert len(a) == len(_a)
-        assert len(b) == len(_b)
+        assert len(_a) == n
+        assert len(_b) == m
+    if rtn_diff:
+        codes = array('b', b'\xFF' * (n + m))
+    else:
+        codes = None
+
     _kernel = _kernels[kernel]
 
-    total_len = len(a) + len(b)
+    total_len = n + m
     if total_len == 0:
         return Diff(ratio=1, diffs=[])
 
-    cost, codes = _kernel(
-        n=len(a),
-        m=len(b),
+    cost = _kernel(
+        n=n,
+        m=m,
         similarity_ratio_getter=eq,
         accept=accept,
         max_cost=int(total_len * (1 - min_ratio)),
+        out=codes,
     )
-    canonize(codes)
-    return Diff(
-        ratio=(total_len - cost) / total_len,
-        diffs=list(codes_to_chunks(a, b, codes)),
-    )
+    ratio = (total_len - cost) / total_len
+    if rtn_diff:
+        canonize(codes)
+        return Diff(
+            ratio=ratio,
+            diffs=list(codes_to_chunks(a, b, codes)),
+        )
+    else:
+        return Diff(ratio=ratio, diffs=None)
 
 
 def canonize(codes: Sequence[int]):

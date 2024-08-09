@@ -142,6 +142,7 @@ cdef Py_ssize_t _search_graph_recursive(
         Py_ssize_t* front_facing
         Py_ssize_t** fronts = [front_forward, front_reverse]
         Py_ssize_t* dimensions = [0, 0]
+        int rtn_script = out.shape[0] != 0
 
     max_cost = min(max_cost, n + m)
 
@@ -149,8 +150,9 @@ cdef Py_ssize_t _search_graph_recursive(
     # forward
     while n * m > 0 and similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, i, j) >= accept:
         ix = i + j
-        out[ix] = 3
-        out[ix + 1] = 0
+        if rtn_script:
+            out[ix] = 3
+            out[ix + 1] = 0
         i += 1
         j += 1
         n -= 1
@@ -158,18 +160,20 @@ cdef Py_ssize_t _search_graph_recursive(
     # ... and reverse
     while n * m > 0 and similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, i + n - 1, j + m - 1) >= accept:
         ix = i + j + n + m - 2
-        out[ix] = 3
-        out[ix + 1] = 0
+        if rtn_script:
+            out[ix] = 3
+            out[ix + 1] = 0
         n -= 1
         m -= 1
 
     dimensions[0], dimensions[1] = n, m
 
     if n * m == 0:
-        for ix in range(i + j, i + j + n):
-            out[ix] = 1
-        for ix in range(i + j + n, i + j + n + m):
-            out[ix] = 2
+        if rtn_script:
+            for ix in range(i + j, i + j + n):
+                out[ix] = 1
+            for ix in range(i + j + n, i + j + n + m):
+                out[ix] = 2
         return n + m
 
     nm = min(n, m) + 1
@@ -238,48 +242,50 @@ cdef Py_ssize_t _search_graph_recursive(
             if diag_facing_from <= diag <= diag_facing_to and (diag - diag_facing_from) % 2 == 0:
                 # second, we are checking the progress
                 if front_forward[ix] >= front_reverse[ix]:  # check if the two fronts (start) overlap
-                    # write the diagonal
-                    # cython does not support range(a, b, c)
-                    # (probably because of the unknown sign of c)
-                    ix = progress_start - 2 * is_reverse_front
-                    while ix != progress - 2 * is_reverse_front:
-                        out[i + j + ix] = 3
-                        out[i + j + ix + 1] = 0
-                        ix += 2 * reverse_as_sign
+                    if rtn_script:
+                        # write the diagonal
+                        # cython does not support range(a, b, c)
+                        # (probably because of the unknown sign of c)
+                        # so use "while"
+                        ix = progress_start - 2 * is_reverse_front
+                        while ix != progress - 2 * is_reverse_front:
+                            out[i + j + ix] = 3
+                            out[i + j + ix + 1] = 0
+                            ix += 2 * reverse_as_sign
 
-                    # recursive calls
-                    x = (progress_start + diag - m) // 2
-                    y = (progress_start - diag + m) // 2
-                    x2 = (progress + diag - m) // 2
-                    y2 = (progress - diag + m) // 2
-                    if is_reverse_front:
-                        # swap these two around
-                        x, y, x2, y2 = x2, y2, x, y
+                        # recursive calls
+                        x = (progress_start + diag - m) // 2
+                        y = (progress_start - diag + m) // 2
+                        x2 = (progress + diag - m) // 2
+                        y2 = (progress - diag + m) // 2
+                        if is_reverse_front:
+                            # swap these two around
+                            x, y, x2, y2 = x2, y2, x, y
 
-                    _search_graph_recursive(
-                        n=x,
-                        m=y,
-                        similarity_ratio_getter=similarity_ratio_getter,
-                        accept=accept,
-                        max_cost=cost // 2 + cost % 2,
-                        out=out,
-                        i=i,
-                        j=j,
-                        front_forward=front_forward,
-                        front_reverse=front_reverse,
-                    )
-                    _search_graph_recursive(
-                        n=n - x2,
-                        m=m - y2,
-                        similarity_ratio_getter=similarity_ratio_getter,
-                        accept=accept,
-                        max_cost=cost // 2,
-                        out=out,
-                        i=i + x2,
-                        j=j + y2,
-                        front_forward=front_forward,
-                        front_reverse=front_reverse,
-                    )
+                        _search_graph_recursive(
+                            n=x,
+                            m=y,
+                            similarity_ratio_getter=similarity_ratio_getter,
+                            accept=accept,
+                            max_cost=cost // 2 + cost % 2,
+                            out=out,
+                            i=i,
+                            j=j,
+                            front_forward=front_forward,
+                            front_reverse=front_reverse,
+                        )
+                        _search_graph_recursive(
+                            n=n - x2,
+                            m=m - y2,
+                            similarity_ratio_getter=similarity_ratio_getter,
+                            accept=accept,
+                            max_cost=cost // 2,
+                            out=out,
+                            i=i + x2,
+                            j=j + y2,
+                            front_forward=front_forward,
+                            front_reverse=front_reverse,
+                        )
                     return cost
 
         # phase 2: make "horizontal" and "vertical" steps into adjacent diagonals
@@ -315,20 +321,24 @@ cdef Py_ssize_t _search_graph_recursive(
 
         front_updated[ix] = previous + reverse_as_sign
 
-    for ix in range(i + j, i + j + n):
-        out[ix] = 1
-    for ix in range(i + j + n, i + j + n + m):
-        out[ix] = 2
+    if rtn_script:
+        for ix in range(i + j, i + j + n):
+            out[ix] = 1
+        for ix in range(i + j + n, i + j + n + m):
+            out[ix] = 2
     return n + m
+
+
+_null_script = array.array('b', b'')
 
 
 def search_graph_recursive(
     Py_ssize_t n,
     Py_ssize_t m,
     similarity_ratio_getter,
+    out,
     double accept=1,
     Py_ssize_t max_cost=0xFFFFFFFF,
-    out=None,
 ):
     """See the description of the pure-python implementation."""
     cdef:
@@ -338,8 +348,9 @@ def search_graph_recursive(
         Py_ssize_t* buffer_2 = <Py_ssize_t *>PyMem_Malloc(8 * nm)
 
     if out is None:
-        out = array.array('b', b'\xFF' * (n + m))
-    cout = out
+        cout = _null_script
+    else:
+        cout = out
 
     try:
         return _search_graph_recursive(
@@ -353,7 +364,7 @@ def search_graph_recursive(
             j=0,
             front_forward=buffer_1,
             front_reverse=buffer_2,
-        ), out
+        )
     finally:
         PyMem_Free(buffer_1)
         PyMem_Free(buffer_2)

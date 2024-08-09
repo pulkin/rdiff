@@ -17,7 +17,8 @@ def test_empty(driver, n, m):
     def complicated_graph(i: int, j: int) -> float:
         return 0
 
-    cost, result = driver(n, m, complicated_graph)
+    result = array.array('b', b'\xFF' * (n + m))
+    cost = driver(n, m, complicated_graph, result)
     assert compute_cost(result) == cost
     assert cost == n + m
     canonize(result)
@@ -29,7 +30,8 @@ def test_impl_quantized_1(driver):
     def complicated_graph(i: int, j: int) -> float:
         return i == 2 * j
 
-    cost, result = driver(7, 4, complicated_graph)
+    result = array.array('b', b'\xFF' * 11)
+    cost = driver(7, 4, complicated_graph, result)
     assert compute_cost(result) == cost
     assert cost == 3
     canonize(result)
@@ -41,7 +43,8 @@ def test_impl_dummy_1(driver):
     def complicated_graph(i: int, j: int) -> float:
         return i == j and i % 2
 
-    cost, result = driver(7, 4, complicated_graph)
+    result = array.array('b', b'\xFF' * 11)
+    cost = driver(7, 4, complicated_graph, result)
     assert compute_cost(result) == cost
     assert cost == 7
     canonize(result)
@@ -53,7 +56,8 @@ def test_impl_dummy_2(driver):
     def complicated_graph(i: int, j: int) -> float:
         return i == j and i % 2
 
-    cost, result = driver(4, 7, complicated_graph)
+    result = array.array('b', b'\xFF' * 11)
+    cost = driver(4, 7, complicated_graph, result)
     assert compute_cost(result) == cost
     assert cost == 7
     canonize(result)
@@ -69,7 +73,8 @@ def test_max_cost_quantized(driver, max_cost, expected_cost, expected):
     def complicated_graph(i: int, j: int) -> float:
         return i == 2 * j
 
-    cost, result = driver(7, 4, complicated_graph, max_cost=max_cost)
+    result = array.array('b', b'\xFF' * 11)
+    cost = driver(7, 4, complicated_graph, result, max_cost=max_cost)
     assert compute_cost(result) == cost
     assert cost == expected_cost
     canonize(result)
@@ -78,7 +83,8 @@ def test_max_cost_quantized(driver, max_cost, expected_cost, expected):
 
 @pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 def test_str_non_periodic(driver):
-    cost, result = driver(9, 9, ("aaabbbccc", "dddbbbeee"))
+    result = array.array('b', b'\xFF' * 18)
+    cost = driver(9, 9, ("aaabbbccc", "dddbbbeee"), result)
     assert compute_cost(result) == cost
     assert cost == 12
     canonize(result)
@@ -87,7 +93,8 @@ def test_str_non_periodic(driver):
 
 @pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 def test_str_non_periodic_2(driver):
-    cost, result = driver(9, 9, ("aaabbbccc", "aaadddccc"))
+    result = array.array('b', b'\xFF' * 18)
+    cost = driver(9, 9, ("aaabbbccc", "aaadddccc"), result)
     assert compute_cost(result) == cost
     assert cost == 6
     canonize(result)
@@ -102,7 +109,8 @@ def test_benchmark_call_long_short(driver, benchmark, n):
     def compare(i, j):
         return n <= i < 2 * n
 
-    cost, result = benchmark(driver, 3 * n, n, compare)
+    result = array.array('b', b'\xFF' * (4 * n))
+    cost = benchmark(driver, 3 * n, n, compare, result)
     assert compute_cost(result) == cost
     assert cost == 2 * n
 
@@ -115,7 +123,8 @@ def test_benchmark_str_long_short(driver, benchmark, n):
     long_seq = "a" * n + "c" * n + "a" * n
     short_seq = "c" * n
 
-    cost, result = benchmark(driver, len(long_seq), len(short_seq), (long_seq, short_seq))
+    result = array.array('b', b'\xFF' * (len(long_seq) + len(short_seq)))
+    cost = benchmark(driver, len(long_seq), len(short_seq), (long_seq, short_seq), result)
     assert compute_cost(result) == cost
     assert cost == 2 * n
 
@@ -128,7 +137,8 @@ def test_benchmark_array_long_short(driver, benchmark, n):
     long_seq = array.array('q', [0] * n + [2] * n + [0] * n)
     short_seq = array.array('q', [2] * n)
 
-    cost, result = benchmark(driver, len(long_seq), len(short_seq), (long_seq, short_seq))
+    result = array.array('b', b'\xFF' * (len(long_seq) + len(short_seq)))
+    cost = benchmark(driver, len(long_seq), len(short_seq), (long_seq, short_seq), result)
     assert compute_cost(result) == cost
     assert cost == 2 * n
 
@@ -141,7 +151,8 @@ def test_benchmark_unsupported_array_long_short(driver, benchmark, n):
     long_seq = array.array('d', [0] * n + [2] * n + [0] * n)
     short_seq = array.array('d', [2] * n)
 
-    cost, result = benchmark(driver, len(long_seq), len(short_seq), (long_seq, short_seq))
+    result = array.array('b', b'\xFF' * (len(long_seq) + len(short_seq)))
+    cost = benchmark(driver, len(long_seq), len(short_seq), (long_seq, short_seq), result)
     assert compute_cost(result) == cost
     assert cost == 2 * n
 
@@ -154,6 +165,7 @@ def test_benchmark_list_long_short(driver, benchmark, n):
     long_seq = [0] * n + [2] * n + [0] * n
     short_seq = [2] * n
 
-    cost, result = benchmark(driver, len(long_seq), len(short_seq), (long_seq, short_seq))
+    result = array.array('b', b'\xFF' * (len(long_seq) + len(short_seq)))
+    cost = benchmark(driver, len(long_seq), len(short_seq), (long_seq, short_seq), result)
     assert compute_cost(result) == cost
     assert cost == 2 * n
