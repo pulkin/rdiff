@@ -44,3 +44,28 @@ def test_sub_str_early_stop(kernel):
             Chunk(data_a="ob", data_b="ob", eq=True),
         ],
     )
+
+
+@pytest.mark.parametrize("kernel", ["py", "c"])
+def test_equal_str_nested(kernel):
+    a, b = ["alice1", "bob1", "xxx"], ["alice2", "bob2"]
+
+    def _eq(i: int, j: int):
+        return diff(a[i], b[j])
+
+    assert diff(a, b, kernel=kernel, eq=_eq, dig=_eq) == Diff(
+        ratio=0.8,
+        diffs=[
+            Chunk(data_a=["alice1", "bob1"], data_b=["alice2", "bob2"], eq=[
+                Diff(ratio=5 / 6, diffs=[
+                    Chunk(data_a="alice", data_b="alice", eq=True),
+                    Chunk(data_a="1", data_b="2", eq=False),
+                ]),
+                Diff(ratio=3 / 4, diffs=[
+                    Chunk(data_a="bob", data_b="bob", eq=True),
+                    Chunk(data_a="1", data_b="2", eq=False),
+                ]),
+            ]),
+            Chunk(data_a=["xxx"], data_b=[], eq=False),
+        ],
+    )

@@ -1,4 +1,4 @@
-from typing import Any, Optional, NamedTuple
+from typing import Any, NamedTuple, Optional, Union
 from collections.abc import Sequence
 
 
@@ -16,21 +16,12 @@ class Chunk(NamedTuple):
         A chunk in the second sequence.
     eq
         A flag indicating whether the two are considered
-        equal. Note that this does not necessarily mean
-        that ``data_a == data_b``: the equality may have
-        a broader meaning, depending on the context of
-        the comparison.
-    data_sub_diff
-        An optional sub-diff comparing pairs of elements
-        from data_a and data_b. This field is used in
-        multidimensional diffs with ``eq==True`` to
-        specify how exactly pairs of elements in data_a
-        and data_b are equal.
+        equal or a list of diffs specifying in which way
+        pairs of items from data_a and data_b are different.
     """
     data_a: Sequence[Any]
     data_b: Sequence[Any]
-    eq: bool
-    data_sub_diff: Optional[Sequence["Diff"]] = None
+    eq: Union[bool, Sequence["Diff"]]
 
 
 class Diff(NamedTuple):
@@ -49,3 +40,18 @@ class Diff(NamedTuple):
     """
     ratio: float
     diffs: Optional[list[Chunk]]
+
+    def __float__(self):
+        return float(self.ratio)
+
+    def __le__(self, other):
+        return float(self) <= other
+
+    def __lt__(self, other):
+        return float(self) < other
+
+    def __ge__(self, other):
+        return float(self) >= other
+
+    def __gt__(self, other):
+        return float(self) > other

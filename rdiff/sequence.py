@@ -23,6 +23,7 @@ def diff(
         min_ratio: float = 0.75,
         kernel: Optional[str] = None,
         rtn_diff: bool = True,
+        dig=None,
 ) -> Diff:
     """
     Computes a diff between sequences.
@@ -54,11 +55,14 @@ def diff(
         If True, computes and returns the diff. Otherwise, returns the
         similarity ratio only. Computing the similarity ratio only is
         typically faster and consumes less memory.
+    dig
+        If set to ``fun(i, j) -> float``, replaces ``Chunk.eq`` in the
+        returned diff with nested diffs computed by the function.
 
     Returns
     -------
-    A list of diff chunks telling which sub-sequences are aligned and which
-    ones are mismatching.
+    A ``tuple(ratio, diffs)`` with a similarity ratio and an optional list
+    of aligned chunks.
     """
     n = len(a)
     m = len(b)
@@ -92,7 +96,7 @@ def diff(
         canonize(codes)
         return Diff(
             ratio=ratio,
-            diffs=list(codes_to_chunks(a, b, codes)),
+            diffs=list(codes_to_chunks(a, b, codes, dig=dig)),
         )
     else:
         return Diff(ratio=ratio, diffs=None)
@@ -126,7 +130,7 @@ def canonize(codes: Sequence[int]):
             n_horizontal = n_vertical = 0
 
 
-def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int]) -> list[Chunk]:
+def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int], dig=None) -> list[Chunk]:
     """
     Given the original sequences and diff codes, produces diff chunks.
 
@@ -137,6 +141,8 @@ def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int]) -> list[Chun
         The original sequences.
     codes
         Diff codes.
+    dig
+        A function to re-compute per-element diff for equal chunks.
 
     Returns
     -------
@@ -155,7 +161,13 @@ def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int]) -> list[Chun
         yield Chunk(
             data_a=a[i:n],
             data_b=b[j:m],
-            eq=not neq,
+            eq=(
+                False
+                if neq else
+                [dig(_i, _j) for _i, _j in zip(range(i, n), range(j, m))]
+                if dig is not None
+                else True
+            ),
         )
         i = n
         j = m
