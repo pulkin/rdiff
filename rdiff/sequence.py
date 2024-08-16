@@ -21,6 +21,7 @@ def diff(
         eq=None,
         accept: float = 0.75,
         min_ratio: float = 0.75,
+        max_cost: Optional[int] = None,
         kernel: Optional[str] = None,
         rtn_diff: bool = True,
         dig=None,
@@ -47,6 +48,11 @@ def diff(
         The ratio below which the algorithm exits. The values closer to 1
         typically result in faster run times while setting to 0 will force
         the algorithm to crack through even completely dissimilar sequences.
+    max_cost
+        The maximal cost of the diff: the number corresponds to the maximal
+        count of dissimilar/misaligned elements in both sequences. Setting
+        this to zero is equivalent to setting min_ratio to 1. The algorithm
+        worst-case time complexity scales with this number.
     kernel
         The kernel to use:
         - 'py': python implementation of Myers diff algorithm
@@ -83,12 +89,16 @@ def diff(
     if total_len == 0:
         return Diff(ratio=1, diffs=[])
 
+    _max_cost = int(total_len * (1 - min_ratio))
+    if max_cost is not None:
+        _max_cost = min(_max_cost, max_cost)
+
     cost = _kernel(
         n=n,
         m=m,
         similarity_ratio_getter=eq,
         accept=accept,
-        max_cost=int(total_len * (1 - min_ratio)),
+        max_cost=_max_cost,
         out=codes,
     )
     ratio = (total_len - cost) / total_len

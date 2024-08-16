@@ -36,12 +36,28 @@ def test_sub_str(kernel):
 
 
 @pytest.mark.parametrize("kernel", ["py", "c"])
-def test_sub_str_early_stop(kernel):
-    assert diff("rob", "alice bob", kernel=kernel) == Diff(
-        ratio=1 / 3,
+def test_sub_str_early_stop_1(kernel):
+    assert diff("xxx", "a xxx xx", kernel=kernel, min_ratio=0).ratio == 6 / 11
+
+
+@pytest.mark.parametrize("kernel", ["py", "c"])
+def test_sub_str_early_stop_2(kernel):
+    assert diff("xxx", "a xxx xx", kernel=kernel, min_ratio=0.9) == Diff(
+        ratio=4 / 11,
         diffs=[
-            Chunk(data_a="r", data_b="alice b", eq=False),
-            Chunk(data_a="ob", data_b="ob", eq=True),
+            Chunk(data_a="x", data_b="a xxx ", eq=False),
+            Chunk(data_a="xx", data_b="xx", eq=True),
+        ],
+    )
+
+
+@pytest.mark.parametrize("kernel", ["py", "c"])
+def test_sub_str_early_stop_2(kernel):
+    assert diff("xxx", "a xxx xx", kernel=kernel, max_cost=2) == Diff(
+        ratio=4 / 11,
+        diffs=[
+            Chunk(data_a="x", data_b="a xxx ", eq=False),
+            Chunk(data_a="xx", data_b="xx", eq=True),
         ],
     )
 
