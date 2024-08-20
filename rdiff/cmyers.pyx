@@ -1,7 +1,6 @@
 # cython: language_level=3
 from cpython.ref cimport PyObject
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
-from cpython cimport array
 from libc.stdio cimport printf, fflush, stdout
 import array
 import cython
@@ -22,7 +21,19 @@ cdef double compare_str(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
     return (<unicode>a)[i] == (<unicode>b)[j]
 
 
-cdef double compare_array(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+cdef double compare_array_8(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+    return (<char*>a)[i] == (<char*>b)[j]
+
+
+cdef double compare_array_16(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+    return (<short*>a)[i] == (<short*>b)[j]
+
+
+cdef double compare_array_32(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+    return (<int*>a)[i] == (<int*>b)[j]
+
+
+cdef double compare_array_64(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
     return (<long*>a)[i] == (<long*>b)[j]
 
 
@@ -47,8 +58,9 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
     """
     cdef:
         unicode a_unicode, b_unicode
-        long[::1] a_buffer, b_buffer
         compare_protocol result
+        long address_a, address_b
+        int item_size
 
     if isinstance(compare, tuple):
         a, b = compare
@@ -62,24 +74,35 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
                 result.kernel = &compare_str
                 result.a = <void*>a_unicode
                 result.b = <void*>b_unicode
+                return result
 
-            elif isinstance(a, array.array) and a.typecode == b.typecode and a.typecode in 'qQ':
-                a_buffer = a
-                b_buffer = b
-                result.kernel = &compare_array
-                with cython.boundscheck(False):
-                    result.a = <void*>&a_buffer[0]
-                    result.b = <void*>&b_buffer[0]
-            
-            else:
-                result.kernel = &compare_object
-                result.a = <void*>a
-                result.b = <void*>b
+            if isinstance(a, array.array):
+                address_a, _ = a.buffer_info()
+                address_b, _ = b.buffer_info()
+                if a.itemsize == b.itemsize:
+                    item_size = a.itemsize
+                    if item_size == 8:
+                        result.kernel = &compare_array_64
+                    elif item_size == 4:
+                        result.kernel = &compare_array_32
+                    elif item_size == 2:
+                        result.kernel = &compare_array_16
+                    elif item_size == 1:
+                        result.kernel = &compare_array_8
 
-    else:
-        compare(0, 0)  # test it can be indeed called
-        result.kernel = &compare_call
-        result.a = <PyObject*>compare
+                    if result.kernel:
+                        result.a = <void*> address_a
+                        result.b = <void*> address_b
+                        return result
+
+            result.kernel = &compare_object
+            result.a = <void*>a
+            result.b = <void*>b
+            return result
+
+    compare(0, 0)  # test it can be indeed called
+    result.kernel = &compare_call
+    result.a = <PyObject*>compare
     return result
 
 
@@ -109,11 +132,24 @@ def test_get_protocol_str():
 
 
 def test_get_protocol_array():
-    _keep_this_ref = (array.array('q', (0, 2)), array.array('q', (1, 0)))
-    cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
-    assert cmp.kernel == &compare_array
-    assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
-    assert cmp.kernel(cmp.a, cmp.b, 0, 1)
+    cdef compare_protocol cmp
+
+    for typecode in "bBhHiIlLqQfd":
+        _keep_this_ref = (array.array(typecode, (0, 2)), array.array(typecode, (1, 0)))
+        cmp = _get_protocol(2, 2, _keep_this_ref)
+        size = _keep_this_ref[0].itemsize
+
+        if size == 8:
+            assert cmp.kernel == &compare_array_64
+        elif size == 4:
+            assert cmp.kernel == &compare_array_32
+        elif size == 2:
+            assert cmp.kernel == &compare_array_16
+        elif size == 1:
+            assert cmp.kernel == &compare_array_8
+
+        assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
+        assert cmp.kernel(cmp.a, cmp.b, 0, 1)
 
 
 cdef inline Py_ssize_t labs(long i) noexcept:
