@@ -1,9 +1,16 @@
 # cython: language_level=3
 from cpython.ref cimport PyObject
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
-from libc.stdio cimport printf, fflush, stdout
 import array
 import cython
+from warnings import warn
+
+try:
+    import numpy
+except ImportError:
+    numpy_avail = False
+else:
+    numpy_avail = True
 
 
 ctypedef double (*compare_type)(void*, void*, Py_ssize_t, Py_ssize_t)
@@ -77,8 +84,6 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
                 return result
 
             if isinstance(a, array.array):
-                address_a, _ = a.buffer_info()
-                address_b, _ = b.buffer_info()
                 if a.itemsize == b.itemsize:
                     item_size = a.itemsize
                     if item_size == 8:
@@ -91,9 +96,38 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
                         result.kernel = &compare_array_8
 
                     if result.kernel:
+                        address_a, _ = a.buffer_info()
+                        address_b, _ = b.buffer_info()
                         result.a = <void*> address_a
                         result.b = <void*> address_b
                         return result
+                warn("cannot use array protocol for input arrays")
+
+
+            # to keep numpy dependence optional we figure out the
+            # array pointer manually
+            if numpy_avail and isinstance(a, numpy.ndarray) and isinstance(b, numpy.ndarray):
+                assert a.ndim == b.ndim == 1
+                a_data = a.data
+                b_data = b.data
+                if a.dtype == b.dtype and a_data.contiguous and b_data.contiguous:
+                    item_size = a_data.itemsize
+                    if item_size == 8:
+                        result.kernel = &compare_array_64
+                    elif item_size == 4:
+                        result.kernel = &compare_array_32
+                    elif item_size == 2:
+                        result.kernel = &compare_array_16
+                    elif item_size == 1:
+                        result.kernel = &compare_array_8
+
+                    if result.kernel:
+                        address_a = a.ctypes.data
+                        address_b = b.ctypes.data
+                        result.a = <void*> address_a
+                        result.b = <void*> address_b
+                        return result
+                warn("cannot use array protocol for input numpy arrays")
 
             result.kernel = &compare_object
             result.a = <void*>a
@@ -138,6 +172,27 @@ def test_get_protocol_array():
         _keep_this_ref = (array.array(typecode, (0, 2)), array.array(typecode, (1, 0)))
         cmp = _get_protocol(2, 2, _keep_this_ref)
         size = _keep_this_ref[0].itemsize
+
+        if size == 8:
+            assert cmp.kernel == &compare_array_64
+        elif size == 4:
+            assert cmp.kernel == &compare_array_32
+        elif size == 2:
+            assert cmp.kernel == &compare_array_16
+        elif size == 1:
+            assert cmp.kernel == &compare_array_8
+
+        assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
+        assert cmp.kernel(cmp.a, cmp.b, 0, 1)
+
+
+def test_get_protocol_numpy():
+    cdef compare_protocol cmp
+
+    for dtype in numpy.int8, numpy.int16, numpy.int32, numpy.int64, numpy.float16, numpy.float32, numpy.float64:
+        _keep_this_ref = (numpy.array((0, 2), dtype=dtype), numpy.array((1, 0), dtype=dtype))
+        cmp = _get_protocol(2, 2, _keep_this_ref)
+        size = _keep_this_ref[0].data.itemsize
 
         if size == 8:
             assert cmp.kernel == &compare_array_64
