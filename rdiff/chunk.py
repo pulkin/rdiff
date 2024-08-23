@@ -1,5 +1,7 @@
 from typing import Any, NamedTuple, Optional, Union
 from collections.abc import Sequence
+from functools import reduce
+from operator import add
 
 
 class Chunk(NamedTuple):
@@ -55,3 +57,25 @@ class Diff(NamedTuple):
 
     def __gt__(self, other):
         return float(self) > other
+
+    def get_a(self):
+        """
+        Computes the first sequence.
+
+        Returns
+        -------
+        The first sequence.
+        """
+        assert self.diffs is not None
+        return reduce(add, (i.data_a for i in self.diffs))
+
+    def get_b(self):
+        """
+        Computes the second sequence.
+
+        Returns
+        -------
+        The second sequence.
+        """
+        assert self.diffs is not None
+        return reduce(add, (i.data_b for i in self.diffs))
