@@ -1,5 +1,6 @@
 import array
 from random import choice, randint, seed
+import warnings
 
 import pytest
 
@@ -80,6 +81,14 @@ def test_max_cost_quantized(driver, max_cost, expected_cost, expected):
     assert cost == expected_cost
     canonize(result)
     assert list(result) == expected
+
+
+@pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
+def test_eq_only(driver):
+    result = array.array('b', b'\xFF' * 18)
+    with pytest.warns(UserWarning, match="the 'out' argument is ignored for eq_only=True"):
+        cost = driver(9, 9, ("aaabbbccc", "aaaxxxccc"), result, eq_only=True, max_cost=8)
+    assert cost == 6
 
 
 @pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])

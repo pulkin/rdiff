@@ -218,6 +218,7 @@ cdef Py_ssize_t _search_graph_recursive(
     const compare_protocol similarity_ratio_getter,
     const double accept,
     Py_ssize_t max_cost,
+    char eq_only,
     char[::1] out,
     Py_ssize_t i,
     Py_ssize_t j,
@@ -228,7 +229,7 @@ cdef Py_ssize_t _search_graph_recursive(
     cdef:
         Py_ssize_t ix, nm, n_m, cost, diag, diag_src, diag_dst, diag_facing_from, diag_facing_to, diag_updated_from,\
             diag_updated_to, diag_, diag_updated_from_, diag_updated_to_, _p, x, y, x2, y2, progress, progress_start,\
-            previous, is_reverse_front, reverse_as_sign
+            previous, is_reverse_front, reverse_as_sign, max_front_forward, min_front_reverse
         Py_ssize_t* front_updated
         Py_ssize_t* front_facing
         Py_ssize_t** fronts = [front_forward, front_reverse]
@@ -272,11 +273,19 @@ cdef Py_ssize_t _search_graph_recursive(
     for ix in range(nm):
         front_forward[ix] = 0
         front_reverse[ix] = n_m
-    # dimensions = (n, m)
+
+    max_front_forward = 0
+    min_front_reverse = n_m
 
     # we, effectively, iterate over the cost itself
     # though it may also be seen as a round counter
     for cost in range(max_cost + 1):
+        # early return for eq_only
+        if eq_only:
+            _p = min_front_reverse - max_front_forward + cost
+            if _p <= max_cost:
+                return _p
+
         # first, figure out whether step is reverse or not
         is_reverse_front = cost % 2
         reverse_as_sign = 1 - 2 * is_reverse_front  # +- 1 depending on the direction
@@ -328,6 +337,14 @@ cdef Py_ssize_t _search_graph_recursive(
                 y += reverse_as_sign
             front_updated[ix] = progress
 
+            if eq_only:
+                if not is_reverse_front:
+                    if progress > max_front_forward:
+                        max_front_forward = progress
+                else:
+                    if progress < min_front_reverse:
+                        min_front_reverse = progress
+
             # if front and reverse overlap we are done
             # to figure this out we first check whether we are facing ANY diagonal
             if diag_facing_from <= diag <= diag_facing_to and (diag - diag_facing_from) % 2 == 0:
@@ -359,6 +376,7 @@ cdef Py_ssize_t _search_graph_recursive(
                             similarity_ratio_getter=similarity_ratio_getter,
                             accept=accept,
                             max_cost=cost // 2 + cost % 2,
+                            eq_only=0,
                             out=out,
                             i=i,
                             j=j,
@@ -371,6 +389,7 @@ cdef Py_ssize_t _search_graph_recursive(
                             similarity_ratio_getter=similarity_ratio_getter,
                             accept=accept,
                             max_cost=cost // 2,
+                            eq_only=0,
                             out=out,
                             i=i + x2,
                             j=j + y2,
@@ -430,7 +449,8 @@ def search_graph_recursive(
     out,
     double accept=1,
     Py_ssize_t max_cost=0xFFFFFFFF,
-):
+    char eq_only=0,
+) -> int:
     """See the description of the pure-python implementation."""
     cdef:
         char[::1] cout
@@ -442,6 +462,8 @@ def search_graph_recursive(
         cout = _null_script
     else:
         cout = out
+        if eq_only:
+            warn("the 'out' argument is ignored for eq_only=True")
 
     try:
         return _search_graph_recursive(
@@ -450,6 +472,7 @@ def search_graph_recursive(
             similarity_ratio_getter=_get_protocol(n, m, similarity_ratio_getter),
             accept=accept,
             max_cost=max_cost,
+            eq_only=eq_only,
             out=cout,
             i=0,
             j=0,

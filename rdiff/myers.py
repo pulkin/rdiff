@@ -1,8 +1,12 @@
 """
 A Myers diff algorithm, adapted from http://blog.robertelder.org/diff-algorithm/
 """
+import warnings
 from array import array
 from typing import Callable, Optional
+
+
+MAX_COST = 0xFFFFFFFF  # a reasonably high maximal diff cost
 
 
 def search_graph_recursive(
@@ -11,7 +15,8 @@ def search_graph_recursive(
         similarity_ratio_getter: Callable[[int, int], float],
         out: array = None,
         accept: float = 1,
-        max_cost: int = 0xFFFFFFFF,
+        max_cost: int = MAX_COST,
+        eq_only: bool = False,
         i: int = 0,
         j: int = 0,
 ) -> int:
@@ -51,7 +56,17 @@ def search_graph_recursive(
         The maximal allowed cost of the graph path
         (edit script). This has the meaning of the
         maximal number of additions and deletions allowed
-        in the final diff.
+        in the final diff. Setting this to smaller values
+        allows earlier returns.
+    eq_only
+        If True, only figures out whether there is an edit script
+        with the cost equal or below max_cost without further
+        optimizing it. When this argument set to True, nothing
+        is writen to `out`.
+
+        Note that without specifying max_cost explicitly
+        setting eq_only=True will return almost instantly as
+        the default value of max_cost is very large.
     i, j
         Offsets for calling similarity_ratio_getter and
         writing the edit script.
@@ -61,6 +76,8 @@ def search_graph_recursive(
     The diff cost: the number of deletions + the number
     of additions.
     """
+    if eq_only and out is not None:
+        warnings.warn("the 'out' argument is ignored for eq_only=True")
     if isinstance(similarity_ratio_getter, tuple):
         _a, _b = similarity_ratio_getter
 
@@ -171,7 +188,7 @@ def search_graph_recursive(
     from (0, 0) and upwards from (n, m). When the two fronts meet
     (somewhere in the middle) we stop and recover one point of the
     optimal edit script. Then, we may perform recursive calls to recover
-    the rest of it.
+    the rest of the edit script.
     """
     nm = min(n, m) + 1
     n_m = n + m
@@ -180,10 +197,18 @@ def search_graph_recursive(
     front_reverse = array('Q', (n_m,) * nm)
     fronts = (front_forward, front_reverse)
     dimensions = (n, m)
+    max_front_forward = 0
+    min_front_reverse = n_m
 
     # we, effectively, iterate over the cost itself
     # though it may also be seen as a round counter
     for cost in range(max_cost + 1):
+        # early return for eq_only
+        if eq_only and (result := (min_front_reverse - max_front_forward + cost)) <= max_cost:
+            # here, we estimated the upper bound for the "cost" to be below max_cost
+            # more details on fronts are given below
+            return result
+
         # first, figure out whether step is reverse or not
         is_reverse_front = cost % 2
         reverse_as_sign = 1 - 2 * is_reverse_front  # +- 1 depending on the direction
@@ -246,6 +271,12 @@ def search_graph_recursive(
                 x += reverse_as_sign
                 y += reverse_as_sign
             front_updated[ix] = progress
+
+            # track min-max for eq_only=True early returns
+            if eq_only and not is_reverse_front and progress > max_front_forward:
+                max_front_forward = progress
+            if eq_only and is_reverse_front and progress < min_front_reverse:
+                min_front_reverse = progress
 
             # if front and reverse overlap we are done
             # to figure this out we first check whether we are facing ANY diagonal
