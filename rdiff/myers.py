@@ -9,12 +9,12 @@ def search_graph_recursive(
         n: int,
         m: int,
         similarity_ratio_getter: Callable[[int, int], float],
-        out: array,
+        out: array = None,
         accept: float = 1,
         max_cost: int = 0xFFFFFFFF,
         i: int = 0,
         j: int = 0,
-) -> float:
+) -> int:
     """
     Myers algorithm: Looks for the shortest path from
     (0, 0) to (n, m) in a graph representing edit
@@ -38,7 +38,13 @@ def search_graph_recursive(
         element i of the first sequence and element j
         of the second sequence.
     out
-        The buffer to write the edit script to.
+        The buffer to write the edit script to. If None (default)
+        will skip writing the edit script and compute the diff
+        cost only. The edit script as an array of these integers:
+
+        - 1 for horizontal moves ("deletions")
+        - 2 for vertical moves ("additions")
+        - 3 followed by zero for diagonal moves ("same").
     accept
         The minimal similarity ratio to accept as "equal".
     max_cost
@@ -52,11 +58,8 @@ def search_graph_recursive(
 
     Returns
     -------
-    Simply returns 'out' or a new array of an appropriate
-    size. It containts the edit script as a list of these codes:
-      - 1 for horizontal moves ("deletions")
-      - 2 for vertical moves ("additions")
-      - 3 followed by zero for diagonal moves ("same").
+    The diff cost: the number of deletions + the number
+    of additions.
     """
     if isinstance(similarity_ratio_getter, tuple):
         _a, _b = similarity_ratio_getter
