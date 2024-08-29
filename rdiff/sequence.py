@@ -16,12 +16,13 @@ _kernels = {
 
 
 def diff(
-        a: Sequence,
-        b: Sequence,
+        a: Sequence[object],
+        b: Sequence[object],
         eq=None,
         accept: float = 0.75,
         min_ratio: float = 0.75,
         max_cost: Optional[int] = None,
+        eq_only: bool = False,
         kernel: Optional[str] = None,
         rtn_diff: bool = True,
         dig=None,
@@ -53,6 +54,10 @@ def diff(
         count of dissimilar/misaligned elements in both sequences. Setting
         this to zero is equivalent to setting min_ratio to 1. The algorithm
         worst-case time complexity scales with this number.
+    eq_only
+        If True, only figures out whether there is an edit script
+        satisfying min_ratio and max_cost without further optimizing max_cost.
+        This also enforces rtn_diff=False.
     kernel
         The kernel to use:
         - 'py': python implementation of Myers diff algorithm
@@ -70,6 +75,8 @@ def diff(
     A ``tuple(ratio, diffs)`` with a similarity ratio and an optional list
     of aligned chunks.
     """
+    if eq_only:
+        rtn_diff = False
     n = len(a)
     m = len(b)
     if eq is None:
@@ -99,6 +106,7 @@ def diff(
         similarity_ratio_getter=eq,
         accept=accept,
         max_cost=_max_cost,
+        eq_only=eq_only,
         out=codes,
     )
     ratio = (total_len - cost) / total_len

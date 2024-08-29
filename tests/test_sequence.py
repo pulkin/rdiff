@@ -67,9 +67,12 @@ def test_equal_str_nested(kernel):
     a, b = ["alice1", "bob1", "xxx"], ["alice2", "bob2"]
 
     def _eq(i: int, j: int):
+        return diff(a[i], b[j], eq_only=True)
+
+    def _dig(i: int, j: int):
         return diff(a[i], b[j])
 
-    assert diff(a, b, kernel=kernel, eq=_eq, dig=_eq) == Diff(
+    assert diff(a, b, kernel=kernel, eq=_eq, dig=_dig) == Diff(
         ratio=0.8,
         diffs=[
             Chunk(data_a=["alice1", "bob1"], data_b=["alice2", "bob2"], eq=[
