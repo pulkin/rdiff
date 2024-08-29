@@ -52,7 +52,7 @@ def test_sub_str_early_stop_2(kernel):
 
 
 @pytest.mark.parametrize("kernel", ["py", "c"])
-def test_sub_str_early_stop_2(kernel):
+def test_sub_str_early_stop_3(kernel):
     assert diff("xxx", "a xxx xx", kernel=kernel, max_cost=2) == Diff(
         ratio=4 / 11,
         diffs=[
