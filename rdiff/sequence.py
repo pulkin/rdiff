@@ -39,7 +39,7 @@ def diff(
     eq
         Equality measure. Can be either of these:
         - a function ``fun(i, j) -> float`` telling the similarity ratio
-          from 0 (dissimilar) to 1 (equal).
+          from 0 (dissimilar) to 1 (same).
         - a pair of sequences ``(a_, b_)`` substituting the input sequences
           when computing the diff. The returned chunks, however, are still
           composed of elements from a and b.
@@ -55,9 +55,10 @@ def diff(
         this to zero is equivalent to setting min_ratio to 1. The algorithm
         worst-case time complexity scales with this number.
     eq_only
-        If True, only figures out whether there is an edit script
-        satisfying min_ratio and max_cost without further optimizing max_cost.
-        This also enforces rtn_diff=False.
+        If True, attempts to guarantee the existence of an edit script
+        satisfying both min_ratio and max_cost without actually finding the
+        script. This provides an early stop and further savings in run times
+        is some cases. Enforces rtn_diff=False.
     kernel
         The kernel to use:
         - 'py': python implementation of Myers diff algorithm
@@ -67,8 +68,8 @@ def diff(
         similarity ratio only. Computing the similarity ratio only is
         typically faster and consumes less memory.
     dig
-        If set to ``fun(i, j) -> float``, replaces ``Chunk.eq`` in the
-        returned diff with nested diffs computed by the function.
+        Once set to ``fun(i, j)``, the values of ``Chunk.eq`` in the
+        output will be replaced by the values returned by the function.
 
     Returns
     -------
@@ -189,3 +190,119 @@ def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int], dig=None) ->
         )
         i = n
         j = m
+
+
+def diff_nested(
+        a: Sequence[object],
+        b: Sequence[object],
+        eq=None,
+        min_ratio: float = 0.75,
+        max_cost: Optional[int] = None,
+        eq_only: bool = False,
+        kernel: Optional[str] = None,
+        rtn_diff: bool = True,
+        nested_containers: tuple = (list, tuple),
+        blacklist: set = frozenset(),
+) -> Diff:
+    """
+    Computes a diff between sequences.
+
+    Parameters
+    ----------
+    a
+        The first nested sequence.
+    b
+        The second nested sequence.
+    eq
+        An optional pair of sequences ``(a_, b_)`` substituting the input
+        sequences when computing the diff. The returned chunks, however, are
+        still composed of elements from a and b.
+    min_ratio
+        The ratio below which the algorithm exits. The values closer to 1
+        typically result in faster run times while setting to 0 will force
+        the algorithm to crack through even completely dissimilar sequences.
+        This affects which sub-sequences are considered "equal".
+    max_cost
+        The maximal cost of the diff: the number corresponds to the maximal
+        count of dissimilar/misaligned elements in both sequences. Setting
+        this to zero is equivalent to setting min_ratio to 1. The algorithm
+        worst-case time complexity scales with this number.
+    eq_only
+        If True, attempts to guarantee the existence of an edit script
+        satisfying both min_ratio and max_cost without actually finding the
+        script. This provides an early stop is some cases and further savings
+        on run times. Will enforces rtn_diff=False.
+    kernel
+        The kernel to use:
+        - 'py': python implementation of Myers diff algorithm
+        - 'c': cython implementation of Myers diff algorithm
+    rtn_diff
+        If True, computes and returns the diff. Otherwise, returns the
+        similarity ratio only. Computing the similarity ratio only is
+        typically faster and consumes less memory.
+
+    Returns
+    -------
+    A ``tuple(ratio, diffs)`` with a similarity ratio and an optional list
+    of aligned chunks or a bool if a and b are not sequences.
+    """
+    a_ = a
+    b_ = b
+    if eq is not None:
+        a_, b_ = eq
+
+    if id(a_) in blacklist or id(b_) in blacklist:
+        raise ValueError("encountered recursive nesting of inputs")
+    blacklist = {*blacklist, id(a_), id(b_)}
+
+    if ((container_type := type(a_)) is type(b_)):
+        if container_type in nested_containers:
+
+            def _eq(i: int, j: int):
+                return diff_nested(
+                    a=a[i],
+                    b=b[j],
+                    eq=(a_[i], b_[j]),
+                    min_ratio=min_ratio,
+                    max_cost=max_cost,
+                    eq_only=True,
+                    kernel=kernel,
+                    nested_containers=nested_containers,
+                    blacklist=blacklist,
+                )
+
+            def _dig(i: int, j: int):
+                return diff_nested(
+                    a=a[i],
+                    b=b[j],
+                    eq=(a_[i], b_[j]),
+                    min_ratio=min_ratio,
+                    max_cost=max_cost,
+                    eq_only=False,
+                    kernel=kernel,
+                    rtn_diff=rtn_diff,
+                    nested_containers=nested_containers,
+                    blacklist=blacklist,
+                )
+        elif issubclass(container_type, Sequence):  # inputs are compatible containers but we do not recognize them as, potentially, nested
+            _eq = (a_, b_)
+            _dig = None
+
+        else:  # inputs are not containers
+            return a_ == b_
+
+    else:  # inputs are not the same type
+        return a_ == b_
+
+    return diff(
+        a=a,
+        b=b,
+        eq=_eq,
+        accept=min_ratio,
+        min_ratio=min_ratio,
+        max_cost=max_cost,
+        eq_only=eq_only,
+        kernel=kernel,
+        rtn_diff=rtn_diff,
+        dig=_dig,
+    )

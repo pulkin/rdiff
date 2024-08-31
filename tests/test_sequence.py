@@ -1,6 +1,6 @@
 import pytest
 
-from rdiff.sequence import diff
+from rdiff.sequence import diff, diff_nested
 from rdiff.chunk import Diff, Chunk
 
 
@@ -86,5 +86,63 @@ def test_equal_str_nested(kernel):
                 ]),
             ]),
             Chunk(data_a=["xxx"], data_b=[], eq=False),
+        ],
+    )
+
+
+def test_equal_str_nested_recursive():
+    assert diff_nested(["alice1", "bob1", "xxx"], ["alice2", "bob2"]) == Diff(
+        ratio=0.8,
+        diffs=[
+            Chunk(data_a=["alice1", "bob1"], data_b=["alice2", "bob2"], eq=[
+                Diff(ratio=5 / 6, diffs=[
+                    Chunk(data_a="alice", data_b="alice", eq=True),
+                    Chunk(data_a="1", data_b="2", eq=False),
+                ]),
+                Diff(ratio=3 / 4, diffs=[
+                    Chunk(data_a="bob", data_b="bob", eq=True),
+                    Chunk(data_a="1", data_b="2", eq=False),
+                ]),
+            ]),
+            Chunk(data_a=["xxx"], data_b=[], eq=False),
+        ],
+    )
+
+
+def test_complex_nested():
+    assert diff_nested(["alice1", "bob1", "xxx", [0, 1, 2, "charlie1"], [5, 6, 7]], ["alice2", "bob2", [0, 2, "charlie2"], [5, 8, 9]], min_ratio=0.5) == Diff(
+        ratio=2 / 3,
+        diffs=[
+            Chunk(data_a=["alice1", "bob1"], data_b=["alice2", "bob2"], eq=[
+                Diff(ratio=5 / 6, diffs=[
+                    Chunk(data_a="alice", data_b="alice", eq=True),
+                    Chunk(data_a="1", data_b="2", eq=False),
+                ]),
+                Diff(ratio=3 / 4, diffs=[
+                    Chunk(data_a="bob", data_b="bob", eq=True),
+                    Chunk(data_a="1", data_b="2", eq=False),
+                ]),
+            ]),
+            Chunk(data_a=["xxx"], data_b=[], eq=False),
+            Chunk(data_a=[[0, 1, 2, "charlie1"]], data_b=[[0, 2, "charlie2"]], eq=[
+                Diff(
+                    ratio=6 / 7,
+                    diffs=[
+                        Chunk(data_a=[0], data_b=[0], eq=[True]),
+                        Chunk(data_a=[1], data_b=[], eq=False),
+                        Chunk(data_a=[2, "charlie1"], data_b=[2, "charlie2"], eq=[
+                            True,
+                            Diff(
+                                ratio=7 / 8,
+                                diffs=[
+                                    Chunk(data_a="charlie", data_b="charlie", eq=True),
+                                    Chunk(data_a="1", data_b="2", eq=False),
+                                ],
+                            ),
+                        ]),
+                    ],
+                ),
+            ]),
+            Chunk(data_a=[[5, 6, 7]], data_b=[[5, 8, 9]], eq=False),
         ],
     )
