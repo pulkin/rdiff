@@ -110,7 +110,10 @@ def test_equal_str_nested_recursive():
 
 
 def test_complex_nested():
-    assert diff_nested(["alice1", "bob1", "xxx", [0, 1, 2, "charlie1"], [5, 6, 7]], ["alice2", "bob2", [0, 2, "charlie2"], [5, 8, 9]], min_ratio=0.5) == Diff(
+    a = ["alice1", "bob1", "xxx", [0, 1, 2, "charlie1"], [5, 6, 7]]
+    b = ["alice2", "bob2", [0, 2, "charlie2"], [5, 8, 9]]
+
+    assert diff_nested(a, b, min_ratio=0.5) == Diff(
         ratio=2 / 3,
         diffs=[
             Chunk(data_a=["alice1", "bob1"], data_b=["alice2", "bob2"], eq=[
@@ -128,7 +131,7 @@ def test_complex_nested():
                 Diff(
                     ratio=6 / 7,
                     diffs=[
-                        Chunk(data_a=[0], data_b=[0], eq=[True]),
+                        Chunk(data_a=[0], data_b=[0], eq=True),
                         Chunk(data_a=[1], data_b=[], eq=False),
                         Chunk(data_a=[2, "charlie1"], data_b=[2, "charlie2"], eq=[
                             True,
@@ -146,3 +149,8 @@ def test_complex_nested():
             Chunk(data_a=[[5, 6, 7]], data_b=[[5, 8, 9]], eq=False),
         ],
     )
+
+
+def test_nested_same():
+    a = ["alice1", "bob1", "xxx", [0, 1, 2, "charlie1", []], [5, 6, 7]]
+    assert diff_nested(a, a) is True

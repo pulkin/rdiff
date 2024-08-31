@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Optional
+from typing import Optional, Union
 from array import array
 from itertools import groupby
 
@@ -177,16 +177,20 @@ def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int], dig=None) ->
         group = list(group)
         n = i + sum(i % 2 for i in group)
         m = j + sum(i // 2 for i in group)
+
+        if neq:
+            eq = False
+        elif dig is None:
+            eq = True
+        else:
+            eq = [dig(_i, _j) for _i, _j in zip(range(i, n), range(j, m))]
+            # this is a work-around for nested diffs
+            if all(i is True for i in eq):
+                eq = True
         yield Chunk(
             data_a=a[i:n],
             data_b=b[j:m],
-            eq=(
-                False
-                if neq else
-                [dig(_i, _j) for _i, _j in zip(range(i, n), range(j, m))]
-                if dig is not None
-                else True
-            ),
+            eq=eq,
         )
         i = n
         j = m
@@ -203,7 +207,7 @@ def diff_nested(
         rtn_diff: bool = True,
         nested_containers: tuple = (list, tuple),
         blacklist: set = frozenset(),
-) -> Diff:
+) -> Union[Diff, bool]:
     """
     Computes a diff between sequences.
 
@@ -244,7 +248,7 @@ def diff_nested(
     Returns
     -------
     A ``tuple(ratio, diffs)`` with a similarity ratio and an optional list
-    of aligned chunks or a bool if a and b are not sequences.
+    of aligned chunks or a bool if a and b are the same or completely different.
     """
     a_ = a
     b_ = b
@@ -294,7 +298,7 @@ def diff_nested(
     else:  # inputs are not the same type
         return a_ == b_
 
-    return diff(
+    result = diff(
         a=a,
         b=b,
         eq=_eq,
@@ -306,3 +310,8 @@ def diff_nested(
         rtn_diff=rtn_diff,
         dig=_dig,
     )
+
+    # if equal exactly return True
+    if result.diffs is not None and (len(result.diffs) == 0 or (len(result.diffs) == 1 and result.diffs[0].eq is True)):
+        return True
+    return result
