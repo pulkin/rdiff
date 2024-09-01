@@ -154,3 +154,13 @@ def test_complex_nested():
 def test_nested_same():
     a = ["alice1", "bob1", "xxx", [0, 1, 2, "charlie1", []], [5, 6, 7]]
     assert diff_nested(a, a) is True
+
+
+def test_nested_cyclic():
+    a = [[0, 1, 2], 0, 1, 2]
+    a.append(a)
+    b = [0, 1, 2, [0, 1, 2]]
+    b.insert(0, b)
+
+    with pytest.raises(ValueError, match="encountered recursive nesting of inputs"):
+        diff_nested(a, b, min_ratio=0)

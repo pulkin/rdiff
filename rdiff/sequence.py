@@ -197,8 +197,8 @@ def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int], dig=None) ->
 
 
 def diff_nested(
-        a: Sequence[object],
-        b: Sequence[object],
+        a,
+        b,
         eq=None,
         min_ratio: float = 0.75,
         max_cost: Optional[int] = None,
@@ -206,10 +206,11 @@ def diff_nested(
         kernel: Optional[str] = None,
         rtn_diff: bool = True,
         nested_containers: tuple = (list, tuple),
-        blacklist: set = frozenset(),
+        _blacklist_a: set = frozenset(),
+        _blacklist_b: set = frozenset(),
 ) -> Union[Diff, bool]:
     """
-    Computes a diff between sequences.
+    Computes a diff between nested sequences.
 
     Parameters
     ----------
@@ -244,6 +245,8 @@ def diff_nested(
         If True, computes and returns the diff. Otherwise, returns the
         similarity ratio only. Computing the similarity ratio only is
         typically faster and consumes less memory.
+    nested_containers
+        A collection of types that are considered to be capable of nesting.
 
     Returns
     -------
@@ -255,12 +258,13 @@ def diff_nested(
     if eq is not None:
         a_, b_ = eq
 
-    if id(a_) in blacklist or id(b_) in blacklist:
-        raise ValueError("encountered recursive nesting of inputs")
-    blacklist = {*blacklist, id(a_), id(b_)}
-
     if ((container_type := type(a_)) is type(b_)):
         if container_type in nested_containers:
+
+            if id(a_) in _blacklist_a or id(b_) in _blacklist_b:
+                raise ValueError("encountered recursive nesting of inputs")
+            _blacklist_a = {*_blacklist_a, id(a_)}
+            _blacklist_b = {*_blacklist_b, id(b_)}
 
             def _eq(i: int, j: int):
                 return diff_nested(
@@ -272,7 +276,8 @@ def diff_nested(
                     eq_only=True,
                     kernel=kernel,
                     nested_containers=nested_containers,
-                    blacklist=blacklist,
+                    _blacklist_a=_blacklist_a,
+                    _blacklist_b=_blacklist_b,
                 )
 
             def _dig(i: int, j: int):
@@ -286,7 +291,8 @@ def diff_nested(
                     kernel=kernel,
                     rtn_diff=rtn_diff,
                     nested_containers=nested_containers,
-                    blacklist=blacklist,
+                    _blacklist_a=_blacklist_a,
+                    _blacklist_b=_blacklist_b,
                 )
         elif issubclass(container_type, Sequence):  # inputs are compatible containers but we do not recognize them as, potentially, nested
             _eq = (a_, b_)
