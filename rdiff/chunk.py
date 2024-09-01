@@ -43,7 +43,7 @@ class Chunk(NamedTuple):
             for _eq, _a, _b in zip(eq, data_a, data_b):
                 if _eq is True:
                     # this was an exact comparison
-                    result.append(f"{prefix}··a[]=b[] {_a}")
+                    result.append(f"{prefix}··a=b {_a}")
                 else:
                     result.append(_eq.to_string(prefix=prefix + "··"))
             return "\n".join(result)
