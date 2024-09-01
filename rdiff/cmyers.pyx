@@ -134,7 +134,6 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
             result.b = <void*>b
             return result
 
-    compare(0, 0)  # test it can be indeed called
     result.kernel = &compare_call
     result.a = <PyObject*>compare
     return result
