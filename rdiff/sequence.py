@@ -4,7 +4,7 @@ from array import array
 from itertools import groupby
 
 from .chunk import Diff, Chunk
-from .myers import search_graph_recursive as pymyers
+from .myers import search_graph_recursive as pymyers, MAX_COST
 from .cmyers import search_graph_recursive as cmyers
 
 
@@ -23,11 +23,12 @@ def diff(
         eq=None,
         accept: float = 0.75,
         min_ratio: float = 0.75,
-        max_cost: Optional[int] = None,
+        max_cost: int = MAX_COST,
         eq_only: bool = False,
         kernel: Optional[str] = None,
         rtn_diff: bool = True,
         dig=None,
+        strict: bool = True,
 ) -> Diff:
     """
     Computes a diff between sequences.
@@ -72,6 +73,9 @@ def diff(
     dig
         Once set to ``fun(i, j)``, the values of ``Chunk.eq`` in the
         output will be replaced by the values returned by the function.
+    strict
+        If True, ensures that the returned diff either satisfies both
+        min_ratio and max_cost or otherwise has zero ratio.
 
     Returns
     -------
@@ -99,19 +103,24 @@ def diff(
     if total_len == 0:
         return Diff(ratio=1, diffs=[])
 
-    _max_cost = int(total_len * (1 - min_ratio))
-    if max_cost is not None:
-        _max_cost = min(_max_cost, max_cost)
+    max_cost = min(max_cost, int(total_len - total_len * min_ratio))
 
     cost = _kernel(
         n=n,
         m=m,
         similarity_ratio_getter=eq,
         accept=accept,
-        max_cost=_max_cost,
+        max_cost=max_cost,
         eq_only=eq_only,
         out=codes,
     )
+
+    if strict and cost > max_cost:
+        if rtn_diff:
+            return Diff(ratio=0, diffs=[Chunk(data_a=a, data_b=b, eq=False)])
+        else:
+            return Diff(ratio=0, diffs=None)
+
     ratio = (total_len - cost) / total_len
     if rtn_diff:
         canonize(codes)
@@ -202,8 +211,8 @@ def diff_nested(
         a,
         b,
         eq=None,
-        min_ratio: float = 0.75,
-        max_cost: Optional[int] = None,
+        min_ratio: Union[float, tuple[float]] = 0.75,
+        max_cost: Union[int, tuple[int]] = MAX_COST,
         eq_only: bool = False,
         kernel: Optional[str] = None,
         rtn_diff: bool = True,
@@ -260,6 +269,18 @@ def diff_nested(
     if eq is not None:
         a_, b_ = eq
 
+    if isinstance(min_ratio, tuple):
+        min_ratio_here = min_ratio[0]
+        min_ratio_pass = min_ratio[1:] if len(min_ratio) > 1 else min_ratio
+    else:
+        min_ratio_here = min_ratio_pass = min_ratio
+
+    if isinstance(max_cost, tuple):
+        max_cost_here = max_cost[0]
+        max_cost_pass = max_cost[1:] if len(max_cost) > 1 else max_cost
+    else:
+        max_cost_here = max_cost_pass = max_cost
+
     if ((container_type := type(a_)) is type(b_)):
         if container_type in nested_containers:
 
@@ -273,8 +294,8 @@ def diff_nested(
                     a=a[i],
                     b=b[j],
                     eq=(a_[i], b_[j]),
-                    min_ratio=min_ratio,
-                    max_cost=max_cost,
+                    min_ratio=min_ratio_pass,
+                    max_cost=max_cost_pass,
                     eq_only=True,
                     kernel=kernel,
                     nested_containers=nested_containers,
@@ -287,8 +308,8 @@ def diff_nested(
                     a=a[i],
                     b=b[j],
                     eq=(a_[i], b_[j]),
-                    min_ratio=min_ratio,
-                    max_cost=max_cost,
+                    min_ratio=min_ratio_pass,
+                    max_cost=max_cost_pass,
                     eq_only=False,
                     kernel=kernel,
                     rtn_diff=rtn_diff,
@@ -310,13 +331,14 @@ def diff_nested(
         a=a,
         b=b,
         eq=_eq,
-        accept=min_ratio,
-        min_ratio=min_ratio,
-        max_cost=max_cost,
+        accept=1e-16,
+        min_ratio=min_ratio_here,
+        max_cost=max_cost_here,
         eq_only=eq_only,
         kernel=kernel,
         rtn_diff=rtn_diff,
         dig=_dig,
+        strict=True,
     )
 
     # if equal exactly return True

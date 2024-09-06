@@ -164,3 +164,38 @@ def test_nested_cyclic():
 
     with pytest.raises(ValueError, match="encountered recursive nesting of inputs"):
         diff_nested(a, b, min_ratio=0)
+
+
+def test_nested_cost():
+    a = [[0] * 10, [1] * 10, [2] * 10, [3] * 10]
+    b = [[0] * 9 + [None], [1] * 8 + [None] * 2, [2] * 7 + [None] * 3, [3] * 6 + [None] * 4]
+    assert diff_nested(a, b, min_ratio=(0.5, 0.8)) == Diff(
+        ratio=0.5,
+        diffs=[
+            Chunk(
+                data_a=a[:2],
+                data_b=b[:2],
+                eq=[
+                    Diff(
+                        ratio=0.9,
+                        diffs=[
+                            Chunk(data_a=[0] * 9, data_b=[0] * 9, eq=True),
+                            Chunk(data_a=[0], data_b=[None], eq=False),
+                        ],
+                    ),
+                    Diff(
+                        ratio=0.8,
+                        diffs=[
+                            Chunk(data_a=[1] * 8, data_b=[1] * 8, eq=True),
+                            Chunk(data_a=[1] * 2, data_b=[None] * 2, eq=False),
+                        ],
+                    ),
+                ],
+            ),
+            Chunk(
+                data_a=a[2:],
+                data_b=b[2:],
+                eq=False,
+            )
+        ]
+    )
