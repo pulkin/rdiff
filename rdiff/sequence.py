@@ -75,7 +75,7 @@ def diff(
         output will be replaced by the values returned by the function.
     strict
         If True, ensures that the returned diff either satisfies both
-        min_ratio and max_cost or otherwise has zero ratio.
+        min_ratio and max_cost or otherwise has a zero ratio.
 
     Returns
     -------
