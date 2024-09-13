@@ -7,6 +7,7 @@ from typing import Callable, Optional
 
 
 MAX_COST = 0xFFFFFFFF  # a reasonably high maximal diff cost
+MAX_DIAG = 0xFFFFFFFF  # maximal diagonal
 
 
 def search_graph_recursive(
@@ -17,6 +18,8 @@ def search_graph_recursive(
         accept: float = 1,
         max_cost: int = MAX_COST,
         eq_only: bool = False,
+        min_diag: int = 0,
+        max_diag: int = MAX_DIAG,
         i: int = 0,
         j: int = 0,
 ) -> int:
@@ -67,6 +70,10 @@ def search_graph_recursive(
         Note that without specifying max_cost explicitly
         setting eq_only=True will return almost instantly as
         the default value of max_cost is very large.
+    min_diag
+    max_diag
+        The range of diagonals to run: this determines the
+        space where the optimal path is searched.
     i, j
         Offsets for calling similarity_ratio_getter and
         writing the edit script.
@@ -102,6 +109,8 @@ def search_graph_recursive(
         j += 1
         n -= 1
         m -= 1
+        min_diag -= 1
+        max_diag -= 1
 
     # ... and reverse
     while n * m > 0 and similarity_ratio_getter(i + n - 1, j + m - 1) >= accept:
@@ -111,6 +120,8 @@ def search_graph_recursive(
             out[ix + 1] = 0
         n -= 1
         m -= 1
+        min_diag -= 1
+        max_diag -= 1
 
     if n * m == 0:
         if out is not None:
@@ -246,6 +257,8 @@ def search_graph_recursive(
         # phase 1: propagate diagonals
         # every second diagonal is propagated during each iteration
         for diag in range(diag_updated_from, diag_updated_to + 2, 2):
+            if not min_diag <= diag <= max_diag:
+                continue
             # we simply use modulo size for indexing
             # you can also keep diag_from to always correspond to the 0th
             # element of the front or any other alignment but having
@@ -302,9 +315,11 @@ def search_graph_recursive(
                             n=x,
                             m=y,
                             similarity_ratio_getter=similarity_ratio_getter,
+                            out=out,
                             accept=accept,
                             max_cost=cost // 2 + cost % 2,
-                            out=out,
+                            min_diag=min_diag - m + y,
+                            max_diag=max_diag - m + y,
                             i=i,
                             j=j,
                         )
@@ -312,9 +327,11 @@ def search_graph_recursive(
                             n=n - x2,
                             m=m - y2,
                             similarity_ratio_getter=similarity_ratio_getter,
+                            out=out,
                             accept=accept,
                             max_cost=cost // 2,
-                            out=out,
+                            min_diag=min_diag - x2,
+                            max_diag=max_diag - x2,
                             i=i + x2,
                             j=j + y2,
                         )

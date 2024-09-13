@@ -24,6 +24,7 @@ def diff(
         accept: float = 0.75,
         min_ratio: float = 0.75,
         max_cost: int = MAX_COST,
+        max_delta: int = MAX_COST,
         eq_only: bool = False,
         kernel: Optional[str] = None,
         rtn_diff: bool = True,
@@ -57,6 +58,9 @@ def diff(
         count of dissimilar/misaligned elements in both sequences. Setting
         this to zero is equivalent to setting min_ratio to 1. The algorithm
         worst-case time complexity scales with this number.
+    max_delta
+        The maximal delta of the diff. For sequences of equal lengths this number
+        tells the maximal absolute difference between indeces of aligned chunks.
     eq_only
         If True, attempts to guarantee the existence of an edit script
         satisfying both min_ratio and max_cost without actually finding the
@@ -112,6 +116,8 @@ def diff(
         accept=accept,
         max_cost=max_cost,
         eq_only=eq_only,
+        min_diag=min(n, m) - max_delta,
+        max_diag=max(n, m) + max_delta,
         out=codes,
     )
 
@@ -247,7 +253,7 @@ def diff_nested(
         If True, attempts to guarantee the existence of an edit script
         satisfying both min_ratio and max_cost without actually finding the
         script. This provides an early stop is some cases and further savings
-        on run times. Will enforces rtn_diff=False.
+        on run times. Will enforce rtn_diff=False.
     kernel
         The kernel to use:
         - 'py': python implementation of Myers diff algorithm
@@ -317,7 +323,7 @@ def diff_nested(
                     _blacklist_a=_blacklist_a,
                     _blacklist_b=_blacklist_b,
                 )
-        elif issubclass(container_type, Sequence):  # inputs are compatible containers but we do not recognize them as, potentially, nested
+        elif issubclass(container_type, Sequence):  # inputs are containers but we do not recognize them as, potentially, nested
             _eq = (a_, b_)
             _dig = None
 
