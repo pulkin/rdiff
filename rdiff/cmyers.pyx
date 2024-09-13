@@ -217,6 +217,8 @@ cdef Py_ssize_t _search_graph_recursive(
     const compare_protocol similarity_ratio_getter,
     const double accept,
     Py_ssize_t max_cost,
+    Py_ssize_t min_diag,
+    Py_ssize_t max_diag,
     char eq_only,
     char[::1] out,
     Py_ssize_t i,
@@ -248,6 +250,8 @@ cdef Py_ssize_t _search_graph_recursive(
         j += 1
         n -= 1
         m -= 1
+        min_diag -= 1
+        max_diag -= 1
     # ... and reverse
     while n * m > 0 and similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, i + n - 1, j + m - 1) >= accept:
         ix = i + j + n + m - 2
@@ -256,6 +260,8 @@ cdef Py_ssize_t _search_graph_recursive(
             out[ix + 1] = 0
         n -= 1
         m -= 1
+        min_diag -= 1
+        max_diag -= 1
 
     dimensions[0], dimensions[1] = n, m
 
@@ -310,6 +316,8 @@ cdef Py_ssize_t _search_graph_recursive(
         # phase 1: propagate diagonals
         # every second diagonal is propagated during each iteration
         for diag in range(diag_updated_from, diag_updated_to + 2, 2):
+            if not min_diag <= diag <= max_diag:
+                continue
             # we simply use modulo size for indexing
             # you can also keep diag_from to always correspond to the 0th
             # element of the front or any other alignment but having
@@ -375,6 +383,8 @@ cdef Py_ssize_t _search_graph_recursive(
                             similarity_ratio_getter=similarity_ratio_getter,
                             accept=accept,
                             max_cost=cost // 2 + cost % 2,
+                            min_diag=min_diag - m + y,
+                            max_diag=max_diag - m + y,
                             eq_only=0,
                             out=out,
                             i=i,
@@ -388,6 +398,8 @@ cdef Py_ssize_t _search_graph_recursive(
                             similarity_ratio_getter=similarity_ratio_getter,
                             accept=accept,
                             max_cost=cost // 2,
+                            min_diag=min_diag - x2,
+                            max_diag=max_diag - x2,
                             eq_only=0,
                             out=out,
                             i=i + x2,
@@ -449,6 +461,8 @@ def search_graph_recursive(
     double accept=1,
     Py_ssize_t max_cost=0xFFFFFFFF,
     char eq_only=0,
+    Py_ssize_t min_diag=0,
+    Py_ssize_t max_diag=0xFFFFFFFF,
 ) -> int:
     """See the description of the pure-python implementation."""
     cdef:
@@ -472,6 +486,8 @@ def search_graph_recursive(
             accept=accept,
             max_cost=max_cost,
             eq_only=eq_only,
+            min_diag=min_diag,
+            max_diag=max_diag,
             out=cout,
             i=0,
             j=0,
@@ -481,44 +497,3 @@ def search_graph_recursive(
     finally:
         PyMem_Free(buffer_1)
         PyMem_Free(buffer_2)
-
-
-def search_graph_dummy(
-    Py_ssize_t n,
-    Py_ssize_t m,
-    diag,
-):
-    """
-    Simply follows the diagonal without actually
-    searching the graph.
-
-    Parameters
-    ----------
-    n, m
-        The destination.
-    diag
-        The diagonal difference score from 0 (different)
-        to 1 (same).
-
-    Returns
-    -------
-    A list of graph nodes.
-    """
-    cdef:
-        compare_protocol _diag = _get_protocol(n, m, diag)
-        Py_ssize_t i, nm = min(n, m)
-        char[::1] out = array.array('b', b'\x00' * (n + m))
-        double cost = 0, delta
-
-    for i in range(nm):
-        if (delta := _diag.kernel(_diag.a, _diag.b, i, i)) > 0:
-            out[2 * i] = 3
-            out[2 * i + 1] = 0
-            cost += 2 * (1.0 - delta)
-        else:
-            out[2 * i] = 1
-            out[2 * i + 1] = 2
-            cost += 2
-    for i in range(2 * nm, n + m):
-        out[i] = 1 + (n < m)
-    return cost + n + m - 2 * nm, out
