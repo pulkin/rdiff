@@ -167,7 +167,7 @@ def test_complex_nested():
                         Chunk(data_a=[0], data_b=[0], eq=True),
                         Chunk(data_a=[1], data_b=[], eq=False),
                         Chunk(data_a=[2, "charlie1"], data_b=[2, "charlie2"], eq=[
-                            Diff(ratio=1.0, diffs=None),
+                            True,
                             Diff(
                                 ratio=7 / 8,
                                 diffs=[
@@ -186,7 +186,7 @@ def test_complex_nested():
 
 def test_nested_same():
     a = ["alice1", "bob1", "xxx", [0, 1, 2, "charlie1", []], [5, 6, 7]]
-    assert diff_nested(a, a) == Diff(ratio=1.0, diffs=None)
+    assert diff_nested(a, a) is True
 
 
 def test_nested_cyclic():

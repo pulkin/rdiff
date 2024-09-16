@@ -13,8 +13,6 @@ _kernels = {
     "c": cmyers,
     "py": pymyers,
 }
-_true = Diff(ratio=1.0, diffs=None)
-_false = Diff(ratio=0.0, diffs=None)
 
 
 def diff(
@@ -202,7 +200,7 @@ def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int], dig=None) ->
         else:
             eq = [dig(_i, _j) for _i, _j in zip(range(i, n), range(j, m))]
             # this is a work-around for nested diffs
-            if all(i is _true for i in eq):
+            if all(i is True for i in eq):
                 eq = True
         yield Chunk(
             data_a=a[i:n],
@@ -225,7 +223,7 @@ def diff_nested(
         nested_containers: tuple = (list, tuple),
         _blacklist_a: set = frozenset(),
         _blacklist_b: set = frozenset(),
-) -> Diff:
+) -> Union[Diff, bool]:
     """
     Computes a diff between nested sequences.
 
@@ -268,7 +266,8 @@ def diff_nested(
     Returns
     -------
     A ``tuple(ratio, diffs)`` with a similarity ratio and an optional list
-    of aligned chunks.
+    of aligned chunks. For unsupported types returns a bool telling if objects
+    are equal.
     """
     a_ = a
     b_ = b
@@ -328,10 +327,10 @@ def diff_nested(
             _dig = None
 
         else:  # inputs are not containers
-            return _true if a_ == b_ else _false
+            return a_ == b
 
     else:  # inputs are not the same type
-        return _true if a_ == b_ else _false
+        return a_ == b_
 
     result = diff(
         a=a,
@@ -349,5 +348,5 @@ def diff_nested(
 
     # if equal exactly return True
     if result.diffs is not None and (len(result.diffs) == 0 or (len(result.diffs) == 1 and result.diffs[0].eq is True)):
-        return _true
+        return True
     return result
