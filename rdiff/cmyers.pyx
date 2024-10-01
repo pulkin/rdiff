@@ -346,11 +346,11 @@ cdef Py_ssize_t _search_graph_recursive(
 
             if eq_only:
                 if not is_reverse_front:
-                    if progress > max_front_forward:
-                        max_front_forward = progress
+                    if progress >= max_front_forward:
+                        max_front_forward = progress + 1
                 else:
-                    if progress < min_front_reverse:
-                        min_front_reverse = progress
+                    if progress <= min_front_reverse:
+                        min_front_reverse = progress - 1
 
             # if front and reverse overlap we are done
             # to figure this out we first check whether we are facing ANY diagonal

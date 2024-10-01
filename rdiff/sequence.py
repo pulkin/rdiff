@@ -7,6 +7,15 @@ from .chunk import Diff, Chunk
 from .myers import search_graph_recursive as pymyers, MAX_COST
 from .cmyers import search_graph_recursive as cmyers
 
+_nested_containers = (list, tuple)
+
+try:
+    import numpy
+except ImportError:
+    pass
+else:
+    _nested_containers = (*_nested_containers, numpy.ndarray)
+
 
 _kernels = {
     None: cmyers,
@@ -81,8 +90,7 @@ def diff(
 
     Returns
     -------
-    A ``tuple(ratio, diffs)`` with a similarity ratio and an optional list
-    of aligned chunks.
+    A diff object describing the diff.
     """
     if eq_only:
         rtn_diff = False
@@ -211,16 +219,25 @@ def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int], dig=None) ->
         j = m
 
 
+def _pop_optional(seq):
+    if isinstance(seq, Sequence):
+        return seq[0], seq[1:] if len(seq) > 1 else seq
+    else:
+        return seq, seq
+
+
 def diff_nested(
         a,
         b,
         eq=None,
         min_ratio: Union[float, tuple[float]] = 0.75,
         max_cost: Union[int, tuple[int]] = MAX_COST,
+        max_delta: Union[int, tuple[int]] = MAX_COST,
         eq_only: bool = False,
         kernel: Optional[str] = None,
         rtn_diff: bool = True,
-        nested_containers: tuple = (list, tuple),
+        nested_containers: tuple = _nested_containers,
+        max_depth: int = MAX_COST,
         _blacklist_a: set = frozenset(),
         _blacklist_b: set = frozenset(),
 ) -> Union[Diff, bool]:
@@ -265,26 +282,31 @@ def diff_nested(
 
     Returns
     -------
-    A ``tuple(ratio, diffs)`` with a similarity ratio and an optional list
-    of aligned chunks. For unsupported types returns a bool telling if objects
-    are equal.
+    A diff object describing the diff.
     """
     a_ = a
     b_ = b
     if eq is not None:
         a_, b_ = eq
 
-    if isinstance(min_ratio, tuple):
-        min_ratio_here = min_ratio[0]
-        min_ratio_pass = min_ratio[1:] if len(min_ratio) > 1 else min_ratio
-    else:
-        min_ratio_here = min_ratio_pass = min_ratio
+    min_ratio_here, min_ratio_pass = _pop_optional(min_ratio)
+    max_cost_here, max_cost_pass = _pop_optional(max_cost)
+    max_delta_here, max_delta_pass = _pop_optional(max_delta)
+    accept, _ = _pop_optional(min_ratio_pass)
 
-    if isinstance(max_cost, tuple):
-        max_cost_here = max_cost[0]
-        max_cost_pass = max_cost[1:] if len(max_cost) > 1 else max_cost
-    else:
-        max_cost_here = max_cost_pass = max_cost
+    if max_depth <= 1:
+        return diff(
+            a,
+            b,
+            eq=eq,
+            accept=accept,
+            min_ratio=min_ratio_here,
+            max_cost=max_cost_here,
+            max_delta=max_delta_here,
+            eq_only=eq_only,
+            kernel=kernel,
+            rtn_diff=rtn_diff,
+        )
 
     if ((container_type := type(a_)) is type(b_)):
         if container_type in nested_containers:
@@ -301,9 +323,11 @@ def diff_nested(
                     eq=(a_[i], b_[j]),
                     min_ratio=min_ratio_pass,
                     max_cost=max_cost_pass,
+                    max_delta=max_delta_pass,
                     eq_only=True,
                     kernel=kernel,
                     nested_containers=nested_containers,
+                    max_depth=max_depth - 1,
                     _blacklist_a=_blacklist_a,
                     _blacklist_b=_blacklist_b,
                 )
@@ -315,10 +339,12 @@ def diff_nested(
                     eq=(a_[i], b_[j]),
                     min_ratio=min_ratio_pass,
                     max_cost=max_cost_pass,
+                    max_delta=max_delta_pass,
                     eq_only=False,
                     kernel=kernel,
                     rtn_diff=rtn_diff,
                     nested_containers=nested_containers,
+                    max_depth=max_depth - 1,
                     _blacklist_a=_blacklist_a,
                     _blacklist_b=_blacklist_b,
                 )
@@ -327,18 +353,19 @@ def diff_nested(
             _dig = None
 
         else:  # inputs are not containers
-            return a_ == b
+            return True if a_ == b else False
 
     else:  # inputs are not the same type
-        return a_ == b_
+        return True if a_ == b_ else False
 
     result = diff(
         a=a,
         b=b,
         eq=_eq,
-        accept=1e-16,
+        accept=accept,
         min_ratio=min_ratio_here,
         max_cost=max_cost_here,
+        max_delta=max_delta_here,
         eq_only=eq_only,
         kernel=kernel,
         rtn_diff=rtn_diff,

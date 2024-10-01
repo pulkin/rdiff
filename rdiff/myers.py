@@ -286,10 +286,10 @@ def search_graph_recursive(
             front_updated[ix] = progress
 
             # track min-max for eq_only=True early returns
-            if eq_only and not is_reverse_front and progress > max_front_forward:
-                max_front_forward = progress
-            if eq_only and is_reverse_front and progress < min_front_reverse:
-                min_front_reverse = progress
+            if eq_only and not is_reverse_front and progress >= max_front_forward:
+                max_front_forward = progress + 1
+            if eq_only and is_reverse_front and progress <= min_front_reverse:
+                min_front_reverse = progress - 1
 
             # if front and reverse overlap we are done
             # to figure this out we first check whether we are facing ANY diagonal

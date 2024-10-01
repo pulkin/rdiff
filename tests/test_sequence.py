@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 from rdiff.sequence import diff, diff_nested
 from rdiff.chunk import Diff, Chunk
@@ -93,6 +94,16 @@ def test_delta_constrain_3(kernel):
             Chunk(data_a="yyy", data_b="x", eq=False),
         ]
     )
+
+
+@pytest.mark.parametrize("kernel", ["py", "c"])
+@pytest.mark.parametrize("eq_only", [False, True])
+def test_fuzz(kernel, eq_only):
+    a = [5, 0, 3, 3, 7, 9, 3, 5, 2, 4, 7, 6, 8, 8, 1, 6, 7, 7, 8, 1, 5, 9,
+         8, 9, 4, 3, 0, 3, 5, 0, 2, 3, 8, 1, 3, 3, 3, 7, 0, 1]
+    b = [4, 1, 8, 5, 4, 3, 5, 7, 6, 6, 9, 3, 3, 2, 7, 3, 9, 9, 5, 9, 8, 3,
+         8, 5, 9, 0, 7, 0, 1, 6, 6, 4, 5, 7, 6, 0, 1, 6, 6, 4]
+    assert diff(a, b, kernel=kernel, min_ratio=0.425, eq_only=eq_only).ratio == 0.425
 
 
 @pytest.mark.parametrize("kernel", ["py", "c"])
@@ -232,3 +243,45 @@ def test_nested_cost():
             )
         ]
     )
+
+
+@pytest.mark.parametrize("max_depth", [10, 2])
+def test_nested_np(monkeypatch, max_depth):
+    a = np.array([
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+    ])
+    b = a.copy()
+    b[1, 1] = 9
+
+    def chunk_eq(a: Chunk, b: Chunk) -> bool:
+        return (a.data_a == b.data_a).all() and (a.data_b == b.data_b).all() and a.eq == b.eq
+
+    monkeypatch.setattr(Chunk, "__eq__", chunk_eq)
+
+    assert diff_nested(a, b, min_ratio=0.1) == Diff(
+        ratio=1,
+        diffs=[
+            Chunk(data_a=a, data_b=b, eq=[
+                True,
+                Diff(ratio=2 / 3, diffs=[
+                    Chunk(data_a=np.array([3]), data_b=np.array([3]), eq=True),
+                    Chunk(data_a=np.array([4]), data_b=np.array([9]), eq=False),
+                    Chunk(data_a=np.array([5]), data_b=np.array([5]), eq=True),
+                ]),
+                True,
+            ])
+        ]
+    )
+
+
+@pytest.mark.parametrize("max_depth", [10, 2])
+@pytest.mark.benchmark(group="depth-for-performance")
+def test_big_np(monkeypatch, benchmark, max_depth):
+    np.random.seed(0)
+    shape = (10, 1000)
+    a = np.random.randint(0, 10, size=shape)
+    b = np.random.randint(0, 10, size=shape)
+
+    assert benchmark(diff_nested, a, b, min_ratio=0, max_depth=max_depth).ratio > 0
