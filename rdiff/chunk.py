@@ -32,18 +32,18 @@ class Chunk(NamedTuple):
         data_b = self.data_b
 
         if eq is True:
-            if data_a == data_b:
-                return f"{prefix}a=b: {repr(data_a)}"
-            else:
-                return f"{prefix}a=b: {repr(data_a)} = {repr(data_b)}"
+            # plain equal
+            return f"{prefix}a[]=b[]: {repr(data_a)} = {repr(data_b)}"
         elif eq is False:
-            return f"{prefix}a≠b: {repr(data_a)} ≠ {repr(data_b)}"
+            # plain not equal
+            return f"{prefix}a[]≠b[]: {repr(data_a)} ≠ {repr(data_b)}"
         else:
-            result = [f"{prefix}a≈b:"]
+            # a sequence of aligned elements with some differences
+            result = [f"{prefix}a[]≈b[]: {repr(data_a)} ≈ {repr(data_b)}"]
             for _eq, _a, _b in zip(eq, data_a, data_b):
                 if _eq is True:
                     # this was an exact comparison
-                    result.append(f"{prefix}··a=b {_a}")
+                    result.append(f"{prefix}··a=b: {_a}")
                 else:
                     result.append(_eq.to_string(prefix=prefix + "··"))
             return "\n".join(result)
