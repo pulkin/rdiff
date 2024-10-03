@@ -264,6 +264,9 @@ def diff_nested(
         count of dissimilar/misaligned elements in both sequences. Setting
         this to zero is equivalent to setting min_ratio to 1. The algorithm
         worst-case time complexity scales with this number.
+    max_delta
+        The maximal delta of the diff. For sequences of equal lengths this number
+        tells the maximal absolute difference between indeces of aligned chunks.
     eq_only
         If True, attempts to guarantee the existence of an edit script
         satisfying both min_ratio and max_cost without actually finding the
@@ -279,6 +282,8 @@ def diff_nested(
         typically faster and consumes less memory.
     nested_containers
         A collection of types that are considered to be capable of nesting.
+    max_depth
+        Maximal recursion depth while exploring a and b.
 
     Returns
     -------
@@ -353,10 +358,10 @@ def diff_nested(
             _dig = None
 
         else:  # inputs are not containers
-            return True if a_ == b else False
+            return bool(a_ == b_)
 
     else:  # inputs are not the same type
-        return True if a_ == b_ else False
+        return bool(a_ == b_)
 
     result = diff(
         a=a,
