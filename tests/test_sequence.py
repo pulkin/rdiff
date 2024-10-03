@@ -4,6 +4,8 @@ import numpy as np
 from rdiff.sequence import diff, diff_nested
 from rdiff.chunk import Diff, Chunk
 
+from .util import np_chunk_eq
+
 
 @pytest.mark.parametrize("kernel", ["py", "c"])
 def test_empty(kernel):
@@ -255,10 +257,7 @@ def test_nested_np(monkeypatch, max_depth):
     b = a.copy()
     b[1, 1] = 9
 
-    def chunk_eq(a: Chunk, b: Chunk) -> bool:
-        return (a.data_a == b.data_a).all() and (a.data_b == b.data_b).all() and a.eq == b.eq
-
-    monkeypatch.setattr(Chunk, "__eq__", chunk_eq)
+    monkeypatch.setattr(Chunk, "__eq__", np_chunk_eq)
 
     assert diff_nested(a, b, min_ratio=0.1) == Diff(
         ratio=1,
