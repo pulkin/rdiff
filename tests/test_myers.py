@@ -131,6 +131,14 @@ def test_diag_range(driver):
 
 
 @pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
+def test_max_calls(driver):
+    a = "_0aaa1_"
+    b = "_2aaa3_"
+    assert driver(len(a), len(b), (a, b)) == 4
+    assert driver(len(a), len(b), (a, b), max_calls=2) == 10
+
+
+@pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 @pytest.mark.parametrize("n", [256, 512])
 @pytest.mark.parametrize("rtn_diff", [False, True])
 @pytest.mark.benchmark(group="call")

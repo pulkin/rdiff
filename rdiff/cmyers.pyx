@@ -217,6 +217,7 @@ cdef Py_ssize_t _search_graph_recursive(
     const compare_protocol similarity_ratio_getter,
     const double accept,
     Py_ssize_t max_cost,
+    Py_ssize_t max_calls,
     Py_ssize_t min_diag,
     Py_ssize_t max_diag,
     char eq_only,
@@ -230,7 +231,7 @@ cdef Py_ssize_t _search_graph_recursive(
     cdef:
         Py_ssize_t ix, nm, n_m, cost, diag, diag_src, diag_dst, diag_facing_from, diag_facing_to, diag_updated_from,\
             diag_updated_to, diag_, diag_updated_from_, diag_updated_to_, _p, x, y, x2, y2, progress, progress_start,\
-            previous, is_reverse_front, reverse_as_sign, max_front_forward, min_front_reverse
+            previous, is_reverse_front, reverse_as_sign, max_front_forward, min_front_reverse, n_calls = 2
         Py_ssize_t* front_updated
         Py_ssize_t* front_facing
         Py_ssize_t** fronts = [front_forward, front_reverse]
@@ -242,6 +243,7 @@ cdef Py_ssize_t _search_graph_recursive(
     # strip matching ends of the sequence
     # forward
     while n * m > 0 and similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, i, j) >= accept:
+        n_calls += 1
         ix = i + j
         if rtn_script:
             out[ix] = 3
@@ -254,6 +256,7 @@ cdef Py_ssize_t _search_graph_recursive(
         max_diag -= 1
     # ... and reverse
     while n * m > 0 and similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, i + n - 1, j + m - 1) >= accept:
+        n_calls += 1
         ix = i + j + n + m - 2
         if rtn_script:
             out[ix] = 3
@@ -336,9 +339,10 @@ cdef Py_ssize_t _search_graph_recursive(
             y = (progress - diag + m) // 2 - is_reverse_front
 
             # slide down the progress coordinate
-            while (0 <= x < n and
-                   0 <= y < m and
-                   similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, x + i, y + j) >= accept):
+            while 0 <= x < n and 0 <= y < m:
+                n_calls += 1
+                if similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, x + i, y + j) < accept:
+                    break
                 progress += 2 * reverse_as_sign
                 x += reverse_as_sign
                 y += reverse_as_sign
@@ -383,6 +387,7 @@ cdef Py_ssize_t _search_graph_recursive(
                             similarity_ratio_getter=similarity_ratio_getter,
                             accept=accept,
                             max_cost=cost // 2 + cost % 2,
+                            max_calls=max_calls,
                             min_diag=min_diag - m + y,
                             max_diag=max_diag - m + y,
                             eq_only=0,
@@ -398,6 +403,7 @@ cdef Py_ssize_t _search_graph_recursive(
                             similarity_ratio_getter=similarity_ratio_getter,
                             accept=accept,
                             max_cost=cost // 2,
+                            max_calls=max_calls,
                             min_diag=min_diag - x2,
                             max_diag=max_diag - x2,
                             eq_only=0,
@@ -408,6 +414,9 @@ cdef Py_ssize_t _search_graph_recursive(
                             front_reverse=front_reverse,
                         )
                     return cost
+
+        if n_calls > max_calls:
+            break
 
         # phase 2: make "horizontal" and "vertical" steps into adjacent diagonals
         _p = cost // 2 + 1
@@ -457,9 +466,10 @@ def search_graph_recursive(
     Py_ssize_t n,
     Py_ssize_t m,
     similarity_ratio_getter,
-    out,
+    out=None,
     double accept=1,
     Py_ssize_t max_cost=0xFFFFFFFF,
+    Py_ssize_t max_calls=0xFFFFFFFF,
     char eq_only=0,
     Py_ssize_t min_diag=0,
     Py_ssize_t max_diag=0xFFFFFFFF,
@@ -485,6 +495,7 @@ def search_graph_recursive(
             similarity_ratio_getter=_get_protocol(n, m, similarity_ratio_getter),
             accept=accept,
             max_cost=max_cost,
+            max_calls=max_calls,
             eq_only=eq_only,
             min_diag=min_diag,
             max_diag=max_diag,

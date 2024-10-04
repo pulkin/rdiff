@@ -8,6 +8,7 @@ from typing import Callable, Optional
 
 MAX_COST = 0xFFFFFFFF  # a reasonably high maximal diff cost
 MAX_DIAG = 0xFFFFFFFF  # maximal diagonal
+MAX_CALLS = 0xFFFFFFFF  # maximal calls
 
 
 def search_graph_recursive(
@@ -17,6 +18,7 @@ def search_graph_recursive(
         out: array = None,
         accept: float = 1,
         max_cost: int = MAX_COST,
+        max_calls: int = MAX_CALLS,
         eq_only: bool = False,
         min_diag: int = 0,
         max_diag: int = MAX_DIAG,
@@ -61,6 +63,10 @@ def search_graph_recursive(
         maximal number of additions and deletions allowed
         in the final diff. Setting this to smaller values
         allows earlier returns.
+    max_calls
+        The maximal number of calls (iterations) after which
+        the algorithm gives up. This has to be lower than n * m
+        to have any effect.
     eq_only
         If True, only figures out whether there is an edit script
         with the cost equal or below max_cost without further
@@ -91,6 +97,7 @@ def search_graph_recursive(
         def similarity_ratio_getter(_i: int, _j: int) -> float:
             return _a[_i] == _b[_j]
 
+    n_calls = 2  # takes into account additional calls in the two loops below
     max_cost = min(max_cost, n + m)
 
     # strip the sequence from matching ends
@@ -101,6 +108,7 @@ def search_graph_recursive(
 
     # forward
     while n * m > 0 and similarity_ratio_getter(i, j) >= accept:
+        n_calls += 1
         ix = i + j
         if out is not None:
             out[ix] = 3
@@ -114,6 +122,7 @@ def search_graph_recursive(
 
     # ... and reverse
     while n * m > 0 and similarity_ratio_getter(i + n - 1, j + m - 1) >= accept:
+        n_calls += 1
         ix = i + j + n + m - 2
         if out is not None:
             out[ix] = 3
@@ -277,9 +286,10 @@ def search_graph_recursive(
             y = (progress - diag + m) // 2 - is_reverse_front
 
             # slide down the progress coordinate
-            while (0 <= x < n and
-                   0 <= y < m and
-                   similarity_ratio_getter(x + i, y + j) >= accept):
+            while 0 <= x < n and 0 <= y < m:
+                n_calls += 1
+                if similarity_ratio_getter(x + i, y + j) < accept:
+                    break
                 progress += 2 * reverse_as_sign
                 x += reverse_as_sign
                 y += reverse_as_sign
@@ -336,6 +346,9 @@ def search_graph_recursive(
                             j=j + y2,
                         )
                     return cost
+
+        if n_calls > max_calls:
+            break
 
         # phase 2: make "horizontal" and "vertical" steps into adjacent diagonals
         #
