@@ -3,7 +3,7 @@ from typing import Optional, Union
 import numpy as np
 
 from .chunk import Diff
-from .myers import MAX_COST
+from .myers import MAX_COST, MAX_CALLS
 from .sequence import diff_nested
 
 
@@ -14,6 +14,7 @@ def diff(
         min_ratio: Union[float, tuple[float]] = 0.75,
         max_cost: Union[int, tuple[int]] = MAX_COST,
         max_delta: Union[int, tuple[int]] = MAX_COST,
+        max_calls: Union[int, tuple[int]] = MAX_CALLS,
         eq_only: bool = False,
         kernel: Optional[str] = None,
         rtn_diff: bool = True,
@@ -45,6 +46,9 @@ def diff(
     max_delta
         The maximal delta of the diff. For sequences of equal lengths this number
         tells the maximal absolute difference between indeces of aligned chunks.
+    max_calls
+        The maximal number of calls (iterations) after which the algorithm gives
+        up. This has to be lower than ``len(a) * len(b)`` to have any effect.
     eq_only
         If True, attempts to guarantee the existence of an edit script
         satisfying both min_ratio and max_cost without actually finding the
@@ -77,6 +81,7 @@ def diff(
         min_ratio=min_ratio,
         max_cost=max_cost,
         max_delta=max_delta,
+        max_calls=max_calls,
         eq_only=eq_only,
         kernel=kernel,
         rtn_diff=rtn_diff,
