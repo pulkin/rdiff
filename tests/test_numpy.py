@@ -1,9 +1,26 @@
 import numpy as np
 
-from rdiff.chunk import Diff, Chunk
-from rdiff.numpy import diff
+from rdiff.chunk import Diff, Chunk, Signature, ChunkSignature
+from rdiff.numpy import diff, get_row_col_diff
 
 from .util import np_chunk_eq
+
+
+def test_equal(monkeypatch):
+    np.random.seed(0)
+    a = np.random.randint(0, 10, size=(10, 10))
+
+    monkeypatch.setattr(Chunk, "__eq__", np_chunk_eq)
+
+    assert diff(a, a) == Diff(
+        ratio=1,
+        diffs=[
+            Chunk(data_a=a, data_b=a, eq=[
+                Diff(ratio=1.0, diffs=[Chunk(data_a=_i, data_b=_i, eq=True)])
+                for _i in a
+            ])
+        ]
+    )
 
 
 def test_random(monkeypatch):
@@ -44,4 +61,79 @@ def test_random(monkeypatch):
                 for _a, _b in zip(a[4:], b[4:])
             ])
         ]
+    )
+
+
+def test_row_col_sig_eq_0():
+    np.random.seed(0)
+    a = np.random.randint(0, 10, size=(10, 10))
+    assert get_row_col_diff(a, a) == (
+        Signature(parts=(ChunkSignature(10, 10, True),)),
+        Signature(parts=(ChunkSignature(10, 10, True),)),
+    )
+
+
+def test_row_col_sig_eq_1():
+    np.random.seed(0)
+    a = np.random.randint(0, 10, size=(10, 10))
+    b = a.copy()
+    for i in range(10):
+        b[i, i] += 1
+    assert get_row_col_diff(a, b) == (
+        Signature(parts=(ChunkSignature(10, 10, True),)),
+        Signature(parts=(ChunkSignature(10, 10, True),)),
+    )
+
+
+def test_row_col_sig_row():
+    np.random.seed(0)
+    a = np.random.randint(0, 10, size=(10, 10))
+    b = a.copy()
+    b[4] += 1
+    assert get_row_col_diff(a, b) == (
+        Signature(parts=(
+            ChunkSignature(4, 4, True),
+            ChunkSignature(1, 1, False),
+            ChunkSignature(5, 5, True),
+        )),
+        Signature(parts=(
+            ChunkSignature(10, 10, True),
+        )),
+    )
+
+
+def test_row_col_sig_col():
+    np.random.seed(0)
+    a = np.random.randint(0, 10, size=(10, 10))
+    b = a.copy()
+    b[:, 4] += 1
+    assert get_row_col_diff(a, b) == (
+        Signature(parts=(
+            ChunkSignature(10, 10, True),
+        )),
+        Signature(parts=(
+            ChunkSignature(4, 4, True),
+            ChunkSignature(1, 1, False),
+            ChunkSignature(5, 5, True),
+        )),
+    )
+
+
+def test_row_col_sig_row_col():
+    np.random.seed(0)
+    a = np.random.randint(0, 10, size=(10, 10))
+    b = a.copy()
+    b[4] += 1
+    b[:, 4] += 1
+    assert get_row_col_diff(a, b) == (
+        Signature(parts=(
+            ChunkSignature(4, 4, True),
+            ChunkSignature(1, 1, False),
+            ChunkSignature(5, 5, True),
+        )),
+        Signature(parts=(
+            ChunkSignature(4, 4, True),
+            ChunkSignature(1, 1, False),
+            ChunkSignature(5, 5, True),
+        )),
     )
