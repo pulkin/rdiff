@@ -1,7 +1,7 @@
 import numpy as np
 
 from rdiff.chunk import Diff, Chunk, Signature, ChunkSignature
-from rdiff.numpy import diff, get_row_col_diff
+from rdiff.numpy import diff, get_row_col_diff, align_inflate
 
 from .util import np_chunk_eq
 
@@ -137,3 +137,16 @@ def test_row_col_sig_row_col():
             ChunkSignature(5, 5, True),
         )),
     )
+
+
+def test_align_inflate():
+    a = np.arange(5)
+    b = np.arange(5, 11)
+    s = Signature(parts=[
+        ChunkSignature(size_a=1, size_b=1, eq=True),
+        ChunkSignature(size_a=2, size_b=3, eq=False),
+        ChunkSignature(size_a=2, size_b=2, eq=True),
+    ])
+    a_, b_ = align_inflate(a, b, -1, s, 0)
+    assert (a_ == np.array([0, 1, 2, -1, -1, -1, 3, 4])).all()
+    assert (b_ == np.array([5, -1, -1, 6, 7, 8, 9, 10])).all()

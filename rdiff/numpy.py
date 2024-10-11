@@ -238,3 +238,57 @@ def get_row_col_diff(
             in_row_diff.extend(chunk.eq)
     col_sig = common_diff_sig(a.shape[1], b.shape[1], in_row_diff)
     return row_sig, col_sig
+
+
+def align_inflate(a: np.ndarray, b: np.ndarray, val, sig: Signature, dim: int) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Align arrays with the given value by inflating them.
+
+    Parameters
+    ----------
+    a
+    b
+        The arrays to align.
+    val
+        The scalar value to inflate with.
+    sig
+        The diff signature to use.
+    dim
+        The dimension to inflate.
+
+    Returns
+    -------
+    The inflated array.
+    """
+    assert (ndim := a.ndim) == b.ndim
+
+    s = sum(
+        chunk.size_a + chunk.size_b * (1 - chunk.eq)
+        for chunk in sig.parts
+    )
+    a_shape = list(a.shape)
+    b_shape = list(b.shape)
+    a_shape[dim] = s
+    b_shape[dim] = s
+    result_a = np.full(a_shape, val, dtype=a.dtype)
+    result_b = np.full(b_shape, val, dtype=b.dtype)
+
+    pre = (slice(None),) * dim
+    post = (slice(None),) * (ndim - dim - 1)
+
+    offset_a = offset_b = offset = 0
+    for chunk in sig.parts:
+        # a comes first
+        result_a[(*pre, slice(offset, offset + chunk.size_a), *post)] = (
+            a[(*pre, slice(offset_a, offset_a + chunk.size_a), *post)]
+        )
+        offset_a += chunk.size_a
+        if not chunk.eq:
+            offset += chunk.size_a
+        # b is second
+        result_b[(*pre, slice(offset, offset + chunk.size_b), *post)] = (
+            b[(*pre, slice(offset_b, offset_b + chunk.size_b), *post)]
+        )
+        offset_b += chunk.size_b
+        offset += chunk.size_b
+    return result_a, result_b
