@@ -4,11 +4,13 @@ A Myers diff algorithm, adapted from http://blog.robertelder.org/diff-algorithm/
 import warnings
 from array import array
 from typing import Callable, Optional
+from itertools import groupby
 
 
 MAX_COST = 0xFFFFFFFF  # a reasonably high maximal diff cost
 MAX_DIAG = 0xFFFFFFFF  # maximal diagonal
 MAX_CALLS = 0xFFFFFFFF  # maximal calls
+MAX_DEPTH = 0xFF  # maximal recursion depth
 
 
 def search_graph_recursive(
@@ -22,6 +24,7 @@ def search_graph_recursive(
         eq_only: bool = False,
         min_diag: int = 0,
         max_diag: int = MAX_DIAG,
+        max_depth: int = MAX_DEPTH,
         i: int = 0,
         j: int = 0,
 ) -> int:
@@ -80,6 +83,8 @@ def search_graph_recursive(
     max_diag
         The range of diagonals to run: this determines the
         space where the optimal path is searched.
+    max_depth
+        Maximal recursion depth.
     i, j
         Offsets for calling similarity_ratio_getter and
         writing the edit script.
@@ -91,6 +96,7 @@ def search_graph_recursive(
     """
     if eq_only and out is not None:
         warnings.warn("the 'out' argument is ignored for eq_only=True")
+
     if isinstance(similarity_ratio_getter, tuple):
         _a, _b = similarity_ratio_getter
 
@@ -138,6 +144,15 @@ def search_graph_recursive(
                 out[ix] = 1
             for ix in range(i + j + n, i + j + n + m):
                 out[ix] = 2
+        return n + m
+
+    if max_depth == 0:
+        # write "special" codes indicating WIP
+        if out is not None:
+            for ix in range(i + j, i + j + n):
+                out[ix] = 5
+            for ix in range(i + j + n, i + j + n + m):
+                out[ix] = 6
         return n + m
 
     """
@@ -330,6 +345,7 @@ def search_graph_recursive(
                             max_cost=cost // 2 + cost % 2,
                             min_diag=min_diag - m + y,
                             max_diag=max_diag - m + y,
+                            max_depth=max_depth - 1,
                             i=i,
                             j=j,
                         )
@@ -342,6 +358,7 @@ def search_graph_recursive(
                             max_cost=cost // 2,
                             min_diag=min_diag - x2,
                             max_diag=max_diag - x2,
+                            max_depth=max_depth - 1,
                             i=i + x2,
                             j=j + y2,
                         )
@@ -430,3 +447,68 @@ def search_graph_recursive(
         for ix in range(i + j + n, i + j + n + m):
             out[ix] = 2
     return n + m
+
+
+def resume_search(
+        n: int,
+        m: int,
+        similarity_ratio_getter: Callable[[int, int], float],
+        out: array,
+        kernel=search_graph_recursive,
+        accept: float = 1,
+        min_diag: int = 0,
+        max_diag: int = MAX_DIAG,
+        max_depth: int = MAX_DEPTH,
+) -> int:
+    """
+    Resumes the previous recursive search.
+
+    Parameters
+    ----------
+    n
+    m
+    similarity_ratio_getter
+    out
+    kernel
+    accept
+    min_diag
+    max_diag
+    max_depth
+        See `search_graph_recursive` for the description.
+
+    Returns
+    -------
+    The diff cost: the number of deletions + the number
+    of additions.
+    """
+    x = y = 0
+    iterator = groupby(out)
+    cost = 0
+    for key, chunk in iterator:
+        n = len(list(chunk))
+        if key == 1:
+            cost += n
+            x += n
+        elif key == 2:
+            cost += n
+            y += n
+        elif key == 3:
+            x += n
+            y += n
+        elif key == 5:
+            key, chunk = next(iterator)
+            assert key == 6
+            m = len(list(chunk))
+            cost += kernel(
+                n=n,
+                m=m,
+                similarity_ratio_getter=similarity_ratio_getter,
+                out=out,
+                accept=accept,
+                min_diag=min_diag,
+                max_diag=max_diag,
+                max_depth=max_depth,
+                i=x,
+                j=y,
+            )
+    return cost

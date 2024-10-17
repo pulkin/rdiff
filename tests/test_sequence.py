@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from array import array
 
 from rdiff.sequence import diff, diff_nested
 from rdiff.chunk import Diff, Chunk
@@ -29,6 +30,25 @@ def test_equal_str(kernel):
 @pytest.mark.parametrize("kernel", ["py", "c"])
 def test_sub_str(kernel):
     assert diff("ice", "alice bob", kernel=kernel, min_ratio=0) == Diff(
+        ratio=.5,
+        diffs=[
+            Chunk(data_a="", data_b="al", eq=False),
+            Chunk(data_a="ice", data_b="ice", eq=True),
+            Chunk(data_a="", data_b=" bob", eq=False),
+        ],
+    )
+
+
+@pytest.mark.parametrize("kernel", ["py", "c"])
+def test_restart(kernel):
+    a = "ice"
+    b = "alice bob"
+    buffer = array('b', b'\xFF' * (len(a) + len(b)))
+    assert diff("ice", "alice bob", kernel=kernel, min_ratio=0, max_depth=1, rtn_diff=buffer) == Diff(
+        ratio=.5,
+        diffs=None,
+    )
+    assert diff("ice", "alice bob", kernel=kernel, min_ratio=0, max_depth=1, resume=buffer) == Diff(
         ratio=.5,
         diffs=[
             Chunk(data_a="", data_b="al", eq=False),

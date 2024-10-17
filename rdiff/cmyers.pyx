@@ -71,8 +71,6 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
 
     if isinstance(compare, tuple):
         a, b = compare
-        assert len(a) == n
-        assert len(b) == m
 
         if type(a) == type(b):
             if type(a) is str:
@@ -220,6 +218,7 @@ cdef Py_ssize_t _search_graph_recursive(
     Py_ssize_t max_calls,
     Py_ssize_t min_diag,
     Py_ssize_t max_diag,
+    Py_ssize_t max_depth,
     char eq_only,
     char[::1] out,
     Py_ssize_t i,
@@ -274,6 +273,15 @@ cdef Py_ssize_t _search_graph_recursive(
                 out[ix] = 1
             for ix in range(i + j + n, i + j + n + m):
                 out[ix] = 2
+        return n + m
+
+    if max_depth == 0:
+        # write "special" codes indicating WIP
+        if rtn_script:
+            for ix in range(i + j, i + j + n):
+                out[ix] = 5
+            for ix in range(i + j + n, i + j + n + m):
+                out[ix] = 6
         return n + m
 
     nm = min(n, m) + 1
@@ -390,6 +398,7 @@ cdef Py_ssize_t _search_graph_recursive(
                             max_calls=max_calls,
                             min_diag=min_diag - m + y,
                             max_diag=max_diag - m + y,
+                            max_depth=max_depth - 1,
                             eq_only=0,
                             out=out,
                             i=i,
@@ -406,6 +415,7 @@ cdef Py_ssize_t _search_graph_recursive(
                             max_calls=max_calls,
                             min_diag=min_diag - x2,
                             max_diag=max_diag - x2,
+                            max_depth=max_depth - 1,
                             eq_only=0,
                             out=out,
                             i=i + x2,
@@ -473,6 +483,9 @@ def search_graph_recursive(
     char eq_only=0,
     Py_ssize_t min_diag=0,
     Py_ssize_t max_diag=0xFFFFFFFF,
+    Py_ssize_t max_depth=0xFF,
+    Py_ssize_t i=0,
+    Py_ssize_t j=0,
 ) -> int:
     """See the description of the pure-python implementation."""
     cdef:
@@ -499,9 +512,10 @@ def search_graph_recursive(
             eq_only=eq_only,
             min_diag=min_diag,
             max_diag=max_diag,
+            max_depth=max_depth,
             out=cout,
-            i=0,
-            j=0,
+            i=i,
+            j=j,
             front_forward=buffer_1,
             front_reverse=buffer_2,
         )

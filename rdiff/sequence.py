@@ -4,7 +4,7 @@ from array import array
 from itertools import groupby
 
 from .chunk import Diff, Chunk
-from .myers import search_graph_recursive as pymyers, MAX_COST, MAX_CALLS
+from .myers import search_graph_recursive as pymyers, MAX_COST, MAX_CALLS, MAX_DEPTH, resume_search
 from .cmyers import search_graph_recursive as cmyers
 
 _nested_containers = (list, tuple)
@@ -33,11 +33,13 @@ def diff(
         max_cost: int = MAX_COST,
         max_delta: int = MAX_COST,
         max_calls: int = MAX_CALLS,
+        max_depth: int = MAX_DEPTH,
         eq_only: bool = False,
         kernel: Optional[str] = None,
-        rtn_diff: bool = True,
+        rtn_diff: Union[bool, array] = True,
         dig=None,
         strict: bool = True,
+        resume: Optional[array] = None,
 ) -> Diff:
     """
     Computes a diff between sequences.
@@ -72,11 +74,13 @@ def diff(
     max_calls
         The maximal number of calls (iterations) after which the algorithm gives
         up. This has to be lower than ``len(a) * len(b)`` to have any effect.
+    max_depth
+        The maximal recursion depth.
     eq_only
         If True, attempts to guarantee the existence of an edit script
         satisfying both min_ratio and max_cost without actually finding the
         script. This provides an early stop and further savings in run times
-        is some cases. Enforces rtn_diff=False.
+        is some cases. If set, enforces rtn_diff=False.
     kernel
         The kernel to use:
         - 'py': python implementation of Myers diff algorithm
@@ -85,12 +89,17 @@ def diff(
         If True, computes and returns the diff. Otherwise, returns the
         similarity ratio only. Computing the similarity ratio only is
         typically faster and consumes less memory.
+        This option also accepts an array: if an array passed will
+        perform a full diff and store codes into the provided array
+        while the returned object will be the same as rtn_diff=False.
     dig
         Once set to ``fun(i, j)``, the values of ``Chunk.eq`` in the
         output will be replaced by the values returned by the function.
     strict
         If True, ensures that the returned diff either satisfies both
         min_ratio and max_cost or otherwise has a zero ratio.
+    resume
+        If specified, will resume the search from the provided state.
 
     Returns
     -------
@@ -106,10 +115,16 @@ def diff(
         _a, _b = eq
         assert len(_a) == n
         assert len(_b) == m
-    if rtn_diff:
+    if isinstance(rtn_diff, array):
+        codes = rtn_diff
+        rtn_diff = False
+    elif rtn_diff:
         codes = array('b', b'\xFF' * (n + m))
     else:
         codes = None
+
+    if resume is not None:
+        codes[:] = resume
 
     _kernel = _kernels[kernel]
 
@@ -118,19 +133,36 @@ def diff(
         return Diff(ratio=1, diffs=[])
 
     max_cost = min(max_cost, int(total_len - total_len * min_ratio))
+    min_diag = min(n, m) - max_delta
+    max_diag = max(n, m) + max_delta
 
-    cost = _kernel(
-        n=n,
-        m=m,
-        similarity_ratio_getter=eq,
-        accept=accept,
-        max_cost=max_cost,
-        eq_only=eq_only,
-        min_diag=min(n, m) - max_delta,
-        max_diag=max(n, m) + max_delta,
-        max_calls=max_calls,
-        out=codes,
-    )
+    if resume is not None:
+        cost = resume_search(
+            n=n,
+            m=m,
+            similarity_ratio_getter=eq,
+            out=codes,
+            kernel=_kernel,
+            accept=accept,
+            min_diag=min_diag,
+            max_diag=max_diag,
+            max_depth=max_depth,
+        )
+
+    else:
+        cost = _kernel(
+            n=n,
+            m=m,
+            similarity_ratio_getter=eq,
+            accept=accept,
+            max_cost=max_cost,
+            eq_only=eq_only,
+            min_diag=min_diag,
+            max_diag=max_diag,
+            max_calls=max_calls,
+            max_depth=max_depth,
+            out=codes,
+        )
 
     if strict and cost > max_cost:
         if rtn_diff:
