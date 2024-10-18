@@ -101,7 +101,10 @@ def test_delta_pass(kernel):
 
 @pytest.mark.parametrize("kernel", ["py", "c"])
 def test_delta_constrain_1(kernel):
-    assert diff("xxxyyy", "yyyxxx", kernel=kernel, max_delta=0, min_ratio=0) == Diff(ratio=0.0, diffs=[Chunk(data_a="xxxyyy", data_b="yyyxxx", eq=False)])
+    assert diff("xxxyyy", "yyyxxx", kernel=kernel, max_delta=0, min_ratio=0) == Diff(
+        ratio=0.0,
+        diffs=[Chunk(data_a="xxxyyy", data_b="yyyxxx", eq=False)],
+    )
 
 
 @pytest.mark.parametrize("kernel", ["py", "c"])
@@ -137,7 +140,7 @@ def test_fuzz(kernel, eq_only):
 
 
 @pytest.mark.parametrize("kernel", ["py", "c"])
-def test_equal_str_nested(kernel):
+def test_equal_str_nested_emulation(kernel):
     a, b = ["alice1", "bob1", "xxx"], ["alice2", "bob2"]
 
     def _eq(i: int, j: int):
@@ -181,6 +184,11 @@ def test_equal_str_nested_recursive():
             Chunk(data_a=["xxx"], data_b=[], eq=False),
         ],
     )
+
+
+def test_equal_str_nested_recursive_eq_only():
+    assert diff_nested(["alice1", "bob1", "xxx"], ["alice2", "bob2"], rtn_diff=False) == Diff(ratio=0.8, diffs=None)
+    assert diff_nested(["alice1", "bob1", "xxx"], ["alice2", "bob2"], eq_only=True) == Diff(ratio=0.8, diffs=None)
 
 
 def test_complex_nested():

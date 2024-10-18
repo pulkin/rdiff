@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import Optional, Union
 from array import array
 from itertools import groupby
+from warnings import warn
 
 from .chunk import Diff, Chunk
 from .myers import search_graph_recursive as pymyers, MAX_COST, MAX_CALLS, MAX_DEPTH, resume_search
@@ -106,6 +107,8 @@ def diff(
     A diff object describing the diff.
     """
     if eq_only:
+        if rtn_diff is not False:
+            warn("using eq_only=True overrides rtn_diff")
         rtn_diff = False
     n = len(a)
     m = len(b)
@@ -122,6 +125,9 @@ def diff(
         codes = array('b', b'\xFF' * (n + m))
     else:
         codes = None
+
+    if not rtn_diff and dig is not None:
+        warn("using dig=... has no effect when rtn_diff=False or array")
 
     if resume is not None:
         codes[:] = resume
@@ -271,9 +277,10 @@ def diff_nested(
         max_cost: Union[int, tuple[int]] = MAX_COST,
         max_delta: Union[int, tuple[int]] = MAX_COST,
         max_calls: Union[int, tuple[int]] = MAX_CALLS,
+        max_recursion: Union[int, tuple[int]] = MAX_DEPTH,
         eq_only: bool = False,
         kernel: Optional[str] = None,
-        rtn_diff: bool = True,
+        rtn_diff: Union[bool, array] = True,
         nested_containers: tuple = _nested_containers,
         max_depth: int = MAX_DEPTH,
         _blacklist_a: set = frozenset(),
@@ -308,6 +315,8 @@ def diff_nested(
     max_calls
         The maximal number of calls (iterations) after which the algorithm gives
         up. This has to be lower than ``len(a) * len(b)`` to have any effect.
+    max_recursion
+        The maximal recursion depth.
     eq_only
         If True, attempts to guarantee the existence of an edit script
         satisfying both min_ratio and max_cost without actually finding the
@@ -321,6 +330,9 @@ def diff_nested(
         If True, computes and returns the diff. Otherwise, returns the
         similarity ratio only. Computing the similarity ratio only is
         typically faster and consumes less memory.
+        This option also accepts an array: if an array passed will
+        perform a full diff and store codes into the provided array
+        while the returned object will be the same as rtn_diff=False.
     nested_containers
         A collection of types that are considered to be capable of nesting.
     max_depth
@@ -330,6 +342,10 @@ def diff_nested(
     -------
     A diff object describing the diff.
     """
+    if eq_only:
+        if rtn_diff is not False:
+            warn("using eq_only=True overrides rtn_diff")
+        rtn_diff = False
     a_ = a
     b_ = b
     if eq is not None:
@@ -339,6 +355,7 @@ def diff_nested(
     max_cost_here, max_cost_pass = _pop_optional(max_cost)
     max_delta_here, max_delta_pass = _pop_optional(max_delta)
     max_calls_here, max_calls_pass = _pop_optional(max_calls)
+    max_recursion_here, max_recursion_pass = _pop_optional(max_recursion)
     accept, _ = _pop_optional(min_ratio_pass)
 
     if max_depth <= 1:
@@ -351,6 +368,7 @@ def diff_nested(
             max_cost=max_cost_here,
             max_delta=max_delta_here,
             max_calls=max_calls_here,
+            max_recursion=max_recursion_here,
             eq_only=eq_only,
             kernel=kernel,
             rtn_diff=rtn_diff,
@@ -373,6 +391,7 @@ def diff_nested(
                     max_cost=max_cost_pass,
                     max_delta=max_delta_pass,
                     max_calls=max_calls_pass,
+                    max_recursion=max_recursion_pass,
                     eq_only=True,
                     kernel=kernel,
                     nested_containers=nested_containers,
@@ -381,23 +400,28 @@ def diff_nested(
                     _blacklist_b=_blacklist_b,
                 )
 
-            def _dig(i: int, j: int):
-                return diff_nested(
-                    a=a[i],
-                    b=b[j],
-                    eq=(a_[i], b_[j]),
-                    min_ratio=min_ratio_pass,
-                    max_cost=max_cost_pass,
-                    max_delta=max_delta_pass,
-                    max_calls=max_calls_pass,
-                    eq_only=False,
-                    kernel=kernel,
-                    rtn_diff=rtn_diff,
-                    nested_containers=nested_containers,
-                    max_depth=max_depth - 1,
-                    _blacklist_a=_blacklist_a,
-                    _blacklist_b=_blacklist_b,
-                )
+            if rtn_diff:
+                def _dig(i: int, j: int):
+                    return diff_nested(
+                        a=a[i],
+                        b=b[j],
+                        eq=(a_[i], b_[j]),
+                        min_ratio=min_ratio_pass,
+                        max_cost=max_cost_pass,
+                        max_delta=max_delta_pass,
+                        max_calls=max_calls_pass,
+                        max_recursion=max_recursion_pass,
+                        eq_only=False,
+                        kernel=kernel,
+                        rtn_diff=rtn_diff,
+                        nested_containers=nested_containers,
+                        max_depth=max_depth - 1,
+                        _blacklist_a=_blacklist_a,
+                        _blacklist_b=_blacklist_b,
+                    )
+            else:
+                _dig = None
+
         elif issubclass(container_type, Sequence):  # inputs are containers but we do not recognize them as, potentially, nested
             _eq = (a_, b_)
             _dig = None
@@ -417,6 +441,7 @@ def diff_nested(
         max_cost=max_cost_here,
         max_delta=max_delta_here,
         max_calls=max_calls_here,
+        max_recursion=max_recursion_here,
         eq_only=eq_only,
         kernel=kernel,
         rtn_diff=rtn_diff,
