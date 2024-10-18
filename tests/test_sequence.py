@@ -40,6 +40,14 @@ def test_sub_str(kernel):
 
 
 @pytest.mark.parametrize("kernel", ["py", "c"])
+def test_sub_str_max_depth(kernel):
+    assert diff("ice", "alice bob", kernel=kernel, min_ratio=0, max_recursion=1) == Diff(
+        ratio=0.5,
+        diffs=[Chunk(data_a='ice', data_b='alice bob', eq=False)]
+    )
+
+
+@pytest.mark.parametrize("kernel", ["py", "c"])
 def test_restart(kernel):
     a = "ice"
     b = "alice bob"

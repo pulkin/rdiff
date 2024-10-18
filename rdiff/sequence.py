@@ -194,7 +194,7 @@ def canonize(codes: Sequence[int]):
     n = len(codes)
     for code_i in range(n + 1):
         if code_i != n:
-            code = codes[code_i]
+            code = codes[code_i] % 4
         else:
             code = 0
         if code == 1:
