@@ -40,6 +40,15 @@ def test_sub_str(kernel):
 
 
 @pytest.mark.parametrize("kernel", ["py", "c"])
+def test_sub_str_raw_codes(kernel):
+    a = "ice"
+    b = "alice bob"
+    buffer = array('b', b'\xFF' * (len(a) + len(b)))
+    assert diff(a, b, kernel=kernel, min_ratio=0, rtn_diff=buffer) == Diff(ratio=0.5, diffs=None)
+    assert buffer == array("b", b"\x02\x02\x03\x00\x03\x00\x03\x00\x02\x02\x02\x02")
+
+
+@pytest.mark.parametrize("kernel", ["py", "c"])
 def test_sub_str_max_depth(kernel):
     assert diff("ice", "alice bob", kernel=kernel, min_ratio=0, max_recursion=1) == Diff(
         ratio=0.5,
@@ -231,6 +240,14 @@ def test_complex_nested():
             Chunk(data_a=[[5, 6, 7]], data_b=[[5, 8, 9]], eq=False),
         ],
     )
+
+
+def test_complex_nested_raw():
+    a = ["alice1", "bob1", "xxx", [0, 1, 2, "charlie1"], [5, 6, 7]]
+    b = ["alice2", "bob2", [0, 2, "charlie2"], [5, 8, 9]]
+    buffer = array('b', b'\xFF' * 9)
+    assert diff_nested(a, b, min_ratio=0.5, rtn_diff=buffer) == Diff(ratio=2 / 3, diffs=None)
+    assert buffer == array("b", b"\x03\x00\x03\x00\x01\x03\x00\x02\x01")
 
 
 def test_nested_same():
