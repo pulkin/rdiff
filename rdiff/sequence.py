@@ -107,8 +107,6 @@ def diff(
     A diff object describing the diff.
     """
     if eq_only:
-        if rtn_diff is not False:
-            warn("using eq_only=True overrides rtn_diff")
         rtn_diff = False
     n = len(a)
     m = len(b)
@@ -343,8 +341,6 @@ def diff_nested(
     A diff object describing the diff.
     """
     if eq_only:
-        if rtn_diff is not False:
-            warn("using eq_only=True overrides rtn_diff")
         rtn_diff = False
     a_ = a
     b_ = b
