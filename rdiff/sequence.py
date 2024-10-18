@@ -33,7 +33,7 @@ def diff(
         max_cost: int = MAX_COST,
         max_delta: int = MAX_COST,
         max_calls: int = MAX_CALLS,
-        max_depth: int = MAX_DEPTH,
+        max_recursion: int = MAX_DEPTH,
         eq_only: bool = False,
         kernel: Optional[str] = None,
         rtn_diff: Union[bool, array] = True,
@@ -74,7 +74,7 @@ def diff(
     max_calls
         The maximal number of calls (iterations) after which the algorithm gives
         up. This has to be lower than ``len(a) * len(b)`` to have any effect.
-    max_depth
+    max_recursion
         The maximal recursion depth.
     eq_only
         If True, attempts to guarantee the existence of an edit script
@@ -146,7 +146,7 @@ def diff(
             accept=accept,
             min_diag=min_diag,
             max_diag=max_diag,
-            max_depth=max_depth,
+            max_depth=max_recursion,
         )
 
     else:
@@ -160,7 +160,7 @@ def diff(
             min_diag=min_diag,
             max_diag=max_diag,
             max_calls=max_calls,
-            max_depth=max_depth,
+            max_depth=max_recursion,
             out=codes,
         )
 
@@ -275,7 +275,7 @@ def diff_nested(
         kernel: Optional[str] = None,
         rtn_diff: bool = True,
         nested_containers: tuple = _nested_containers,
-        max_depth: int = MAX_COST,
+        max_depth: int = MAX_DEPTH,
         _blacklist_a: set = frozenset(),
         _blacklist_b: set = frozenset(),
 ) -> Union[Diff, bool]:

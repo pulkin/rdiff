@@ -44,11 +44,11 @@ def test_restart(kernel):
     a = "ice"
     b = "alice bob"
     buffer = array('b', b'\xFF' * (len(a) + len(b)))
-    assert diff("ice", "alice bob", kernel=kernel, min_ratio=0, max_depth=1, rtn_diff=buffer) == Diff(
+    assert diff("ice", "alice bob", kernel=kernel, min_ratio=0, max_recursion=1, rtn_diff=buffer) == Diff(
         ratio=.5,
         diffs=None,
     )
-    assert diff("ice", "alice bob", kernel=kernel, min_ratio=0, max_depth=1, resume=buffer) == Diff(
+    assert diff("ice", "alice bob", kernel=kernel, min_ratio=0, max_recursion=1, resume=buffer) == Diff(
         ratio=.5,
         diffs=[
             Chunk(data_a="", data_b="al", eq=False),

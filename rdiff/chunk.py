@@ -38,14 +38,6 @@ class Signature:
     """
     parts: Sequence[ChunkSignature]
 
-    @cached_property
-    def n(self):
-        return sum(i.size_a for i in self.parts)
-
-    @cached_property
-    def m(self):
-        return sum(i.size_b for i in self.parts)
-
 
 @dataclass(frozen=True)
 class Chunk:

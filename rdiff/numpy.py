@@ -23,7 +23,7 @@ def diff(
         rtn_diff: bool = True,
 ) -> Diff:
     """
-    Computes a diff between numpy tensors of equal rank..
+    Computes a diff between numpy tensors of equal rank.
 
     Parameters
     ----------
@@ -33,7 +33,7 @@ def diff(
         The second tensor.
     eq
         An optional pair of tensors ``(a_, b_)`` substituting the input
-        arrays when computing the diff. The returned chunks, however, are
+        tensors when computing the diff. The returned chunks, however, are
         still composed of elements from a and b.
     min_ratio
         The ratio below which the algorithm exits. The values closer to 1
