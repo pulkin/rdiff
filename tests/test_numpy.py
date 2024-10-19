@@ -1,7 +1,7 @@
 import numpy as np
 
 from rdiff.chunk import Diff, Chunk, Signature, ChunkSignature
-from rdiff.numpy import diff, get_row_col_diff, align_inflate
+from rdiff.numpy import diff, get_row_col_diff, align_inflate, diff_aligned_2d
 
 from .util import np_chunk_eq
 
@@ -150,3 +150,15 @@ def test_align_inflate():
     a_, b_ = align_inflate(a, b, -1, s, 0)
     assert (a_ == np.array([0, 1, 2, -1, -1, -1, 3, 4])).all()
     assert (b_ == np.array([5, -1, -1, 6, 7, 8, 9, 10])).all()
+
+
+def test_diff_aligned_2d_1():
+    np.random.seed(0)
+    a = np.random.randint(0, 10, size=(10, 10))
+    b = a.copy()
+    ix = np.arange(10)
+    b[ix, ix] += 1
+    a_, b_, eq = diff_aligned_2d(a, b, 0)
+    assert (a_ == a).all()
+    assert (b_ == b).all()
+    assert (eq == (a == b)).all()

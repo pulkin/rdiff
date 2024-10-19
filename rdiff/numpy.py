@@ -292,3 +292,91 @@ def align_inflate(a: np.ndarray, b: np.ndarray, val, sig: Signature, dim: int) -
         offset_b += chunk.size_b
         offset += chunk.size_b
     return result_a, result_b
+
+
+def diff_aligned_2d(
+        a,
+        b,
+        fill,
+        eq=None,
+        min_ratio: Union[float, tuple[float]] = 0.75,
+        max_cost: Union[int, tuple[int]] = MAX_COST,
+        max_delta: Union[int, tuple[int]] = MAX_COST,
+        max_calls: Union[int, tuple[int]] = MAX_CALLS,
+        kernel: Optional[str] = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Computes an aligned diff between numpy matrices.
+
+    Parameters
+    ----------
+    a
+        The first matrix.
+    b
+        The second matrix.
+    fill
+        The empty value to use when filling both matrices.
+    eq
+        An optional pair of tensors ``(a_, b_)`` substituting the input
+        matrices when computing the diff. The returned chunks, however, are
+        still composed of elements from a and b.
+    min_ratio
+        The ratio below which the algorithm exits. The values closer to 1
+        typically result in faster run times while setting to 0 will force
+        the algorithm to crack through even completely dissimilar sequences.
+        This affects which arrays are considered "equal".
+    max_cost
+        The maximal cost of the diff: the number corresponds to the maximal
+        count of dissimilar/misaligned elements in both sequences. Setting
+        this to zero is equivalent to setting min_ratio to 1. The algorithm
+        worst-case time complexity scales with this number.
+    max_delta
+        The maximal delta of the diff. For sequences of equal lengths this number
+        tells the maximal absolute difference between indeces of aligned chunks.
+    max_calls
+        The maximal number of calls (iterations) after which the algorithm gives
+        up. This has to be lower than ``len(a) * len(b)`` to have any effect.
+    kernel
+        The kernel to use:
+        - 'py': python implementation of Myers diff algorithm
+        - 'c': cython implementation of Myers diff algorithm
+
+    Returns
+    -------
+    a
+        Inflated matrix a.
+    b
+        Inflated matrix b.
+    eq_matrix
+        Equality matrix.
+    """
+    a_, b_ = a, b
+    if eq is not None:
+        a_, b_ = eq
+    signatures = get_row_col_diff(
+        a=a_,
+        b=b_,
+        min_ratio=min_ratio,
+        max_cost=max_cost,
+        max_delta=max_delta,
+        max_calls=max_calls,
+        kernel=kernel,
+    )
+    for dim, sig in enumerate(signatures):
+        a, b = align_inflate(a, b, fill, sig, dim)
+        if eq is not None:
+            a_, b_ = align_inflate(a_, b_, fill, sig, dim)
+    if eq is None:
+        a_, b_ = a, b
+    eq_matrix = a_ == b_
+    idx = tuple()
+    for dim, sig in enumerate(signatures):
+        offset = 0
+        for part in sig.parts:
+            if not part.eq:
+                eq_matrix[(*idx, slice(offset, offset + (n := part.size_a + part.size_b)))] = False
+                offset += n
+            else:
+                offset += part.size_a
+        idx = (*idx, slice(None))
+    return a, b, eq_matrix
