@@ -137,7 +137,7 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
     return result
 
 
-def test_get_protocol_obj():
+def _test_get_protocol_obj():
     _keep_this_ref = ([0, 2], [1, 0])
     cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
     assert cmp.kernel == &compare_object
@@ -145,7 +145,7 @@ def test_get_protocol_obj():
     assert cmp.kernel(cmp.a, cmp.b, 0, 1)
 
 
-def test_get_protocol_call():
+def _test_get_protocol_call():
     def f(i, j):
         return i == 0 and j == 1
     cdef compare_protocol cmp = _get_protocol(2, 2, f)
@@ -154,7 +154,7 @@ def test_get_protocol_call():
     assert cmp.kernel(cmp.a, cmp.b, 0, 1)
 
 
-def test_get_protocol_str():
+def _test_get_protocol_str():
     _keep_this_ref = ("ac", "ba")
     cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
     assert cmp.kernel == &compare_str
@@ -162,7 +162,7 @@ def test_get_protocol_str():
     assert cmp.kernel(cmp.a, cmp.b, 0, 1)
 
 
-def test_get_protocol_array():
+def _test_get_protocol_array():
     cdef compare_protocol cmp
 
     for typecode in "bBhHiIlLqQfd":
@@ -183,7 +183,7 @@ def test_get_protocol_array():
         assert cmp.kernel(cmp.a, cmp.b, 0, 1)
 
 
-def test_get_protocol_numpy():
+def _test_get_protocol_numpy():
     cdef compare_protocol cmp
 
     for dtype in numpy.int8, numpy.int16, numpy.int32, numpy.int64, numpy.float16, numpy.float32, numpy.float64:
