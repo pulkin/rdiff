@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from rdiff.chunk import Diff, Chunk, Signature, ChunkSignature
 from rdiff.numpy import diff, get_row_col_diff, align_inflate, diff_aligned_2d
@@ -6,10 +7,18 @@ from rdiff.numpy import diff, get_row_col_diff, align_inflate, diff_aligned_2d
 from .util import np_chunk_eq
 
 
-def test_equal(monkeypatch):
+@pytest.fixture
+def a():
     np.random.seed(0)
-    a = np.random.randint(0, 10, size=(10, 10))
+    return np.random.randint(0, 10, size=(10, 10))
 
+
+@pytest.fixture
+def a1(a):
+    return a + np.eye(10)
+
+
+def test_equal(monkeypatch, a):
     monkeypatch.setattr(Chunk, "__eq__", np_chunk_eq)
 
     assert diff(a, a) == Diff(
@@ -23,9 +32,7 @@ def test_equal(monkeypatch):
     )
 
 
-def test_random(monkeypatch):
-    np.random.seed(0)
-    a = np.random.randint(0, 10, size=(10, 10))
+def test_random(monkeypatch, a):
     b = a.copy()
     b[1:, 1] = 11
     b[2:, 2] = 12
@@ -64,30 +71,21 @@ def test_random(monkeypatch):
     )
 
 
-def test_row_col_sig_eq_0():
-    np.random.seed(0)
-    a = np.random.randint(0, 10, size=(10, 10))
+def test_row_col_sig_eq_0(a):
     assert get_row_col_diff(a, a) == (
         Signature(parts=(ChunkSignature(10, 10, True),)),
         Signature(parts=(ChunkSignature(10, 10, True),)),
     )
 
 
-def test_row_col_sig_eq_1():
-    np.random.seed(0)
-    a = np.random.randint(0, 10, size=(10, 10))
-    b = a.copy()
-    for i in range(10):
-        b[i, i] += 1
-    assert get_row_col_diff(a, b) == (
+def test_row_col_sig_eq_1(a, a1):
+    assert get_row_col_diff(a, a1) == (
         Signature(parts=(ChunkSignature(10, 10, True),)),
         Signature(parts=(ChunkSignature(10, 10, True),)),
     )
 
 
-def test_row_col_sig_row():
-    np.random.seed(0)
-    a = np.random.randint(0, 10, size=(10, 10))
+def test_row_col_sig_row(a):
     b = a.copy()
     b[4] += 1
     assert get_row_col_diff(a, b) == (
@@ -102,9 +100,7 @@ def test_row_col_sig_row():
     )
 
 
-def test_row_col_sig_col():
-    np.random.seed(0)
-    a = np.random.randint(0, 10, size=(10, 10))
+def test_row_col_sig_col(a):
     b = a.copy()
     b[:, 4] += 1
     assert get_row_col_diff(a, b) == (
@@ -119,9 +115,7 @@ def test_row_col_sig_col():
     )
 
 
-def test_row_col_sig_row_col():
-    np.random.seed(0)
-    a = np.random.randint(0, 10, size=(10, 10))
+def test_row_col_sig_row_col(a):
     b = a.copy()
     b[4] += 1
     b[:, 4] += 1
@@ -152,13 +146,59 @@ def test_align_inflate():
     assert (b_ == np.array([5, -1, -1, 6, 7, 8, 9, 10])).all()
 
 
-def test_diff_aligned_2d_1():
-    np.random.seed(0)
-    a = np.random.randint(0, 10, size=(10, 10))
-    b = a.copy()
-    ix = np.arange(10)
-    b[ix, ix] += 1
-    a_, b_, eq = diff_aligned_2d(a, b, 0)
+def test_diff_aligned_2d_same(a, a1):
+    a_, b_, eq = diff_aligned_2d(a, a1, 0)
     assert (a_ == a).all()
-    assert (b_ == b).all()
-    assert (eq == (a == b)).all()
+    assert (b_ == a1).all()
+    assert (eq == (a == a1)).all()
+
+
+def test_diff_aligned_2d_new_row(a, a1):
+    at = np.insert(a, 4, 0, axis=0)
+    bt = np.insert(a1, 4, 0, axis=0)
+    mask = at == bt
+    mask[4, :] = False
+
+    a_, b_, eq = diff_aligned_2d(a, bt, 0)
+    assert (a_ == at).all()
+    assert (b_ == bt).all()
+    assert (eq == mask).all()
+
+
+def test_diff_aligned_2d_new_col(a, a1):
+    at = np.insert(a, 4, 0, axis=1)
+    bt = np.insert(a1, 4, 0, axis=1)
+    mask = at == bt
+    mask[:, 4] = False
+
+    a_, b_, eq = diff_aligned_2d(a, bt, 0)
+    assert (a_ == at).all()
+    assert (b_ == bt).all()
+    assert (eq == mask).all()
+
+
+def test_diff_aligned_2d_new_row_col(a, a1):
+    at = np.insert(np.insert(a, 4, 0, axis=0), 8, 0, axis=1)
+    bt = np.insert(np.insert(a1, 4, 0, axis=0), 8, 0, axis=1)
+    mask = at == bt
+    mask[4, :] = mask[:, 8] = False
+
+    a_, b_, eq = diff_aligned_2d(a, bt, 0)
+    assert (a_ == at).all()
+    assert (b_ == bt).all()
+    assert (eq == mask).all()
+
+
+def test_diff_aligned_2d_mix_1(a, a1):
+    a = np.insert(np.insert(a, 4, 42, axis=0), 8, 42, axis=1)
+    a1 = np.insert(np.insert(a1, 4, 89, axis=0), 8, 89, axis=1)
+
+    at = np.insert(np.insert(a, 5, 0, axis=0), 9, 0, axis=1)
+    bt = np.insert(np.insert(a1, 4, 0, axis=0), 8, 0, axis=1)
+    mask = at == bt
+    mask[4:6, :] = mask[:, 8:10] = False
+
+    a_, b_, eq = diff_aligned_2d(a, a1, 0)
+    assert (a_ == at).all()
+    assert (b_ == bt).all()
+    assert (eq == mask).all()
