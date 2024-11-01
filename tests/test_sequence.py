@@ -103,42 +103,6 @@ def test_sub_str_early_stop_3(kernel):
 
 
 @pytest.mark.parametrize("kernel", ["py", "c"])
-def test_delta_pass(kernel):
-    s = "xxx"
-    assert diff(s, s, kernel=kernel, max_delta=0) == Diff(ratio=1.0, diffs=[Chunk(data_a=s, data_b=s, eq=True)])
-
-
-@pytest.mark.parametrize("kernel", ["py", "c"])
-def test_delta_constrain_1(kernel):
-    assert diff("xxxyyy", "yyyxxx", kernel=kernel, max_delta=0, min_ratio=0) == Diff(
-        ratio=0.0,
-        diffs=[Chunk(data_a="xxxyyy", data_b="yyyxxx", eq=False)],
-    )
-
-
-@pytest.mark.parametrize("kernel", ["py", "c"])
-def test_delta_constrain_2(kernel):
-    assert diff("xxxyyy", "yyyxxx", kernel=kernel, max_delta=1, min_ratio=0) == Diff(
-        ratio=1 / 6, diffs=[
-            Chunk(data_a="xx", data_b="yyy", eq=False),
-            Chunk(data_a="x", data_b="x", eq=True),
-            Chunk(data_a="yyy", data_b="xx", eq=False),
-        ]
-    )
-
-
-@pytest.mark.parametrize("kernel", ["py", "c"])
-def test_delta_constrain_3(kernel):
-    assert diff("xxxyyy", "yyyxxx", kernel=kernel, max_delta=2, min_ratio=0) == Diff(
-        ratio=1 / 3, diffs=[
-            Chunk(data_a="x", data_b="yyy", eq=False),
-            Chunk(data_a="xx", data_b="xx", eq=True),
-            Chunk(data_a="yyy", data_b="x", eq=False),
-        ]
-    )
-
-
-@pytest.mark.parametrize("kernel", ["py", "c"])
 @pytest.mark.parametrize("eq_only", [False, True])
 def test_fuzz(kernel, eq_only):
     a = [5, 0, 3, 3, 7, 9, 3, 5, 2, 4, 7, 6, 8, 8, 1, 6, 7, 7, 8, 1, 5, 9,

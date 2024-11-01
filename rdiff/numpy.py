@@ -16,7 +16,6 @@ def diff(
         eq=None,
         min_ratio: Union[float, tuple[float]] = 0.75,
         max_cost: Union[int, tuple[int]] = MAX_COST,
-        max_delta: Union[int, tuple[int]] = MAX_COST,
         max_calls: Union[int, tuple[int]] = MAX_CALLS,
         eq_only: bool = False,
         kernel: Optional[str] = None,
@@ -45,9 +44,6 @@ def diff(
         count of dissimilar/misaligned elements in both sequences. Setting
         this to zero is equivalent to setting min_ratio to 1. The algorithm
         worst-case time complexity scales with this number.
-    max_delta
-        The maximal delta of the diff. For sequences of equal lengths this number
-        tells the maximal absolute difference between indeces of aligned chunks.
     max_calls
         The maximal number of calls (iterations) after which the algorithm gives
         up. This has to be lower than ``len(a) * len(b)`` to have any effect.
@@ -81,7 +77,6 @@ def diff(
         b=b,
         min_ratio=min_ratio,
         max_cost=max_cost,
-        max_delta=max_delta,
         max_calls=max_calls,
         eq_only=eq_only,
         kernel=kernel,
@@ -173,7 +168,6 @@ def get_row_col_diff(
         b: np.ndarray,
         min_ratio: Union[float, tuple[float]] = 0.75,
         max_cost: Union[int, tuple[int]] = MAX_COST,
-        max_delta: Union[int, tuple[int]] = MAX_COST,
         max_calls: Union[int, tuple[int]] = MAX_CALLS,
         kernel: Optional[str] = None,
 ) -> tuple[Signature, Signature]:
@@ -201,9 +195,6 @@ def get_row_col_diff(
         count of dissimilar/misaligned elements in both sequences. Setting
         this to zero is equivalent to setting min_ratio to 1. The algorithm
         worst-case time complexity scales with this number.
-    max_delta
-        The maximal delta of the diff. For sequences of equal lengths this number
-        tells the maximal absolute difference between indeces of aligned chunks.
     max_calls
         The maximal number of calls (iterations) after which the algorithm gives
         up. This has to be lower than ``len(a) * len(b)`` to have any effect.
@@ -226,7 +217,6 @@ def get_row_col_diff(
         b=b,
         min_ratio=min_ratio,
         max_cost=max_cost,
-        max_delta=max_delta,
         max_calls=max_calls,
         kernel=kernel,
     )
@@ -301,7 +291,6 @@ def diff_aligned_2d(
         eq=None,
         min_ratio: Union[float, tuple[float]] = 0.75,
         max_cost: Union[int, tuple[int]] = MAX_COST,
-        max_delta: Union[int, tuple[int]] = MAX_COST,
         max_calls: Union[int, tuple[int]] = MAX_CALLS,
         kernel: Optional[str] = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -330,9 +319,6 @@ def diff_aligned_2d(
         count of dissimilar/misaligned elements in both sequences. Setting
         this to zero is equivalent to setting min_ratio to 1. The algorithm
         worst-case time complexity scales with this number.
-    max_delta
-        The maximal delta of the diff. For sequences of equal lengths this number
-        tells the maximal absolute difference between indeces of aligned chunks.
     max_calls
         The maximal number of calls (iterations) after which the algorithm gives
         up. This has to be lower than ``len(a) * len(b)`` to have any effect.
@@ -358,7 +344,6 @@ def diff_aligned_2d(
         b=b_,
         min_ratio=min_ratio,
         max_cost=max_cost,
-        max_delta=max_delta,
         max_calls=max_calls,
         kernel=kernel,
     )

@@ -216,8 +216,6 @@ cdef Py_ssize_t _search_graph_recursive(
     const double accept,
     Py_ssize_t max_cost,
     Py_ssize_t max_calls,
-    Py_ssize_t min_diag,
-    Py_ssize_t max_diag,
     Py_ssize_t max_depth,
     char eq_only,
     char[::1] out,
@@ -251,8 +249,6 @@ cdef Py_ssize_t _search_graph_recursive(
         j += 1
         n -= 1
         m -= 1
-        min_diag -= 1
-        max_diag -= 1
     # ... and reverse
     while n * m > 0 and similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, i + n - 1, j + m - 1) >= accept:
         n_calls += 1
@@ -262,8 +258,6 @@ cdef Py_ssize_t _search_graph_recursive(
             out[ix + 1] = 0
         n -= 1
         m -= 1
-        min_diag -= 1
-        max_diag -= 1
 
     dimensions[0], dimensions[1] = n, m
 
@@ -327,8 +321,6 @@ cdef Py_ssize_t _search_graph_recursive(
         # phase 1: propagate diagonals
         # every second diagonal is propagated during each iteration
         for diag in range(diag_updated_from, diag_updated_to + 2, 2):
-            if not min_diag <= diag <= max_diag:
-                continue
             # we simply use modulo size for indexing
             # you can also keep diag_from to always correspond to the 0th
             # element of the front or any other alignment but having
@@ -396,8 +388,6 @@ cdef Py_ssize_t _search_graph_recursive(
                             accept=accept,
                             max_cost=cost // 2 + cost % 2,
                             max_calls=max_calls,
-                            min_diag=min_diag - m + y,
-                            max_diag=max_diag - m + y,
                             max_depth=max_depth - 1,
                             eq_only=0,
                             out=out,
@@ -413,8 +403,6 @@ cdef Py_ssize_t _search_graph_recursive(
                             accept=accept,
                             max_cost=cost // 2,
                             max_calls=max_calls,
-                            min_diag=min_diag - x2,
-                            max_diag=max_diag - x2,
                             max_depth=max_depth - 1,
                             eq_only=0,
                             out=out,
@@ -481,8 +469,6 @@ def search_graph_recursive(
     Py_ssize_t max_cost=0xFFFFFFFF,
     Py_ssize_t max_calls=0xFFFFFFFF,
     char eq_only=0,
-    Py_ssize_t min_diag=0,
-    Py_ssize_t max_diag=0xFFFFFFFF,
     Py_ssize_t max_depth=0xFF,
     Py_ssize_t i=0,
     Py_ssize_t j=0,
@@ -510,8 +496,6 @@ def search_graph_recursive(
             max_cost=max_cost,
             max_calls=max_calls,
             eq_only=eq_only,
-            min_diag=min_diag,
-            max_diag=max_diag,
             max_depth=max_depth,
             out=cout,
             i=i,

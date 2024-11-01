@@ -112,25 +112,6 @@ def test_str_non_periodic_2(driver):
 
 
 @pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
-def test_diag_range(driver):
-    def complicated_graph(i: int, j: int) -> float:
-        return [
-            [0, 1, 0, 0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 1, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 0, 1, 0, 0],
-        ][j][i]
-
-    result = array.array('b', b'\xFF' * 13)
-    cost = driver(8, 5, complicated_graph, result, min_diag=5)
-    assert compute_cost(result) == 7
-    assert cost == 7
-    canonize(result)
-    assert list(result) == [1, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 1]
-
-
-@pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 def test_max_calls(driver):
     a = "_0aaa1_"
     b = "_2aaa3_"

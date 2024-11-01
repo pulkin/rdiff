@@ -32,7 +32,6 @@ def diff(
         accept: float = 0.75,
         min_ratio: float = 0.75,
         max_cost: int = MAX_COST,
-        max_delta: int = MAX_COST,
         max_calls: int = MAX_CALLS,
         max_recursion: int = MAX_DEPTH,
         eq_only: bool = False,
@@ -69,9 +68,6 @@ def diff(
         count of dissimilar/misaligned elements in both sequences. Setting
         this to zero is equivalent to setting min_ratio to 1. The algorithm
         worst-case time complexity scales with this number.
-    max_delta
-        The maximal delta of the diff. For sequences of equal lengths this number
-        tells the maximal absolute difference between indeces of aligned chunks.
     max_calls
         The maximal number of calls (iterations) after which the algorithm gives
         up. This has to be lower than ``len(a) * len(b)`` to have any effect.
@@ -137,8 +133,6 @@ def diff(
         return Diff(ratio=1, diffs=[])
 
     max_cost = min(max_cost, int(total_len - total_len * min_ratio))
-    min_diag = min(n, m) - max_delta
-    max_diag = max(n, m) + max_delta
 
     if resume is not None:
         cost = resume_search(
@@ -148,8 +142,6 @@ def diff(
             out=codes,
             kernel=_kernel,
             accept=accept,
-            min_diag=min_diag,
-            max_diag=max_diag,
             max_depth=max_recursion,
         )
 
@@ -161,8 +153,6 @@ def diff(
             accept=accept,
             max_cost=max_cost,
             eq_only=eq_only,
-            min_diag=min_diag,
-            max_diag=max_diag,
             max_calls=max_calls,
             max_depth=max_recursion,
             out=codes,
@@ -286,7 +276,6 @@ def diff_nested(
         eq=None,
         min_ratio: Union[float, tuple[float]] = 0.75,
         max_cost: Union[int, tuple[int]] = MAX_COST,
-        max_delta: Union[int, tuple[int]] = MAX_COST,
         max_calls: Union[int, tuple[int]] = MAX_CALLS,
         max_recursion: Union[int, tuple[int]] = MAX_DEPTH,
         eq_only: bool = False,
@@ -320,9 +309,6 @@ def diff_nested(
         count of dissimilar/misaligned elements in both sequences. Setting
         this to zero is equivalent to setting min_ratio to 1. The algorithm
         worst-case time complexity scales with this number.
-    max_delta
-        The maximal delta of the diff. For sequences of equal lengths this number
-        tells the maximal absolute difference between indeces of aligned chunks.
     max_calls
         The maximal number of calls (iterations) after which the algorithm gives
         up. This has to be lower than ``len(a) * len(b)`` to have any effect.
@@ -362,7 +348,6 @@ def diff_nested(
 
     min_ratio_here, min_ratio_pass = _pop_optional(min_ratio)
     max_cost_here, max_cost_pass = _pop_optional(max_cost)
-    max_delta_here, max_delta_pass = _pop_optional(max_delta)
     max_calls_here, max_calls_pass = _pop_optional(max_calls)
     max_recursion_here, max_recursion_pass = _pop_optional(max_recursion)
     accept, _ = _pop_optional(min_ratio_pass)
@@ -375,7 +360,6 @@ def diff_nested(
             accept=accept,
             min_ratio=min_ratio_here,
             max_cost=max_cost_here,
-            max_delta=max_delta_here,
             max_calls=max_calls_here,
             max_recursion=max_recursion_here,
             eq_only=eq_only,
@@ -398,7 +382,6 @@ def diff_nested(
                     eq=(a_[i], b_[j]),
                     min_ratio=min_ratio_pass,
                     max_cost=max_cost_pass,
-                    max_delta=max_delta_pass,
                     max_calls=max_calls_pass,
                     max_recursion=max_recursion_pass,
                     eq_only=True,
@@ -417,7 +400,6 @@ def diff_nested(
                         eq=(a_[i], b_[j]),
                         min_ratio=min_ratio_pass,
                         max_cost=max_cost_pass,
-                        max_delta=max_delta_pass,
                         max_calls=max_calls_pass,
                         max_recursion=max_recursion_pass,
                         eq_only=False,
@@ -448,7 +430,6 @@ def diff_nested(
         accept=accept,
         min_ratio=min_ratio_here,
         max_cost=max_cost_here,
-        max_delta=max_delta_here,
         max_calls=max_calls_here,
         max_recursion=max_recursion_here,
         eq_only=eq_only,
