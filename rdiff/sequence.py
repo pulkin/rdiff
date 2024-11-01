@@ -231,33 +231,46 @@ def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int], dig=None) ->
     -------
     A list of diff chunks.
     """
-    i = j = 0
+    offset_a = offset_b = 0
     for neq, group in groupby((
         code
         for code in codes
         if code != 0),
         key=lambda x: bool(x % 3),
     ):
-        group = list(group)
-        n = i + sum(i % 2 for i in group)
-        m = j + sum(i // 2 for i in group)
+        n = offset_a
+        m = offset_b
+        for code in group:
+            n += code % 2
+            m += code // 2
 
-        if neq:
-            eq = False
-        elif dig is None:
-            eq = True
+        if neq or dig is None:
+            yield Chunk(
+                data_a=a[offset_a:n],
+                data_b=b[offset_b:m],
+                eq=not neq,
+            )
+
+            offset_a = n
+            offset_b = m
+
         else:
-            eq = [dig(_i, _j) for _i, _j in zip(range(i, n), range(j, m))]
-            # this is a work-around for nested diffs
-            if all(i is True for i in eq):
-                eq = True
-        yield Chunk(
-            data_a=a[i:n],
-            data_b=b[j:m],
-            eq=eq,
-        )
-        i = n
-        j = m
+            for key, group in groupby(
+                (dig(*pair) for pair in zip(range(offset_a, n), range(offset_b, m))),
+                key=lambda x: x is True  # either True or nested Diffs
+            ):
+                eq = list(group)
+                n = len(eq) + offset_a
+                m = len(eq) + offset_b
+
+                yield Chunk(
+                    data_a=a[offset_a:n],
+                    data_b=b[offset_b:m],
+                    eq=key or eq,  # True or list of nested Diffs
+                )
+
+                offset_a = n
+                offset_b = m
 
 
 def _pop_optional(seq):

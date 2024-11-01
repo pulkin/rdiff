@@ -224,8 +224,8 @@ def test_complex_nested():
                     diffs=[
                         Chunk(data_a=[0], data_b=[0], eq=True),
                         Chunk(data_a=[1], data_b=[], eq=False),
-                        Chunk(data_a=[2, "charlie1"], data_b=[2, "charlie2"], eq=[
-                            True,
+                        Chunk(data_a=[2], data_b=[2], eq=True),
+                        Chunk(data_a=["charlie1"], data_b=["charlie2"], eq=[
                             Diff(
                                 ratio=7 / 8,
                                 diffs=[
@@ -306,24 +306,30 @@ def test_nested_np(monkeypatch, max_depth):
         [0, 1, 2],
         [3, 4, 5],
         [6, 7, 8],
+        [10, 11, 12],
+        [13, 14, 15],
+        [16, 17, 18],
     ])
     b = a.copy()
     b[1, 1] = 9
+    b[3] += 100
 
     monkeypatch.setattr(Chunk, "__eq__", np_chunk_eq)
 
     assert diff_nested(a, b, min_ratio=0.1) == Diff(
-        ratio=1,
+        ratio=5. / 6,
         diffs=[
-            Chunk(data_a=a, data_b=b, eq=[
-                True,
+            Chunk(data_a=a[:1], data_b=b[:1], eq=True),
+            Chunk(data_a=a[1:2], data_b=b[1:2], eq=[
                 Diff(ratio=2 / 3, diffs=[
                     Chunk(data_a=np.array([3]), data_b=np.array([3]), eq=True),
                     Chunk(data_a=np.array([4]), data_b=np.array([9]), eq=False),
                     Chunk(data_a=np.array([5]), data_b=np.array([5]), eq=True),
                 ]),
-                True,
-            ])
+            ]),
+            Chunk(data_a=a[2:3], data_b=b[2:3], eq=True),
+            Chunk(data_a=a[3:4], data_b=b[3:4], eq=False),
+            Chunk(data_a=a[4:], data_b=b[4:], eq=True),
         ]
     )
 
