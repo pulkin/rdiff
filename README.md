@@ -60,6 +60,38 @@ WIP
   ··········a[]≠b[]: '' ≠ '2'
   ```
 
+Project scope
+-------------
+
+What is complete/planned:
+
+Core
+
+- [x] reference implementation in python
+- [x] Cython implementation
+- [x] supporting buffer protocol in Cython
+
+Raw comparison
+
+- [x] linear sequence comparison
+- [x] nested comparison
+- [x] 2D numpy comparison / matrix alignment
+
+Context comparison
+
+- [ ] text diffs
+- [ ] table diffs
+
+CLI
+
+- [ ] CLI interface
+- [ ] file walk
+- [ ] rich terminal output
+- [ ] HTML output
+- [ ] fine-tuned parameters
+- [ ] ETA/progress reporting
+- [ ] URI/S3 support
+
 License
 -------
 
