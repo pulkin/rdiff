@@ -7,7 +7,7 @@ import numpy as np
 
 from .chunk import Diff, ChunkSignature, Signature
 from .myers import MAX_COST, MAX_CALLS
-from .sequence import diff_nested
+from .sequence import diff_nested, diff as sequence_diff, _pop_optional
 
 
 def diff(
@@ -252,10 +252,7 @@ def align_inflate(a: np.ndarray, b: np.ndarray, val, sig: Signature, dim: int) -
     """
     assert (ndim := a.ndim) == b.ndim
 
-    s = sum(
-        chunk.size_a + chunk.size_b * (1 - chunk.eq)
-        for chunk in sig.parts
-    )
+    s = len(sig)
     a_shape = list(a.shape)
     b_shape = list(b.shape)
     a_shape[dim] = s
@@ -292,6 +289,7 @@ def diff_aligned_2d(
         min_ratio: Union[float, tuple[float]] = 0.75,
         max_cost: Union[int, tuple[int]] = MAX_COST,
         max_calls: Union[int, tuple[int]] = MAX_CALLS,
+        col_diff_sig: Optional[Signature] = None,
         kernel: Optional[str] = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -322,6 +320,11 @@ def diff_aligned_2d(
     max_calls
         The maximal number of calls (iterations) after which the algorithm gives
         up. This has to be lower than ``len(a) * len(b)`` to have any effect.
+    col_diff_sig
+        The column diff signature. If provided, this dramatically speeds up
+        the diff computation by assuming the column alignment via the provided
+        signature. In practice, this is useful for tables where column alignment
+        can be deduced by comparing column names separately from table contents.
     kernel
         The kernel to use:
         - 'py': python implementation of Myers diff algorithm
@@ -339,20 +342,72 @@ def diff_aligned_2d(
     a_, b_ = a, b
     if eq is not None:
         a_, b_ = eq
-    signatures = get_row_col_diff(
-        a=a_,
-        b=b_,
-        min_ratio=min_ratio,
-        max_cost=max_cost,
-        max_calls=max_calls,
-        kernel=kernel,
-    )
-    for dim, sig in enumerate(signatures):
-        a, b = align_inflate(a, b, fill, sig, dim)
+    if col_diff_sig:
+        # column diff provided: run a faster algorithm using column-aligned data
+        min_ratio_row, min_ratio = _pop_optional(min_ratio)
+        min_ratio_col, _ = _pop_optional(min_ratio)
+
+        max_cost_row, _ = _pop_optional(max_cost)
+        max_calls_row, _ = _pop_optional(max_calls)
+
+        # align columns  using the provided column diff
+        a, b = align_inflate(a, b, fill, col_diff_sig, 1)
         if eq is not None:
-            a_, b_ = align_inflate(a_, b_, fill, sig, dim)
-    if eq is None:
-        a_, b_ = a, b
+            a_, b_ = align_inflate(a_, b_, fill, col_diff_sig, 1)
+        else:
+            a_, b_ = a, b
+        # compute a mask telling which columns can be compared
+        # and which ones have to be ignored
+        mask = np.empty(len(col_diff_sig), dtype=bool)
+        offset = 0
+        for chunk in col_diff_sig.parts:
+            delta = len(chunk)
+            mask[offset:offset + delta] = chunk.eq
+            offset += delta
+
+        def eq(i, j, a_=a_, b_=b_, mask=mask, _m=a_.shape[1]):
+            # a quick comparison for aligned columns
+            return ((a_[i] == b_[j]) * mask).sum() / _m
+
+        # crunch row differences without using shallow algorithm
+        raw_diff = sequence_diff(
+            a=a,
+            b=b,
+            eq=eq,
+            accept=min_ratio_col,
+            min_ratio=min_ratio_row,
+            max_cost=max_cost_row,
+            max_calls=max_calls_row,
+            kernel=kernel,
+        )
+        row_diff_sig = raw_diff.signature
+
+        # finally, align rows
+        a, b = align_inflate(a, b, fill, row_diff_sig, 0)
+        if eq is not None:
+            a_, b_ = align_inflate(a_, b_, fill, row_diff_sig, 0)
+        else:
+            a_, b_ = a, b
+        signatures = row_diff_sig, col_diff_sig
+
+    else:
+        # generic row-column diff
+        signatures = get_row_col_diff(
+            a=a_,
+            b=b_,
+            min_ratio=min_ratio,
+            max_cost=max_cost,
+            max_calls=max_calls,
+            kernel=kernel,
+        )
+        for dim, sig in enumerate(signatures):
+            a, b = align_inflate(a, b, fill, sig, dim)
+            if eq is not None:
+                a_, b_ = align_inflate(a_, b_, fill, sig, dim)
+        if eq is None:
+            a_, b_ = a, b
+
+    # a, b, a_, b_ are all of the same exact shape starting here
     eq_matrix = a_ == b_
     idx = tuple()
     for dim, sig in enumerate(signatures):

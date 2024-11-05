@@ -146,11 +146,32 @@ def test_align_inflate():
     assert (b_ == np.array([5, -1, -1, 6, 7, 8, 9, 10])).all()
 
 
-def test_diff_aligned_2d_same(a, a1):
-    a_, b_, eq = diff_aligned_2d(a, a1, 0)
+@pytest.mark.parametrize("col_diff_sig", [None, Signature(parts=[ChunkSignature(10, 10, True)])])
+def test_diff_aligned_2d_same_0(a, a1, col_diff_sig):
+    a_, b_, eq = diff_aligned_2d(a, a1, 0, col_diff_sig=col_diff_sig)
     assert (a_ == a).all()
     assert (b_ == a1).all()
     assert (eq == (a == a1)).all()
+
+
+def test_diff_aligned_2d_same_1(a):
+    a_, b_, eq = diff_aligned_2d(
+        a, a, 0,
+        col_diff_sig=Signature(parts=[
+            ChunkSignature(3, 3, True),
+            ChunkSignature(1, 1, False),
+            ChunkSignature(6, 6, True),
+        ])
+    )
+
+    at = np.insert(a, 4, 0, axis=1)
+    bt = np.insert(a, 3, 0, axis=1)
+    mask = at == bt
+    mask[:, 3:5] = False
+
+    assert (a_ == at).all()
+    assert (b_ == bt).all()
+    assert (eq == mask).all()
 
 
 def test_diff_aligned_2d_new_row(a, a1):
@@ -189,7 +210,7 @@ def test_diff_aligned_2d_new_row_col(a, a1):
     assert (eq == mask).all()
 
 
-def test_diff_aligned_2d_mix_1(a, a1):
+def test_diff_aligned_2d_mix_0(a, a1):
     a = np.insert(np.insert(a, 4, 42, axis=0), 8, 42, axis=1)
     a1 = np.insert(np.insert(a1, 4, 89, axis=0), 8, 89, axis=1)
 

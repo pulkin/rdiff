@@ -25,6 +25,12 @@ class ChunkSignature:
     size_b: int
     eq: bool
 
+    def __len__(self):
+        if self.eq:
+            return self.size_a
+        else:
+            return self.size_a + self.size_b
+
 
 @dataclass(frozen=True)
 class Signature:
@@ -37,6 +43,9 @@ class Signature:
         Signature constituents.
     """
     parts: Sequence[ChunkSignature]
+
+    def __len__(self):
+        return sum(len(i) for i in self.parts)
 
 
 @dataclass(frozen=True)
