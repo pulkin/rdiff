@@ -27,7 +27,10 @@ WIP
   ```python
   from rdiff.sequence import diff
   
-  print(diff(['apples', 'bananas', 'carrots', 'dill'], ['apples', 'carrots', 'dill', 'eggplant']).to_string())
+  print(diff(
+      ['apples', 'bananas', 'carrots', 'dill'],
+      ['apples', 'carrots', 'dill', 'eggplant']
+  ).to_string())
   ```
   
   ```text
@@ -42,15 +45,17 @@ WIP
   ```python
   from rdiff.sequence import diff_nested
 
-  print(diff_nested([0, 1, ["alice", "bob"]], [0, 1, ["alice2", "bob2"]]).to_string())
+  print(diff_nested(
+      [0, 1, ["alice", "bob", "charlie", "dan"]],
+      [0, 1, ["alice2", "bob2", "karen", "dan"]]
+  ).to_string())
   ```
   
   ```text
   Diff(1.0000):
-  ··a[]≈b[]: [0, 1, ['alice', 'bob']] ≈ [0, 1, ['alice2', 'bob2']]
-  ····a=b: 0
-  ····a=b: 1
-  ····Diff(1.0000):
+  ··a[]=b[]: [0, 1] = [0, 1]
+  ··a[]≈b[]: [['alice', 'bob', 'charlie', 'dan']] ≈ [['alice2', 'bob2', 'karen', 'dan']]
+  ····Diff(0.7500):
   ······a[]≈b[]: ['alice', 'bob'] ≈ ['alice2', 'bob2']
   ········Diff(0.9091):
   ··········a[]=b[]: 'alice' = 'alice'
@@ -58,6 +63,8 @@ WIP
   ········Diff(0.8571):
   ··········a[]=b[]: 'bob' = 'bob'
   ··········a[]≠b[]: '' ≠ '2'
+  ······a[]≠b[]: ['charlie'] ≠ ['karen']
+  ······a[]=b[]: ['dan'] = ['dan']
   ```
 
 Project scope
