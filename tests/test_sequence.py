@@ -307,3 +307,27 @@ def test_big_np(monkeypatch, benchmark, max_depth):
     b = np.random.randint(0, 10, size=shape)
 
     assert benchmark(diff_nested, a, b, min_ratio=0, max_depth=max_depth).ratio > 0
+
+
+def test_strictly_no_python_0():
+    with pytest.raises(ValueError, match="failed to pick a suitable protocol"):
+        diff([0, 1, 2], [0, 1, 2], no_python=True)
+
+
+def test_strictly_no_python_1():
+    diff("abc", "abc", no_python=True)
+
+
+def test_strictly_no_python_2():
+    diff(b"abc", b"abc", no_python=True)
+
+
+def test_strictly_no_python_3():
+    diff(array("b", b"abc"), array("b", b"abc"), no_python=True)
+
+
+@pytest.mark.parametrize("dtype", [np.int8, np.int16, np.int32, np.int64, np.float16, np.float32,
+                                   np.float64, np.float128, np.object_, np.bool_])
+def test_strictly_no_python_4(dtype):
+    a = np.arange(3).astype(dtype)
+    diff(a, a, no_python=True)

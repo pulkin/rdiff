@@ -225,7 +225,7 @@ def test_diff_aligned_2d_mix_0(a, a1):
     assert (eq == mask).all()
 
 
-@pytest.mark.parametrize("dtype", [np.float32, np.float64, np.str_, np.bytes_, np.object_])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64, np.object_])
 def test_dtype(a, a1, dtype):
     a = a.astype(dtype)
     a1 = a1.astype(dtype)

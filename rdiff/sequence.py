@@ -40,6 +40,7 @@ def diff(
         dig=None,
         strict: bool = True,
         resume: Optional[array] = None,
+        no_python: bool = False,
 ) -> Diff:
     """
     Computes a diff between sequences.
@@ -97,6 +98,9 @@ def diff(
         min_ratio and max_cost or otherwise has a zero ratio.
     resume
         If specified, will resume the search from the provided state.
+    no_python
+        If True will disallow slow python-based comparison protocols
+        (c kernel only).
 
     Returns
     -------
@@ -143,6 +147,7 @@ def diff(
             kernel=_kernel,
             accept=accept,
             max_depth=max_recursion,
+            no_python=no_python,
         )
 
     else:
@@ -156,6 +161,7 @@ def diff(
             max_calls=max_calls,
             max_depth=max_recursion,
             out=codes,
+            no_python=no_python,
         )
 
     if strict and cost > max_cost:

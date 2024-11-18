@@ -44,11 +44,15 @@ cdef double compare_array_64(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
     return (<long*>a)[i] == (<long*>b)[j]
 
 
+cdef double compare_array_128(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+    return (<long long*>a)[i] == (<long long*>b)[j]
+
+
 cdef double compare_object(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
     return (<object>a)[i] == (<object>b)[j]
 
 
-cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
+cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, int no_python=0):
     """
     Figures out the compare protocol from the argument.
 
@@ -58,6 +62,9 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
         The size of objects being compared.
     compare
         A callable or a tuple of entities to compare.
+    no_python
+        If set to True, will disallow python protocols
+        (``__eq__`` and call) but raise instead.
 
     Returns
     -------
@@ -68,6 +75,7 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
         compare_protocol result
         long address_a, address_b
         int item_size
+    result.kernel = cython.NULL
 
     if isinstance(compare, tuple):
         a, b = compare
@@ -81,6 +89,12 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
                 result.b = <void*>b_unicode
                 return result
 
+            if type(a) is bytes:
+                result.kernel = &compare_array_8
+                result.a = <char*> a
+                result.b = <char*> b
+                return result
+
             if isinstance(a, array.array):
                 if a.itemsize == b.itemsize:
                     item_size = a.itemsize
@@ -92,6 +106,8 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
                         result.kernel = &compare_array_16
                     elif item_size == 1:
                         result.kernel = &compare_array_8
+                    else:
+                        warn(f"cannot use array protocol for input arrays with item size {item_size}")
 
                     if result.kernel:
                         address_a, _ = a.buffer_info()
@@ -99,7 +115,6 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
                         result.a = <void*> address_a
                         result.b = <void*> address_b
                         return result
-                warn("cannot use array protocol for input arrays")
 
 
             # to keep numpy dependence optional we figure out the
@@ -110,7 +125,9 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
                 b_data = b.data
                 if a.dtype == b.dtype and a_data.contiguous and b_data.contiguous:
                     item_size = a_data.itemsize
-                    if item_size == 8:
+                    if item_size == 16:
+                        result.kernel = &compare_array_128
+                    elif item_size == 8:
                         result.kernel = &compare_array_64
                     elif item_size == 4:
                         result.kernel = &compare_array_32
@@ -118,6 +135,8 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
                         result.kernel = &compare_array_16
                     elif item_size == 1:
                         result.kernel = &compare_array_8
+                    else:
+                        warn(f"cannot use array protocol for input numpy arrays with item size {item_size}")
 
                     if result.kernel:
                         address_a = a.ctypes.data
@@ -125,13 +144,16 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare):
                         result.a = <void*> address_a
                         result.b = <void*> address_b
                         return result
-                warn("cannot use array protocol for input numpy arrays")
 
+            if no_python:
+                raise ValueError("failed to pick a suitable protocol")
             result.kernel = &compare_object
             result.a = <void*>a
             result.b = <void*>b
             return result
 
+    if no_python:
+        raise ValueError("failed to pick a suitable protocol")
     result.kernel = &compare_call
     result.a = <PyObject*>compare
     return result
@@ -472,6 +494,7 @@ def search_graph_recursive(
     Py_ssize_t max_depth=0xFF,
     Py_ssize_t i=0,
     Py_ssize_t j=0,
+    int no_python=0,
 ) -> int:
     """See the description of the pure-python implementation."""
     cdef:
@@ -491,7 +514,7 @@ def search_graph_recursive(
         return _search_graph_recursive(
             n=n,
             m=m,
-            similarity_ratio_getter=_get_protocol(n, m, similarity_ratio_getter),
+            similarity_ratio_getter=_get_protocol(n, m, similarity_ratio_getter, no_python),
             accept=accept,
             max_cost=max_cost,
             max_calls=max_calls,

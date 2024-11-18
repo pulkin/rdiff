@@ -22,6 +22,7 @@ def search_graph_recursive(
         max_calls: int = MAX_CALLS,
         eq_only: bool = False,
         max_depth: int = MAX_DEPTH,
+        no_python: bool = False,
         i: int = 0,
         j: int = 0,
 ) -> int:
@@ -78,6 +79,9 @@ def search_graph_recursive(
         the default value of max_cost is very large.
     max_depth
         Maximal recursion depth.
+    no_python
+        If True will disallow slow python-based comparison protocols
+        (c kernel only).
     i, j
         Offsets for calling similarity_ratio_getter and
         writing the edit script.
@@ -87,6 +91,8 @@ def search_graph_recursive(
     The diff cost: the number of deletions + the number
     of additions.
     """
+    if no_python:
+        raise ValueError("cannot set no_python in py kernel")
     if eq_only and out is not None:
         warnings.warn("the 'out' argument is ignored for eq_only=True")
 
@@ -440,6 +446,7 @@ def resume_search(
         kernel=search_graph_recursive,
         accept: float = 1,
         max_depth: int = MAX_DEPTH,
+        no_python: bool = False,
 ) -> int:
     """
     Resumes the previous recursive search.
@@ -453,6 +460,7 @@ def resume_search(
     kernel
     accept
     max_depth
+    no_python
         See `search_graph_recursive` for the description.
 
     Returns
@@ -485,6 +493,7 @@ def resume_search(
                 out=out,
                 accept=accept,
                 max_depth=max_depth,
+                no_python=no_python,
                 i=x,
                 j=y,
             )
