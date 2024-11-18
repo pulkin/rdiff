@@ -15,7 +15,7 @@ def a():
 
 @pytest.fixture
 def a1(a):
-    return a + np.eye(10)
+    return a + np.eye(10, dtype=a.dtype)
 
 
 def test_equal(monkeypatch, a):
@@ -223,3 +223,14 @@ def test_diff_aligned_2d_mix_0(a, a1):
     assert (a_ == at).all()
     assert (b_ == bt).all()
     assert (eq == mask).all()
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.float64, str])
+def test_dtype(a, a1, dtype):
+    a = a.astype(dtype)
+    a1 = a1.astype(dtype)
+
+    a_, b_, eq = diff_aligned_2d(a, a1, 0)
+    assert (a_ == a).all()
+    assert (b_ == a1).all()
+    assert (eq == (a == a1)).all()
