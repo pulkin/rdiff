@@ -13,42 +13,54 @@ else:
     numpy_avail = True
 
 
-ctypedef double (*compare_type)(void*, void*, Py_ssize_t, Py_ssize_t)
+ctypedef double (*compare_type)(void*, void*, Py_ssize_t, Py_ssize_t, Py_ssize_t)
 cdef struct compare_protocol:
     compare_type kernel
     void* a
     void* b
+    Py_ssize_t n
 
 
-cdef double compare_call(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+cdef double compare_call(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<object>a)(i, j)
 
 
-cdef double compare_str(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+cdef double compare_str(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<unicode>a)[i] == (<unicode>b)[j]
 
 
-cdef double compare_array_8(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+cdef double compare_array_8(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<char*>a)[i] == (<char*>b)[j]
 
 
-cdef double compare_array_16(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+cdef double compare_array_16(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<short*>a)[i] == (<short*>b)[j]
 
 
-cdef double compare_array_32(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+cdef double compare_array_32(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<int*>a)[i] == (<int*>b)[j]
 
 
-cdef double compare_array_64(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+cdef double compare_array_64(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<long*>a)[i] == (<long*>b)[j]
 
 
-cdef double compare_array_128(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+cdef double compare_array_128(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<long long*>a)[i] == (<long long*>b)[j]
 
 
-cdef double compare_object(void* a, void* b, Py_ssize_t i, Py_ssize_t j):
+cdef double compare_array_var(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+    cdef:
+        Py_ssize_t t
+    a += i * n
+    b += j * n
+    for t in range(n):
+        if (<char*>a)[t] != (<char*>b)[t]:
+            return 0
+    return 1
+
+
+cdef double compare_object(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<object>a)[i] == (<object>b)[j]
 
 
@@ -76,6 +88,7 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
         long address_a, address_b
         int item_size
     result.kernel = cython.NULL
+    result.n = 0
 
     if isinstance(compare, tuple):
         a, b = compare
@@ -107,14 +120,14 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
                     elif item_size == 1:
                         result.kernel = &compare_array_8
                     else:
-                        warn(f"cannot use array protocol for input arrays with item size {item_size}")
+                        result.kernel = &compare_array_var
+                        result.n = item_size
 
-                    if result.kernel:
-                        address_a, _ = a.buffer_info()
-                        address_b, _ = b.buffer_info()
-                        result.a = <void*> address_a
-                        result.b = <void*> address_b
-                        return result
+                    address_a, _ = a.buffer_info()
+                    address_b, _ = b.buffer_info()
+                    result.a = <void*> address_a
+                    result.b = <void*> address_b
+                    return result
 
 
             # to keep numpy dependence optional we figure out the
@@ -136,14 +149,14 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
                     elif item_size == 1:
                         result.kernel = &compare_array_8
                     else:
-                        warn(f"cannot use array protocol for input numpy arrays with item size {item_size}")
+                        result.kernel = & compare_array_var
+                        result.n = item_size
 
-                    if result.kernel:
-                        address_a = a.ctypes.data
-                        address_b = b.ctypes.data
-                        result.a = <void*> address_a
-                        result.b = <void*> address_b
-                        return result
+                    address_a = a.ctypes.data
+                    address_b = b.ctypes.data
+                    result.a = <void*> address_a
+                    result.b = <void*> address_b
+                    return result
 
             if no_python:
                 raise ValueError("failed to pick a suitable protocol")
@@ -163,8 +176,8 @@ def _test_get_protocol_obj():
     _keep_this_ref = ([0, 2], [1, 0])
     cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
     assert cmp.kernel == &compare_object
-    assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
-    assert cmp.kernel(cmp.a, cmp.b, 0, 1)
+    assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0)
+    assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0)
 
 
 def _test_get_protocol_call():
@@ -172,16 +185,16 @@ def _test_get_protocol_call():
         return i == 0 and j == 1
     cdef compare_protocol cmp = _get_protocol(2, 2, f)
     assert cmp.kernel == &compare_call
-    assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
-    assert cmp.kernel(cmp.a, cmp.b, 0, 1)
+    assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0)
+    assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0)
 
 
 def _test_get_protocol_str():
     _keep_this_ref = ("ac", "ba")
     cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
     assert cmp.kernel == &compare_str
-    assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
-    assert cmp.kernel(cmp.a, cmp.b, 0, 1)
+    assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0)
+    assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0)
 
 
 def _test_get_protocol_array():
@@ -201,8 +214,8 @@ def _test_get_protocol_array():
         elif size == 1:
             assert cmp.kernel == &compare_array_8
 
-        assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
-        assert cmp.kernel(cmp.a, cmp.b, 0, 1)
+        assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0)
+        assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0)
 
 
 def _test_get_protocol_numpy():
@@ -222,8 +235,8 @@ def _test_get_protocol_numpy():
         elif size == 1:
             assert cmp.kernel == &compare_array_8
 
-        assert not cmp.kernel(cmp.a, cmp.b, 0, 0)
-        assert cmp.kernel(cmp.a, cmp.b, 0, 1)
+        assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0)
+        assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0)
 
 
 cdef inline Py_ssize_t labs(long i) noexcept:
@@ -261,7 +274,13 @@ cdef Py_ssize_t _search_graph_recursive(
 
     # strip matching ends of the sequence
     # forward
-    while n * m > 0 and similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, i, j) >= accept:
+    while n * m > 0 and similarity_ratio_getter.kernel(
+            similarity_ratio_getter.a,
+            similarity_ratio_getter.b,
+            i,
+            j,
+            similarity_ratio_getter.n,
+    ) >= accept:
         n_calls += 1
         ix = i + j
         if rtn_script:
@@ -272,7 +291,13 @@ cdef Py_ssize_t _search_graph_recursive(
         n -= 1
         m -= 1
     # ... and reverse
-    while n * m > 0 and similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, i + n - 1, j + m - 1) >= accept:
+    while n * m > 0 and similarity_ratio_getter.kernel(
+            similarity_ratio_getter.a,
+            similarity_ratio_getter.b,
+            i + n - 1,
+            j + m - 1,
+            similarity_ratio_getter.n,
+    ) >= accept:
         n_calls += 1
         ix = i + j + n + m - 2
         if rtn_script:
@@ -363,7 +388,13 @@ cdef Py_ssize_t _search_graph_recursive(
             # slide down the progress coordinate
             while 0 <= x < n and 0 <= y < m:
                 n_calls += 1
-                if similarity_ratio_getter.kernel(similarity_ratio_getter.a, similarity_ratio_getter.b, x + i, y + j) < accept:
+                if similarity_ratio_getter.kernel(
+                        similarity_ratio_getter.a,
+                        similarity_ratio_getter.b,
+                        x + i,
+                        y + j,
+                        similarity_ratio_getter.n,
+                ) < accept:
                     break
                 progress += 2 * reverse_as_sign
                 x += reverse_as_sign
