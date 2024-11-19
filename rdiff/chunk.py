@@ -2,7 +2,6 @@ from typing import Any, Optional, Union
 from collections.abc import Sequence, Iterator
 from functools import reduce, cached_property
 from operator import add
-from itertools import chain
 from dataclasses import dataclass
 
 
@@ -70,27 +69,35 @@ class Chunk:
     data_b: Sequence[Any]
     eq: Union[bool, Sequence[Union[bool, "Diff"]]]
 
-    def to_string(self, prefix: str = "") -> str:
+    def to_string(
+            self,
+            prefix: str = "",
+            uri_a: str = "a",
+            uri_b: str = "b",
+            offset_a: int = 0,
+            offset_b: int = 0,
+    ) -> str:
         eq = self.eq
         data_a = self.data_a
         data_b = self.data_b
 
-        if eq is True:
-            # plain equal
-            return f"{prefix}a[]=b[]: {repr(data_a)} = {repr(data_b)}"
-        elif eq is False:
-            # plain not equal
-            return f"{prefix}a[]≠b[]: {repr(data_a)} ≠ {repr(data_b)}"
-        else:
-            # a sequence of aligned elements with some differences
-            result = [f"{prefix}a[]≈b[]: {repr(data_a)} ≈ {repr(data_b)}"]
-            for _eq, _a, _b in zip(eq, data_a, data_b):
-                if _eq is True:
-                    # this was an exact comparison
-                    result.append(f"{prefix}··a=b: {_a}")
-                else:
-                    result.append(_eq.to_string(prefix=prefix + "··"))
-            return "\n".join(result)
+        summary_uri_a = f"{uri_a}[{offset_a}:{offset_a + len(data_a)}]"
+        summary_uri_b = f"{uri_b}[{offset_b}:{offset_b + len(data_b)}]"
+        s = "=" if eq is True else "≠" if eq is False else "≈"
+        base = f"{prefix}{summary_uri_a}{s}{summary_uri_b}: {repr(data_a)} {s} {repr(data_b)}"
+
+        if eq in (False, True):
+            return base
+
+        # a sequence of aligned elements with some differences
+        result = [base]
+        for _i, (_eq, _a, _b) in enumerate(zip(eq, data_a, data_b)):
+            result.append(_eq.to_string(
+                prefix=prefix + "··",
+                uri_a=f"{uri_a}[{offset_a + _i}]",
+                uri_b=f"{uri_b}[{offset_b + _i}]",
+            ))
+        return "\n".join(result)
 
     @cached_property
     def signature(self) -> ChunkSignature:
@@ -158,12 +165,25 @@ class Diff:
             raise ValueError("no diff data")
         return reduce(add, (i.data_b for i in self.diffs))
 
-    def to_string(self, prefix: str = "") -> str:
-        preamble = f"{prefix}Diff({self.ratio:.4f})"
+    def to_string(self, prefix: str = "", uri_a: str = "a", uri_b: str = "b") -> str:
+        preamble = f"{prefix}{uri_a}≈{uri_b} (ratio={self.ratio:.4f})"
         if self.diffs is None:
             return preamble
         else:
-            return "\n".join(chain((preamble + ":",), (i.to_string(prefix=prefix + "··") for i in self.diffs)))
+            result = [preamble]
+            offset_a = offset_b = 0
+            for i in self.diffs:
+                result.append(i.to_string(
+                    prefix=prefix + "··",
+                    uri_a=uri_a,
+                    uri_b=uri_b,
+                    offset_a=offset_a,
+                    offset_b=offset_b,
+                ))
+                offset_a += len(i.data_a)
+                offset_b += len(i.data_b)
+
+            return "\n".join(result)
 
     @cached_property
     def signature(self) -> Signature:
