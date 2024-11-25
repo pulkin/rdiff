@@ -1,11 +1,11 @@
-from typing import Optional, Union
+from typing import Optional, Union, NamedTuple
 from collections.abc import Sequence
 from collections import defaultdict
 from itertools import groupby
 
 import numpy as np
 
-from .chunk import Diff, ChunkSignature, Signature
+from .chunk import Diff, Chunk, ChunkSignature, Signature
 from .myers import MAX_COST, MAX_CALLS
 from .sequence import diff_nested, diff as sequence_diff, _pop_optional
 
@@ -281,6 +281,82 @@ def align_inflate(a: np.ndarray, b: np.ndarray, val, sig: Signature, dim: int) -
     return result_a, result_b
 
 
+class NumpyDiff(NamedTuple):
+    """
+    Three 2D arrays of the same shape describing an aligned diff
+    between two arrays.
+
+    Parameters
+    ----------
+    a
+    b
+        Inflated arrays.
+    eq
+        Per-element equivalence between the arrays.
+    a_row_id
+    a_col_id
+    b_row_id
+    b_col_id
+        Four 1D arrays with row/column indices for both arrays.
+    """
+    a: np.ndarray
+    b: np.ndarray
+    eq: np.ndarray
+    row_diff_sig: Signature
+    col_diff_sig: Signature
+
+    def to_diff(self, add_row_ix: bool = True) -> Diff:
+        """
+        Composes the diff.
+
+        Parameters
+        ----------
+        add_row_ix
+            If True, adds row indices to the left of the returned
+            sequences.
+
+        Returns
+        -------
+        The diff.
+        """
+        if add_row_ix:
+            row_ix_a, row_ix_b = align_inflate(
+                a=np.arange(len(self.a)),
+                b=np.arange(len(self.b)),
+                val=-1,
+                sig=self.row_diff_sig,
+                dim=0,
+            )
+
+        chunks = []
+        for key, ix in groupby(
+            range(len(self.a)),
+            key=lambda i: self.eq[i].all()
+        ):
+            ix = list(ix)
+            fr, to = ix[0], ix[-1] + 1
+
+            _a = self.a[fr:to]
+            _b = self.b[fr:to]
+            _eq = self.eq[fr:to]
+
+            if add_row_ix:
+                _a = np.insert(_a, 0, row_ix_a[fr:to], axis=1)
+                _b = np.insert(_b, 0, row_ix_b[fr:to], axis=1)
+                _eq = np.insert(_eq, 0, np.ones(to - fr, dtype=bool), axis=1)
+
+            chunks.append(Chunk(
+                data_a=_a,
+                data_b=_b,
+                eq=key or _eq,
+            ))
+
+        return Diff(
+            ratio=self.eq.all(axis=1).sum() / len(self.eq),
+            diffs=chunks,
+        )
+
+
 def diff_aligned_2d(
         a,
         b,
@@ -291,7 +367,7 @@ def diff_aligned_2d(
         max_calls: Union[int, tuple[int]] = MAX_CALLS,
         col_diff_sig: Optional[Signature] = None,
         kernel: Optional[str] = None,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> NumpyDiff:
     """
     Computes an aligned diff between numpy matrices.
 
@@ -332,12 +408,15 @@ def diff_aligned_2d(
 
     Returns
     -------
-    a
-        Inflated matrix a.
-    b
-        Inflated matrix b.
-    eq_matrix
-        Equality matrix.
+    A named tuple with the following fields:
+    - ``result.a``: inflated matrix a
+    - ``result.b``: inflated matrix b
+    - ``result.eq``: equality matrix
+    - ``result.row_diff_signature``: a signature describing the alignement of rows in a and b;
+    - ``result.col_diff_signature``: a signature describing the alignement of cols in a and b;
+
+    Unlike other diff routines, numpy diff returns an intermediate representation of diff.
+    You can convert it to the common ``Diff`` type through ``result.to_diff``.
     """
     a_, b_ = a, b
     if eq is not None:
@@ -419,4 +498,10 @@ def diff_aligned_2d(
             else:
                 offset += part.size_a
         idx = (*idx, slice(None))
-    return a, b, eq_matrix
+    return NumpyDiff(
+        a=a,
+        b=b,
+        eq=eq_matrix,
+        row_diff_sig=signatures[0],
+        col_diff_sig=signatures[1],
+    )

@@ -146,22 +146,24 @@ def test_align_inflate():
     assert (b_ == np.array([5, -1, -1, 6, 7, 8, 9, 10])).all()
 
 
-@pytest.mark.parametrize("col_diff_sig", [None, Signature(parts=[ChunkSignature(10, 10, True)])])
+@pytest.mark.parametrize("col_diff_sig", [None, Signature(parts=(ChunkSignature(10, 10, True),))])
 def test_diff_aligned_2d_same_0(a, a1, col_diff_sig):
-    a_, b_, eq = diff_aligned_2d(a, a1, 0, col_diff_sig=col_diff_sig)
-    assert (a_ == a).all()
-    assert (b_ == a1).all()
-    assert (eq == (a == a1)).all()
+    d = diff_aligned_2d(a, a1, 0, col_diff_sig=col_diff_sig)
+    assert (d.a == a).all()
+    assert (d.b == a1).all()
+    assert (d.eq == (a == a1)).all()
+    assert d.row_diff_sig == Signature.aligned(10)
+    assert d.col_diff_sig == Signature.aligned(10)
 
 
 def test_diff_aligned_2d_same_1(a):
-    a_, b_, eq = diff_aligned_2d(
+    d = diff_aligned_2d(
         a, a, 0,
-        col_diff_sig=Signature(parts=[
+        col_diff_sig=(col_diff_sig := Signature(parts=(
             ChunkSignature(3, 3, True),
             ChunkSignature(1, 1, False),
             ChunkSignature(6, 6, True),
-        ])
+        )))
     )
 
     at = np.insert(a, 4, 0, axis=1)
@@ -169,9 +171,11 @@ def test_diff_aligned_2d_same_1(a):
     mask = at == bt
     mask[:, 3:5] = False
 
-    assert (a_ == at).all()
-    assert (b_ == bt).all()
-    assert (eq == mask).all()
+    assert (d.a == at).all()
+    assert (d.b == bt).all()
+    assert (d.eq == mask).all()
+    assert d.row_diff_sig == Signature.aligned(10)
+    assert d.col_diff_sig == col_diff_sig
 
 
 def test_diff_aligned_2d_new_row(a, a1):
@@ -180,10 +184,16 @@ def test_diff_aligned_2d_new_row(a, a1):
     mask = at == bt
     mask[4, :] = False
 
-    a_, b_, eq = diff_aligned_2d(a, bt, 0)
-    assert (a_ == at).all()
-    assert (b_ == bt).all()
-    assert (eq == mask).all()
+    d = diff_aligned_2d(a, bt, 0)
+    assert (d.a == at).all()
+    assert (d.b == bt).all()
+    assert (d.eq == mask).all()
+    assert d.row_diff_sig == Signature((
+        ChunkSignature.aligned(4),
+        ChunkSignature.delta(0, 1),
+        ChunkSignature.aligned(6),
+    ))
+    assert d.col_diff_sig == Signature.aligned(10)
 
 
 def test_diff_aligned_2d_new_col(a, a1):
@@ -192,10 +202,16 @@ def test_diff_aligned_2d_new_col(a, a1):
     mask = at == bt
     mask[:, 4] = False
 
-    a_, b_, eq = diff_aligned_2d(a, bt, 0)
-    assert (a_ == at).all()
-    assert (b_ == bt).all()
-    assert (eq == mask).all()
+    d = diff_aligned_2d(a, bt, 0)
+    assert (d.a == at).all()
+    assert (d.b == bt).all()
+    assert (d.eq == mask).all()
+    assert d.row_diff_sig == Signature.aligned(10)
+    assert d.col_diff_sig == Signature((
+        ChunkSignature.aligned(4),
+        ChunkSignature.delta(0, 1),
+        ChunkSignature.aligned(6),
+    ))
 
 
 def test_diff_aligned_2d_new_row_col(a, a1):
@@ -204,10 +220,20 @@ def test_diff_aligned_2d_new_row_col(a, a1):
     mask = at == bt
     mask[4, :] = mask[:, 8] = False
 
-    a_, b_, eq = diff_aligned_2d(a, bt, 0)
-    assert (a_ == at).all()
-    assert (b_ == bt).all()
-    assert (eq == mask).all()
+    d = diff_aligned_2d(a, bt, 0)
+    assert (d.a == at).all()
+    assert (d.b == bt).all()
+    assert (d.eq == mask).all()
+    assert d.row_diff_sig == Signature((
+        ChunkSignature.aligned(4),
+        ChunkSignature.delta(0, 1),
+        ChunkSignature.aligned(6),
+    ))
+    assert d.col_diff_sig == Signature((
+        ChunkSignature.aligned(8),
+        ChunkSignature.delta(0, 1),
+        ChunkSignature.aligned(2),
+    ))
 
 
 def test_diff_aligned_2d_mix_0(a, a1):
@@ -219,10 +245,20 @@ def test_diff_aligned_2d_mix_0(a, a1):
     mask = at == bt
     mask[4:6, :] = mask[:, 8:10] = False
 
-    a_, b_, eq = diff_aligned_2d(a, a1, 0)
-    assert (a_ == at).all()
-    assert (b_ == bt).all()
-    assert (eq == mask).all()
+    d = diff_aligned_2d(a, a1, 0)
+    assert (d.a == at).all()
+    assert (d.b == bt).all()
+    assert (d.eq == mask).all()
+    assert d.row_diff_sig == Signature((
+        ChunkSignature.aligned(4),
+        ChunkSignature.delta(1, 1),
+        ChunkSignature.aligned(6),
+    ))
+    assert d.col_diff_sig == Signature((
+        ChunkSignature.aligned(8),
+        ChunkSignature.delta(1, 1),
+        ChunkSignature.aligned(2),
+    ))
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64, np.object_])
@@ -230,7 +266,9 @@ def test_dtype(a, a1, dtype):
     a = a.astype(dtype)
     a1 = a1.astype(dtype)
 
-    a_, b_, eq = diff_aligned_2d(a, a1, 0)
-    assert (a_ == a).all()
-    assert (b_ == a1).all()
-    assert (eq == (a == a1)).all()
+    d = diff_aligned_2d(a, a1, 0)
+    assert (d.a == a).all()
+    assert (d.b == a1).all()
+    assert (d.eq == (a == a1)).all()
+    assert d.row_diff_sig == Signature.aligned(10)
+    assert d.col_diff_sig == Signature.aligned(10)
