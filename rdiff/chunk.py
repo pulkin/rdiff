@@ -30,6 +30,14 @@ class ChunkSignature:
         else:
             return self.size_a + self.size_b
 
+    @classmethod
+    def aligned(cls, n: int) -> "ChunkSignature":
+        return cls(size_a=n, size_b=n, eq=True)
+
+    @classmethod
+    def delta(cls, n: int, m: int) -> "ChunkSignature":
+        return cls(size_a=n, size_b=m, eq=False)
+
 
 @dataclass(frozen=True)
 class Signature:
@@ -45,6 +53,10 @@ class Signature:
 
     def __len__(self):
         return sum(len(i) for i in self.parts)
+
+    @classmethod
+    def aligned(cls, n: int) -> "Signature":
+        return cls((ChunkSignature.aligned(n),))
 
 
 @dataclass(frozen=True)
