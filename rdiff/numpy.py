@@ -357,11 +357,15 @@ class NumpyDiff(NamedTuple):
         )
 
 
+_undefined = object()
+
+
 def diff_aligned_2d(
         a,
         b,
         fill,
         eq=None,
+        fill_eq=_undefined,
         min_ratio: Union[float, tuple[float]] = 0.75,
         max_cost: Union[int, tuple[int]] = MAX_COST,
         max_calls: Union[int, tuple[int]] = MAX_CALLS,
@@ -383,6 +387,8 @@ def diff_aligned_2d(
         An optional pair of tensors ``(a_, b_)`` substituting the input
         matrices when computing the diff. The returned chunks, however, are
         still composed of elements from a and b.
+    fill_eq
+        The empty value to use when filling "eq" matrices.
     min_ratio
         The ratio below which the algorithm exits. The values closer to 1
         typically result in faster run times while setting to 0 will force
@@ -421,6 +427,8 @@ def diff_aligned_2d(
     a_, b_ = a, b
     if eq is not None:
         a_, b_ = eq
+        if fill_eq is _undefined:
+            fill_eq = fill
     if col_diff_sig:
         # column diff provided: run a faster algorithm using column-aligned data
         min_ratio_row, min_ratio = _pop_optional(min_ratio)
@@ -432,7 +440,7 @@ def diff_aligned_2d(
         # align columns  using the provided column diff
         a, b = align_inflate(a, b, fill, col_diff_sig, 1)
         if eq is not None:
-            a_, b_ = align_inflate(a_, b_, fill, col_diff_sig, 1)
+            a_, b_ = align_inflate(a_, b_, fill_eq, col_diff_sig, 1)
         else:
             a_, b_ = a, b
         # compute a mask telling which columns can be compared
@@ -444,7 +452,7 @@ def diff_aligned_2d(
             mask[offset:offset + delta] = chunk.eq
             offset += delta
 
-        def eq(i, j, a_=a_, b_=b_, mask=mask, _m=a_.shape[1]):
+        def _eq(i, j, a_=a_, b_=b_, mask=mask, _m=a_.shape[1]):
             # a quick comparison for aligned columns
             return ((a_[i] == b_[j]) * mask).sum() / _m
 
@@ -452,7 +460,7 @@ def diff_aligned_2d(
         raw_diff = sequence_diff(
             a=a,
             b=b,
-            eq=eq,
+            eq=_eq,
             accept=min_ratio_col,
             min_ratio=min_ratio_row,
             max_cost=max_cost_row,
@@ -464,7 +472,7 @@ def diff_aligned_2d(
         # finally, align rows
         a, b = align_inflate(a, b, fill, row_diff_sig, 0)
         if eq is not None:
-            a_, b_ = align_inflate(a_, b_, fill, row_diff_sig, 0)
+            a_, b_ = align_inflate(a_, b_, fill_eq, row_diff_sig, 0)
         else:
             a_, b_ = a, b
         signatures = row_diff_sig, col_diff_sig
@@ -482,7 +490,7 @@ def diff_aligned_2d(
         for dim, sig in enumerate(signatures):
             a, b = align_inflate(a, b, fill, sig, dim)
             if eq is not None:
-                a_, b_ = align_inflate(a_, b_, fill, sig, dim)
+                a_, b_ = align_inflate(a_, b_, fill_eq, sig, dim)
         if eq is None:
             a_, b_ = a, b
 
