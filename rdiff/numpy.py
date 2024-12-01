@@ -1,6 +1,5 @@
-from typing import Optional, Union, NamedTuple
+from typing import Any, Optional, Union, NamedTuple
 from collections.abc import Sequence
-from collections import defaultdict
 from itertools import groupby
 
 import numpy as np
@@ -75,6 +74,7 @@ def diff(
     return diff_nested(
         a=a,
         b=b,
+        eq=eq,
         min_ratio=min_ratio,
         max_cost=max_cost,
         max_calls=max_calls,
@@ -293,11 +293,9 @@ class NumpyDiff(NamedTuple):
         Inflated arrays.
     eq
         Per-element equivalence between the arrays.
-    a_row_id
-    a_col_id
-    b_row_id
-    b_col_id
-        Four 1D arrays with row/column indices for both arrays.
+    row_diff_sig
+    col_diff_sig
+        Row and column diff signatures.
     """
     a: np.ndarray
     b: np.ndarray
@@ -361,8 +359,8 @@ _undefined = object()
 
 
 def diff_aligned_2d(
-        a,
-        b,
+        a: np.ndarray[Any],
+        b: np.ndarray[Any],
         fill,
         eq=None,
         fill_eq=_undefined,
@@ -452,9 +450,9 @@ def diff_aligned_2d(
             mask[offset:offset + delta] = chunk.eq
             offset += delta
 
-        def _eq(i, j, a_=a_, b_=b_, mask=mask, _m=a_.shape[1]):
+        def _eq(_i, _j, _a=a_, _b=b_, _mask=mask, _m=a_.shape[1]):
             # a quick comparison for aligned columns
-            return ((a_[i] == b_[j]) * mask).sum() / _m
+            return ((_a[_i] == _b[_j]) * _mask).sum() / _m
 
         # crunch row differences without using shallow algorithm
         raw_diff = sequence_diff(

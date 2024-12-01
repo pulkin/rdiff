@@ -3,7 +3,7 @@ A Myers diff algorithm, adapted from http://blog.robertelder.org/diff-algorithm/
 """
 import warnings
 from array import array
-from typing import Callable, Optional
+from typing import Callable
 from itertools import groupby
 
 
@@ -245,7 +245,6 @@ def search_graph_recursive(
 
         # one of the fronts is updated, another one we "face"
         front_updated = fronts[is_reverse_front]
-        front_facing = fronts[1 - is_reverse_front]
 
         # figure out the range of diagonals we are dealing with
         # turn 0 (even): [n]
@@ -439,8 +438,6 @@ def search_graph_recursive(
 
 
 def resume_search(
-        n: int,
-        m: int,
         similarity_ratio_getter: Callable[[int, int], float],
         out: array,
         kernel=search_graph_recursive,
@@ -453,8 +450,6 @@ def resume_search(
 
     Parameters
     ----------
-    n
-    m
     similarity_ratio_getter
     out
     kernel

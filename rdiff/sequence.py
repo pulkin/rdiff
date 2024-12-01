@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Sequence, MutableSequence
 from typing import Optional, Union
 from array import array
 from itertools import groupby
@@ -13,7 +13,7 @@ _nested_containers = (list, tuple)
 try:
     import numpy
 except ImportError:
-    pass
+    numpy = None
 else:
     _nested_containers = (*_nested_containers, numpy.ndarray)
 
@@ -140,8 +140,6 @@ def diff(
 
     if resume is not None:
         cost = resume_search(
-            n=n,
-            m=m,
             similarity_ratio_getter=eq,
             out=codes,
             kernel=_kernel,
@@ -181,7 +179,7 @@ def diff(
         return Diff(ratio=ratio, diffs=None)
 
 
-def canonize(codes: Sequence[int]):
+def canonize(codes: MutableSequence[int]):
     """
     Canonize the codes sequence in-place.
 
@@ -228,7 +226,7 @@ def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int], dig=None) ->
     A list of diff chunks.
     """
     offset_a = offset_b = 0
-    for neq, group in groupby((
+    for neq, code_group in groupby((
         code
         for code in codes
         if code != 0),
@@ -236,7 +234,7 @@ def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int], dig=None) ->
     ):
         n = offset_a
         m = offset_b
-        for code in group:
+        for code in code_group:
             n += code % 2
             m += code // 2
 
@@ -251,11 +249,11 @@ def codes_to_chunks(a: Sequence, b: Sequence, codes: Sequence[int], dig=None) ->
             offset_b = m
 
         else:
-            for key, group in groupby(
+            for key, dig_group in groupby(
                 (dig(*pair) for pair in zip(range(offset_a, n), range(offset_b, m))),
                 key=lambda x: x is True  # either True or nested Diffs
             ):
-                eq = list(group)
+                eq = list(dig_group)
                 n = len(eq) + offset_a
                 m = len(eq) + offset_b
 
@@ -340,6 +338,9 @@ def diff_nested(
         A collection of types that are considered to be capable of nesting.
     max_depth
         Maximal recursion depth while exploring a and b.
+    _blacklist_a
+    _blacklist_b
+        Collections with object ids tracking possible circular references.
 
     Returns
     -------
@@ -373,7 +374,7 @@ def diff_nested(
             rtn_diff=rtn_diff,
         )
 
-    if ((container_type := type(a_)) is type(b_)):
+    if (container_type := type(a_)) is type(b_):
         if container_type in nested_containers:
 
             if id(a_) in _blacklist_a or id(b_) in _blacklist_b:
