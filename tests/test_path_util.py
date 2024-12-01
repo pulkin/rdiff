@@ -1,6 +1,6 @@
-from pathlib import Path
-from collections.abc import Iterator
-from rdiff.cli.path_util import iterdir, accept_all, accept_folders, reject_all, glob_rule
+import pytest
+
+from rdiff.cli.path_util import iterdir, iter_match, accept_all, accept_folders, reject_all, glob_rule
 
 
 def test_no_files(tmp_path):
@@ -140,4 +140,31 @@ def test_nested_complex(tmp_path):
         (tmp_path / "data", rules[1], "data/"),
         (tmp_path / "data/important", rules[2], "data/important/"),
         (tmp_path / "data/important/file.txt", rules[3], "data/important/file.txt"),
+    }
+
+
+@pytest.fixture
+def a(tmp_path):
+    result = tmp_path / "a"
+    result.mkdir()
+    return result
+
+
+@pytest.fixture
+def b(tmp_path):
+    result = tmp_path / "b"
+    result.mkdir()
+    return result
+
+
+def test_match_no_files(a, b):
+    assert set(iter_match(a, b)) == set()
+
+
+def test_match_one_file(a, b):
+    (a / "file.txt").touch()
+    (b / "file.txt").touch()
+
+    assert set(iter_match(a, b)) == {
+        (a / "file.txt", b / "file.txt", "file.txt"),
     }

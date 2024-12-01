@@ -109,7 +109,7 @@ accept_folders = glob_rule(True, "*/")
 def iterdir(
         node: Path,
         root: Optional[Path] = None,
-        rules: Sequence[MatchRule] = tuple(),
+        rules: Sequence[MatchRule] = (accept_all,),
 ) -> Iterator[tuple[Path, MatchRule, str]]:
     """
     Recursive iteration over path tree using rsymc-like rules.
@@ -163,7 +163,7 @@ def iter_match(
         a: Path,
         b: Path,
         transform: Optional[Callable[(str,), str]] = None,
-        rules: Sequence[MatchRule] = tuple(),
+        rules: Sequence[MatchRule] = (accept_all,),
 ) -> Iterator[tuple[Optional[Path], Optional[Path], str]]:
     """
     Iterates two path trees and matches the nodes.
