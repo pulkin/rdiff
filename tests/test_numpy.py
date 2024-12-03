@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 
 from rdiff.chunk import Diff, Chunk, Signature, ChunkSignature
-from rdiff.numpy import diff, get_row_col_diff, align_inflate, diff_aligned_2d
+from rdiff.numpy import diff, get_row_col_diff, align_inflate, diff_aligned_2d, NumpyDiff
 
-from .util import np_chunk_eq
+from .util import np_chunk_eq, np_chunk_eq_aligned
 
 
 @pytest.fixture
@@ -272,3 +272,35 @@ def test_dtype(a, a1, dtype):
     assert (d.eq == (a == a1)).all()
     assert d.row_diff_sig == Signature.aligned(10)
     assert d.col_diff_sig == Signature.aligned(10)
+
+
+def test_to_plain(monkeypatch, a, a1):
+    monkeypatch.setattr(Chunk, "__eq__", np_chunk_eq_aligned)
+
+    row_sig = Signature((
+        ChunkSignature(3, 3, True),
+        ChunkSignature(2, 1, False),
+        ChunkSignature(2, 2, True),
+        ChunkSignature(0, 2, False),
+    ))
+    col_sig = Signature((ChunkSignature(10, 10, True),))
+    eq = a == a1
+    eq[:2] = True
+
+    diff = NumpyDiff(
+        a=a,
+        b=a1,
+        eq=eq,  # this is slightly incorrect for non-equal rows
+        row_diff_sig=row_sig,
+        col_diff_sig=col_sig,
+    )
+
+    assert diff.to_plain() == Diff(
+        ratio=0.5,
+        diffs=[
+            Chunk(data_a=a[:3], data_b=a1[:3], eq=(True, True, eq[2])),
+            Chunk(data_a=a[3:5], data_b=a1[5:6], eq=False),
+            Chunk(data_a=a[6:8], data_b=a1[6:8], eq=tuple(eq[6:8])),
+            Chunk(data_a=a[8:8], data_b=a1[8:10], eq=False),
+        ]
+    )

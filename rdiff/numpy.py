@@ -303,54 +303,50 @@ class NumpyDiff(NamedTuple):
     row_diff_sig: Signature
     col_diff_sig: Signature
 
-    def to_diff(self, add_row_ix: bool = True) -> Diff:
+    def to_plain(self) -> Diff:
         """
         Composes the diff.
-
-        Parameters
-        ----------
-        add_row_ix
-            If True, adds row indices to the left of the returned
-            sequences.
 
         Returns
         -------
         The diff.
         """
-        if add_row_ix:
-            row_ix_a, row_ix_b = align_inflate(
-                a=np.arange(len(self.a)),
-                b=np.arange(len(self.b)),
-                val=-1,
-                sig=self.row_diff_sig,
-                dim=0,
-            )
+        rows_a, rows_b = align_inflate(  # two masks telling if it is a true row or an inflated one
+            a=np.ones(len(self.a), dtype=bool),
+            b=np.ones(len(self.b), dtype=bool),
+            val=0,
+            sig=self.row_diff_sig,
+            dim=0,
+        )
+        aligned_mask = rows_a * rows_b
+        equal_mask = self.eq.all(axis=1)
 
         chunks = []
-        for key, ix in groupby(
-            range(len(self.a)),
-            key=lambda i: self.eq[i].all()
-        ):
-            ix = list(ix)
-            fr, to = ix[0], ix[-1] + 1
+        offset = 0
+        for key, group in groupby(aligned_mask + equal_mask):
+            group_size = sum(1 for _ in group)
+            to = offset + group_size
 
-            _a = self.a[fr:to]
-            _b = self.b[fr:to]
-            _eq = self.eq[fr:to]
+            if key == 0:  # not equal
+                chunks.append(Chunk(
+                    data_a=self.a[offset:to][rows_a[offset:to]],
+                    data_b=self.b[offset:to][rows_b[offset:to]],
+                    eq=False,
+                ))
 
-            if add_row_ix:
-                _a = np.insert(_a, 0, row_ix_a[fr:to], axis=1)
-                _b = np.insert(_b, 0, row_ix_b[fr:to], axis=1)
-                _eq = np.insert(_eq, 0, np.ones(to - fr, dtype=bool), axis=1)
-
-            chunks.append(Chunk(
-                data_a=_a,
-                data_b=_b,
-                eq=key or _eq,
-            ))
+            else:  # aligned or plain equal
+                chunks.append(Chunk(
+                    data_a=self.a[offset:to][rows_a[offset:to]],
+                    data_b=self.b[offset:to][rows_b[offset:to]],
+                    eq=tuple(
+                        bool(eq.all()) or eq  # TODO re-think what values Chunk.eq can take
+                        for eq in self.eq[offset:to]
+                    ),
+                ))
+            offset = to
 
         return Diff(
-            ratio=self.eq.all(axis=1).sum() / len(self.eq),
+            ratio=float(aligned_mask.sum() / len(aligned_mask)),
             diffs=chunks,
         )
 
@@ -364,9 +360,9 @@ def diff_aligned_2d(
         fill,
         eq=None,
         fill_eq=_undefined,
-        min_ratio: Union[float, tuple[float]] = 0.75,
-        max_cost: Union[int, tuple[int]] = MAX_COST,
-        max_calls: Union[int, tuple[int]] = MAX_CALLS,
+        min_ratio: Union[float, tuple[float, ...]] = 0.75,
+        max_cost: Union[int, tuple[int, ...]] = MAX_COST,
+        max_calls: Union[int, tuple[int, ...]] = MAX_CALLS,
         col_diff_sig: Optional[Signature] = None,
         kernel: Optional[str] = None,
 ) -> NumpyDiff:
