@@ -296,11 +296,12 @@ def test_to_plain(monkeypatch, a, a1):
     )
 
     assert diff.to_plain() == Diff(
-        ratio=0.5,
+        ratio=2/3,
         diffs=[
-            Chunk(data_a=a[:3], data_b=a1[:3], eq=(True, True, eq[2])),
+            Chunk(data_a=a[:2], data_b=a1[:2], eq=True),
+            Chunk(data_a=a[2:3], data_b=a1[2:3], eq=eq[2:3]),
             Chunk(data_a=a[3:5], data_b=a1[5:6], eq=False),
-            Chunk(data_a=a[6:8], data_b=a1[6:8], eq=tuple(eq[6:8])),
+            Chunk(data_a=a[6:8], data_b=a1[6:8], eq=eq[6:8]),
             Chunk(data_a=a[8:8], data_b=a1[8:10], eq=False),
         ]
     )

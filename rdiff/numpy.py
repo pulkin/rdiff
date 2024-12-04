@@ -303,6 +303,31 @@ class NumpyDiff(NamedTuple):
     row_diff_sig: Signature
     col_diff_sig: Signature
 
+    @property
+    def ratio(self) -> float:
+        """Diff ratio: the fraction of aligned rows in the total row count"""
+        eq = total = 0
+        for sig in self.row_diff_sig.parts:
+            n = sig.size_a + sig.size_b
+            total += n
+            eq += n * sig.eq
+        return eq / total
+
+    @property
+    def aligned_ratio(self) -> float:
+        """Aligned ratio: the fraction of equal elements in aligned matrices"""
+        return self.eq.mean(dtype=float)
+
+    @property
+    def a_shape(self) -> tuple[int, int]:
+        """The original shape of a"""
+        return sum(i.size_a for i in self.row_diff_sig.parts), sum(i.size_a for i in self.col_diff_sig.parts)
+
+    @property
+    def b_shape(self) -> tuple[int, int]:
+        """The original shape of b"""
+        return sum(i.size_b for i in self.row_diff_sig.parts), sum(i.size_b for i in self.col_diff_sig.parts)
+
     def to_plain(self) -> Diff:
         """
         Composes the diff.
@@ -323,7 +348,7 @@ class NumpyDiff(NamedTuple):
 
         chunks = []
         offset = 0
-        for key, group in groupby(aligned_mask + equal_mask):
+        for key, group in groupby(aligned_mask.astype(int) + equal_mask):
             group_size = sum(1 for _ in group)
             to = offset + group_size
 
@@ -338,15 +363,12 @@ class NumpyDiff(NamedTuple):
                 chunks.append(Chunk(
                     data_a=self.a[offset:to][rows_a[offset:to]],
                     data_b=self.b[offset:to][rows_b[offset:to]],
-                    eq=tuple(
-                        bool(eq.all()) or eq  # TODO re-think what values Chunk.eq can take
-                        for eq in self.eq[offset:to]
-                    ),
+                    eq=True if key == 2 else self.eq[offset:to],  # TODO re-think what values Chunk.eq can take
                 ))
             offset = to
 
         return Diff(
-            ratio=float(aligned_mask.sum() / len(aligned_mask)),
+            ratio=self.ratio,
             diffs=chunks,
         )
 
