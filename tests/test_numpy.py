@@ -4,7 +4,7 @@ import pytest
 from rdiff.chunk import Diff, Chunk, Signature, ChunkSignature
 from rdiff.numpy import diff, get_row_col_diff, align_inflate, diff_aligned_2d, NumpyDiff
 
-from .util import np_chunk_eq, np_chunk_eq_aligned
+from .util import np_chunk_eq, np_chunk_eq_aligned, np_raw_diff_eq
 
 
 @pytest.fixture
@@ -147,96 +147,112 @@ def test_align_inflate():
 
 
 @pytest.mark.parametrize("col_diff_sig", [None, Signature(parts=(ChunkSignature(10, 10, True),))])
-def test_diff_aligned_2d_same_0(a, a1, col_diff_sig):
-    d = diff_aligned_2d(a, a1, 0, col_diff_sig=col_diff_sig)
-    assert (d.a == a).all()
-    assert (d.b == a1).all()
-    assert (d.eq == (a == a1)).all()
-    assert d.row_diff_sig == Signature.aligned(10)
-    assert d.col_diff_sig == Signature.aligned(10)
+def test_diff_aligned_2d_same_0(monkeypatch, a, a1, col_diff_sig):
+    monkeypatch.setattr(NumpyDiff, "__eq__", np_raw_diff_eq)
 
-
-def test_diff_aligned_2d_same_1(a):
-    d = diff_aligned_2d(
-        a, a, 0,
-        col_diff_sig=(col_diff_sig := Signature(parts=(
-            ChunkSignature(3, 3, True),
-            ChunkSignature(1, 1, False),
-            ChunkSignature(6, 6, True),
-        )))
+    assert diff_aligned_2d(a, a1, 0, col_diff_sig=col_diff_sig) == NumpyDiff(
+        a=a,
+        b=a1,
+        eq=(a == a1),
+        row_diff_sig=Signature.aligned(10),
+        col_diff_sig=Signature.aligned(10),
     )
+
+
+def test_diff_aligned_2d_same_1(monkeypatch, a):
+    monkeypatch.setattr(NumpyDiff, "__eq__", np_raw_diff_eq)
 
     at = np.insert(a, 4, 0, axis=1)
     bt = np.insert(a, 3, 0, axis=1)
     mask = at == bt
     mask[:, 3:5] = False
 
-    assert (d.a == at).all()
-    assert (d.b == bt).all()
-    assert (d.eq == mask).all()
-    assert d.row_diff_sig == Signature.aligned(10)
-    assert d.col_diff_sig == col_diff_sig
+    assert diff_aligned_2d(
+        a, a, 0,
+        col_diff_sig=(col_diff_sig := Signature(parts=(
+            ChunkSignature(3, 3, True),
+            ChunkSignature(1, 1, False),
+            ChunkSignature(6, 6, True),
+        )))
+    ) == NumpyDiff(
+        a=at,
+        b=bt,
+        eq=mask,
+        row_diff_sig=Signature.aligned(10),
+        col_diff_sig=col_diff_sig,
+    )
 
 
-def test_diff_aligned_2d_new_row(a, a1):
+def test_diff_aligned_2d_new_row(monkeypatch, a, a1):
+    monkeypatch.setattr(NumpyDiff, "__eq__", np_raw_diff_eq)
+
     at = np.insert(a, 4, 0, axis=0)
     bt = np.insert(a1, 4, 0, axis=0)
     mask = at == bt
     mask[4, :] = False
 
-    d = diff_aligned_2d(a, bt, 0)
-    assert (d.a == at).all()
-    assert (d.b == bt).all()
-    assert (d.eq == mask).all()
-    assert d.row_diff_sig == Signature((
-        ChunkSignature.aligned(4),
-        ChunkSignature.delta(0, 1),
-        ChunkSignature.aligned(6),
-    ))
-    assert d.col_diff_sig == Signature.aligned(10)
+    assert diff_aligned_2d(a, bt, 0) == NumpyDiff(
+        a=at,
+        b=bt,
+        eq=mask,
+        row_diff_sig=Signature((
+            ChunkSignature.aligned(4),
+            ChunkSignature.delta(0, 1),
+            ChunkSignature.aligned(6),
+        )),
+        col_diff_sig=Signature.aligned(10),
+    )
 
 
-def test_diff_aligned_2d_new_col(a, a1):
+def test_diff_aligned_2d_new_col(monkeypatch, a, a1):
+    monkeypatch.setattr(NumpyDiff, "__eq__", np_raw_diff_eq)
+
     at = np.insert(a, 4, 0, axis=1)
     bt = np.insert(a1, 4, 0, axis=1)
     mask = at == bt
     mask[:, 4] = False
 
-    d = diff_aligned_2d(a, bt, 0)
-    assert (d.a == at).all()
-    assert (d.b == bt).all()
-    assert (d.eq == mask).all()
-    assert d.row_diff_sig == Signature.aligned(10)
-    assert d.col_diff_sig == Signature((
-        ChunkSignature.aligned(4),
-        ChunkSignature.delta(0, 1),
-        ChunkSignature.aligned(6),
-    ))
+    assert diff_aligned_2d(a, bt, 0) == NumpyDiff(
+        a=at,
+        b=bt,
+        eq=mask,
+        row_diff_sig=Signature.aligned(10),
+        col_diff_sig=Signature((
+            ChunkSignature.aligned(4),
+            ChunkSignature.delta(0, 1),
+            ChunkSignature.aligned(6),
+        )),
+    )
 
 
-def test_diff_aligned_2d_new_row_col(a, a1):
+def test_diff_aligned_2d_new_row_col(monkeypatch, a, a1):
+    monkeypatch.setattr(NumpyDiff, "__eq__", np_raw_diff_eq)
+
     at = np.insert(np.insert(a, 4, 0, axis=0), 8, 0, axis=1)
     bt = np.insert(np.insert(a1, 4, 0, axis=0), 8, 0, axis=1)
     mask = at == bt
     mask[4, :] = mask[:, 8] = False
 
-    d = diff_aligned_2d(a, bt, 0)
-    assert (d.a == at).all()
-    assert (d.b == bt).all()
-    assert (d.eq == mask).all()
-    assert d.row_diff_sig == Signature((
-        ChunkSignature.aligned(4),
-        ChunkSignature.delta(0, 1),
-        ChunkSignature.aligned(6),
-    ))
-    assert d.col_diff_sig == Signature((
-        ChunkSignature.aligned(8),
-        ChunkSignature.delta(0, 1),
-        ChunkSignature.aligned(2),
-    ))
+    assert diff_aligned_2d(a, bt, 0) == NumpyDiff(
+        a=at,
+        b=bt,
+        eq=mask,
+        row_diff_sig=Signature((
+            ChunkSignature.aligned(4),
+            ChunkSignature.delta(0, 1),
+            ChunkSignature.aligned(6),
+        )),
+        col_diff_sig=Signature((
+            ChunkSignature.aligned(8),
+            ChunkSignature.delta(0, 1),
+            ChunkSignature.aligned(2),
+        )),
+    )
 
 
-def test_diff_aligned_2d_mix_0(a, a1):
+def test_diff_aligned_2d_mix_0(monkeypatch, a, a1):
+    monkeypatch.setattr(NumpyDiff, "__eq__", np_raw_diff_eq)
+
     a = np.insert(np.insert(a, 4, 42, axis=0), 8, 42, axis=1)
     a1 = np.insert(np.insert(a1, 4, 89, axis=0), 8, 89, axis=1)
 
@@ -245,33 +261,37 @@ def test_diff_aligned_2d_mix_0(a, a1):
     mask = at == bt
     mask[4:6, :] = mask[:, 8:10] = False
 
-    d = diff_aligned_2d(a, a1, 0)
-    assert (d.a == at).all()
-    assert (d.b == bt).all()
-    assert (d.eq == mask).all()
-    assert d.row_diff_sig == Signature((
-        ChunkSignature.aligned(4),
-        ChunkSignature.delta(1, 1),
-        ChunkSignature.aligned(6),
-    ))
-    assert d.col_diff_sig == Signature((
-        ChunkSignature.aligned(8),
-        ChunkSignature.delta(1, 1),
-        ChunkSignature.aligned(2),
-    ))
+    assert diff_aligned_2d(a, a1, 0) == NumpyDiff(
+        a=at,
+        b=bt,
+        eq=mask,
+        row_diff_sig=Signature((
+            ChunkSignature.aligned(4),
+            ChunkSignature.delta(1, 1),
+            ChunkSignature.aligned(6),
+        )),
+        col_diff_sig=Signature((
+            ChunkSignature.aligned(8),
+            ChunkSignature.delta(1, 1),
+            ChunkSignature.aligned(2),
+        )),
+    )
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64, np.object_])
-def test_dtype(a, a1, dtype):
+def test_dtype(monkeypatch, a, a1, dtype):
+    monkeypatch.setattr(NumpyDiff, "__eq__", np_raw_diff_eq)
+
     a = a.astype(dtype)
     a1 = a1.astype(dtype)
 
-    d = diff_aligned_2d(a, a1, 0)
-    assert (d.a == a).all()
-    assert (d.b == a1).all()
-    assert (d.eq == (a == a1)).all()
-    assert d.row_diff_sig == Signature.aligned(10)
-    assert d.col_diff_sig == Signature.aligned(10)
+    assert diff_aligned_2d(a, a1, 0) == NumpyDiff(
+        a=a,
+        b=a1,
+        eq=(a == a1),
+        row_diff_sig=Signature.aligned(10),
+        col_diff_sig=Signature.aligned(10),
+    )
 
 
 def test_to_plain(monkeypatch, a, a1):
