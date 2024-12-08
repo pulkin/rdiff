@@ -1,5 +1,5 @@
 from typing import Any, Optional, Union
-from collections.abc import Sequence, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from functools import reduce, cached_property
 from operator import add
 from dataclasses import dataclass
@@ -95,10 +95,13 @@ class Chunk:
 
         summary_uri_a = f"{uri_a}[{offset_a}:{offset_a + len(data_a)}]"
         summary_uri_b = f"{uri_b}[{offset_b}:{offset_b + len(data_b)}]"
-        s = "=" if eq is True else "≠" if eq is False else "≈"
+        if isinstance(eq, Diff):
+            s = "≈"
+        else:
+            s = "=" if eq else "≠"
         base = f"{prefix}{summary_uri_a}{s}{summary_uri_b}: {repr(data_a)} {s} {repr(data_b)}"
 
-        if eq in (False, True):
+        if not isinstance(eq, Diff):
             return base
 
         # a sequence of aligned elements with some differences
@@ -247,17 +250,18 @@ class Diff:
 
         for i_chunk, chunk in enumerate(self.diffs):
 
-            if chunk.eq is True:  # chunks are equal: take care of context
-                if i_chunk:  # this is NOT the beginning of text: yield context
-                    yield from _head(chunk.data_a, counter_a, chunk.data_b, counter_b)
-                context_tail = _tail(chunk.data_a, counter_a, chunk.data_b, counter_b, bool(i_chunk) * context_size)
+            if not isinstance(chunk.eq, Iterable):  # bool
+                if chunk.eq:  # chunks are equal: take care of context
+                    if i_chunk:  # this is NOT the beginning of text: yield context
+                        yield from _head(chunk.data_a, counter_a, chunk.data_b, counter_b)
+                    context_tail = _tail(chunk.data_a, counter_a, chunk.data_b, counter_b, bool(i_chunk) * context_size)
 
-            elif chunk.eq is False:  # chunks are not equal: yield them all
-                yield from context_tail
-                for i, a in enumerate(chunk.data_a, counter_a):
-                    yield Item(a=a, b=None, ix_a=i, ix_b=None)
-                for j, b in enumerate(chunk.data_b, counter_b):
-                    yield Item(a=None, b=b, ix_a=None, ix_b=j)
+                else:  # chunks are not equal: yield them all
+                    yield from context_tail
+                    for i, a in enumerate(chunk.data_a, counter_a):
+                        yield Item(a=a, b=None, ix_a=i, ix_b=None)
+                    for j, b in enumerate(chunk.data_b, counter_b):
+                        yield Item(a=None, b=b, ix_a=None, ix_b=j)
 
             else:  # chunks are aligned
                 yield from context_tail
