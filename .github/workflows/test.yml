@@ -28,4 +28,4 @@ jobs:
     - name: Test
       run: |
         pip install pytest pytest-benchmark numpy pandas
-        pytest -v --benchmark-disable -W ignore::pytest.PytestCollectionWarning
+        pytest -v --benchmark-disable --test-diff-renders -W ignore::pytest.PytestCollectionWarning
