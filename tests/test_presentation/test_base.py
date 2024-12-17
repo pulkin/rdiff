@@ -20,8 +20,8 @@ def test_co2(test_diff_renders):
 def test_co2_md(test_diff_renders):
     text = csv2text(cases / "co2_emissions", min_ratio=0, min_ratio_row=0, printer_kwargs={"table_formats": MarkdownTableFormats()})
     if test_diff_renders:
-        with open(cases / "co2_emissions/diff-md.txt", "r") as f:
+        with open(cases / "co2_emissions/diff.md", "r") as f:
             assert text == f.read()
     else:
-        with open(cases / "co2_emissions/diff-md.txt", "w") as f:
+        with open(cases / "co2_emissions/diff.md", "w") as f:
             f.write(text)
