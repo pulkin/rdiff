@@ -39,6 +39,14 @@ def align(s: str, n: int, elli: str = "…", fill: str = " ", just=str.ljust) ->
         return just(s, n, fill)
 
 
+class TableBreak(str):
+    pass
+
+
+class TableHline(str):
+    pass
+
+
 @dataclass
 class Table:
     column_mask: Sequence[bool]
@@ -75,16 +83,28 @@ class Table:
             for key, group in groupby(self.column_mask)
         )
 
-    def add_break(self, s: str):
+    def append_break(self, s: str):
         """
-        Adds a break string.
+        Appends a break string.
 
         Parameters
         ----------
         s
             The break string.
         """
-        self.data.append(s)
+        self.data.append(TableBreak(s))
+
+    def append_hline(self, s: str):
+        """
+        Appends a horizontal line.
+
+        Parameters
+        ----------
+        s
+            A printing symbol or sequence of symbols
+            composing the line.
+        """
+        self.data.append(TableHline(s))
 
     def append_row(self, row: Sequence[object]):
         """
@@ -118,12 +138,14 @@ class Table:
         """
         return [max(len(d[i]) for d in self.data if type(d) is tuple) for i in range(self.row_len)]
 
-    def compute(self, widths: Optional[list[int]] = None) -> Iterator[Union[tuple[str, ...], str]]:
+    def compute(self, join: str, widths: Optional[list[int]] = None) -> Iterator[str]:
         """
         Computes the table.
 
         Parameters
         ----------
+        join
+            A string for joining cells.
         widths
             Row widths to use. Defaults to ``self.get_full_widths()``.
 
@@ -131,23 +153,44 @@ class Table:
         -------
         A sequence of table rows.
         """
+        if widths is None:
+            widths = self.get_full_widths()
+
         for i in self.data:
-            yield tuple(align(s, n) for s, n in zip(i, widths)) if isinstance(i, tuple) else i
+            if isinstance(i, tuple):
+                yield join.join(align(s, n) for s, n in zip(i, widths))
+            elif isinstance(i, TableBreak):
+                yield str(i)
+            elif isinstance(i, TableHline):
+                yield join.join((i * (w // len(i) + 1))[:w] for w in widths)
+            else:
+                raise ValueError(f"unknown row type: {type(i)}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class TableFormats:
     skip_equal: str = "(%d rows match)"
-    top_left_same: str = ""
-    top_left_a: str = "A"
-    top_left_b: str = "B"
+    column_plain: str = "%s"
+    column_add: str = "+%s"
+    column_rm: str = "-%s"
+    column_both: str = "%s>%s"
     ix_row_plain: str = "%d"
     ix_row_add: str = "%d+"
     ix_row_rm: str = "%d-"
     ix_row_both: str = "%d>%d"
     ix_row_a: str = "%dA"
     ix_row_b: str = "%dB"
+    row_head: str = ""
     row_spacer: str = " "
+    row_tail: str = ""
+    hline: str = "-"
+
+
+@dataclass(kw_only=True)
+class MarkdownTableFormats(TableFormats):
+    row_head: str = "| "
+    row_spacer: str = " | "
+    row_tail: str = " |"
 
 
 @dataclass
@@ -233,16 +276,25 @@ class TextPrinter:
 
         # print column names
         if diff.columns is not None:
-            if tuple(diff.columns.a) == tuple(diff.columns.b):
-                table.append_row([self.table_formats.top_left_same, *diff.columns.a])
-            else:
-                table.append_row([self.table_formats.top_left_a, *diff.columns.a])
-                table.append_row([self.table_formats.top_left_b, *diff.columns.b])
+            row = [""]
+            for col_a, col_b in zip(diff.columns.a, diff.columns.b):
+                if col_a == col_b:
+                    col = self.table_formats.column_plain % (col_a,)
+                elif not col_a:
+                    col = self.table_formats.column_add % (col_b,)
+                elif not col_b:
+                    col = self.table_formats.column_rm % (col_a,)
+                else:
+                    col = self.table_formats.column_both % (col_a, col_b)
+                row.append(col)
+            table.append_row(row)
+
+        table.append_hline(self.table_formats.hline)
 
         # print table data
         for i in diff.data.to_plain().iter_important(context_size=self.context_size):
             if isinstance(i, int):
-                table.add_break(self.table_formats.skip_equal % (i,))
+                table.append_break(self.table_formats.skip_equal % (i,))
             elif isinstance(i, Item):
 
                 if i.a is None:  # addition
@@ -262,5 +314,5 @@ class TextPrinter:
                     table.append_row([self.table_formats.ix_row_a % (i.ix_a,), *i.a])
                     table.append_row([self.table_formats.ix_row_b % (i.ix_b,), *i.b])
 
-        for row in table.compute(table.get_full_widths()):
-            self.printer.write(self.table_formats.row_spacer.join(row) + "\n")
+        for row in table.compute(self.table_formats.row_spacer):
+            self.printer.write(self.table_formats.row_head + row + self.table_formats.row_tail + "\n")
