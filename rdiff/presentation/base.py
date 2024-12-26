@@ -3,11 +3,13 @@ from sys import stdout
 from io import TextIOBase
 import os
 from typing import Union, Any, Optional
-from collections.abc import Sequence, Iterable, Callable, Iterator
+from collections.abc import Sequence, Callable, Iterator
 from itertools import groupby
+from functools import partial
 
 from ..contextual.base import AnyDiff
 from ..contextual.table import TableDiff
+from ..contextual.text import TextDiff
 from ..chunk import Item
 
 
@@ -168,6 +170,18 @@ class Table:
 
 
 @dataclass(kw_only=True)
+class TextFormats:
+    skip_equal: str = "(%d lines match)"
+    line_ctx: str = "  %s"
+    line_add: str = "> %s"
+    line_rm: str = "< %s"
+    line_aligned: str = "≈ %s"
+    block_spacer: str = "---\n"
+    chunk_add: str = "+++%s+++"
+    chunk_rm: str = "---%s---"
+
+
+@dataclass(kw_only=True)
 class TableFormats:
     skip_equal: str = "(%d rows match)"
     column_plain: str = "%s"
@@ -201,6 +215,7 @@ class TextPrinter:
     table_collapse_columns: bool = False
     width : int = 0
     table_formats: TableFormats = field(default_factory=TableFormats)
+    text_formats: TextFormats = field(default_factory=TextFormats)
     """
     A simple diff printer.
     
@@ -255,6 +270,64 @@ class TextPrinter:
                         x = "∞"
                     p(f"\n  {name}.shape={orig} -> {inflated} x{x}")
         p("\n")
+
+    def print_text(self, diff: TextDiff):
+        """
+        Prints a text diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        self.print_header(diff)
+        formats = {
+            (True, False, False): self.text_formats.line_rm,
+            (False, True, False): self.text_formats.line_add,
+            (True, True, False): self.text_formats.line_ctx,
+            (True, True, True): self.text_formats.line_aligned,
+        }
+
+        separator = False
+        for is_skip, group in groupby(diff.data.iter_important(context_size=self.context_size), lambda i: isinstance(i, int)):
+            if is_skip:
+                for i in group:
+                    self.printer.write(self.text_formats.skip_equal % (i,) + "\n")
+                    separator = False
+            else:
+                for key, group_2 in groupby(group, lambda i: (i.a is not None, i.b is not None, i.diff is not None)):
+                    if separator:
+                        self.printer.write(self.text_formats.block_spacer)
+                    separator = True
+                    fmt = formats[key]
+                    for i in group_2:
+                        if i.a is None:  # addition
+                            self.printer.write(fmt % (i.b,))
+
+                        elif i.b is None:  # removal
+                            self.printer.write(fmt % (i.a,))
+
+                        elif i.diff is None:  # context
+                            self.printer.write(fmt % (i.a,))
+
+                        else:  # inline diff
+                            assert i.diff is not None
+                            line = "".join(
+                                c.data_a
+                                if c.eq
+                                else
+                                "".join(
+                                    _fmt % (_i,)
+                                    for _fmt, _i in [
+                                        (self.text_formats.chunk_rm, c.data_a),
+                                        (self.text_formats.chunk_add, c.data_b),
+                                    ]
+                                    if _i
+                                )
+                                for c in i.diff.diffs
+                            )
+                            self.printer.write(fmt % (line,))
+
 
     def print_table(self, diff: TableDiff):
         """
