@@ -86,7 +86,7 @@ Raw comparison
 
 Context comparison
 
-- [ ] text diffs
+- [x] text diffs
 - [x] table diffs
 
 CLI
