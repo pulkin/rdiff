@@ -27,5 +27,5 @@ jobs:
       run: pip install --editable .
     - name: Test
       run: |
-        pip install pytest pytest-benchmark numpy pandas
+        pip install pytest pytest-benchmark numpy pandas magic-python
         pytest -v --benchmark-disable --test-diff-renders -W ignore::pytest.PytestCollectionWarning
