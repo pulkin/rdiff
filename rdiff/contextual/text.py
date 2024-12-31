@@ -56,9 +56,9 @@ def diff(
     max_cost_row
         The maximal cost below which two lines of text are aligned.
 
-    Yields
+    Returns
     ------
-    Diffs.
+    The text diff.
     """
     raw_diff = diff_nested(
         a=a,

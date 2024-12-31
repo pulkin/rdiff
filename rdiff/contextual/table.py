@@ -93,9 +93,9 @@ def diff(
     dtype
         Which type to use when casting inputs into dense numpy arrays.
 
-    Yields
-    ------
-    Table diffs.
+    Returns
+    -------
+    The table diff.
     """
     if isinstance(columns, str):
         try:

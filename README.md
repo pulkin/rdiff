@@ -92,7 +92,7 @@ Context comparison
 CLI
 
 - [ ] CLI interface
-- [ ] file walk
+- [x] file walk
 - [ ] rich terminal output
 - [ ] HTML output
 - [ ] fine-tuned parameters
