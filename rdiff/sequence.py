@@ -116,6 +116,8 @@ def diff(
         _a, _b = eq
         assert len(_a) == n
         assert len(_b) == m
+        if accept == 0:
+            raise ValueError(f"{accept=} has to be strictly positive in atomic comparison")
     if isinstance(rtn_diff, array):
         codes = rtn_diff
         rtn_diff = False
@@ -364,7 +366,6 @@ def diff_nested(
             a,
             b,
             eq=eq,
-            accept=accept,
             min_ratio=min_ratio_here,
             max_cost=max_cost_here,
             max_calls=max_calls_here,
@@ -422,6 +423,7 @@ def diff_nested(
 
         elif issubclass(container_type, Sequence):  # inputs are containers but we do not recognize them as, potentially, nested
             _eq = (a_, b_)
+            accept = 1
             _dig = None
 
         else:  # inputs are not containers

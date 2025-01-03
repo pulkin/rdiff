@@ -241,6 +241,22 @@ class TextPrinter:
             except (AttributeError, ValueError, OSError):
                 self.width = 80
 
+    def print_diff(self, diff: AnyDiff):
+        """
+        Prints diff.
+
+        Parameters
+        ----------
+        diff
+            A diff to process.
+        """
+        if isinstance(diff, TextDiff):
+            self.print_text(diff)
+        elif isinstance(diff, TableDiff):
+            self.print_table(diff)
+        else:
+            raise NotImplementedError(f"unknown diff: {diff}")
+
     def print_header(self, diff: AnyDiff):
         """
         Prints diff header.

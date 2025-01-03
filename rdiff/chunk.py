@@ -95,13 +95,15 @@ class Chunk:
 
         summary_uri_a = f"{uri_a}[{offset_a}:{offset_a + len(data_a)}]"
         summary_uri_b = f"{uri_b}[{offset_b}:{offset_b + len(data_b)}]"
-        if isinstance(eq, Diff):
+
+        is_nested = isinstance(eq, Sequence)
+        if is_nested:
             s = "≈"
         else:
             s = "=" if eq else "≠"
         base = f"{prefix}{summary_uri_a}{s}{summary_uri_b}: {repr(data_a)} {s} {repr(data_b)}"
 
-        if not isinstance(eq, Diff):
+        if not is_nested:
             return base
 
         # a sequence of aligned elements with some differences
