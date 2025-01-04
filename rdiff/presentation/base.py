@@ -5,11 +5,11 @@ import os
 from typing import Union, Any, Optional
 from collections.abc import Sequence, Callable, Iterator
 from itertools import groupby
-from functools import partial
 
 from ..contextual.base import AnyDiff
 from ..contextual.table import TableDiff
 from ..contextual.text import TextDiff
+from ..contextual.path import PathDiff
 from ..chunk import Item
 
 
@@ -254,6 +254,8 @@ class TextPrinter:
             self.print_text(diff)
         elif isinstance(diff, TableDiff):
             self.print_table(diff)
+        elif isinstance(diff, PathDiff):
+            self.print_path(diff)
         else:
             raise NotImplementedError(f"unknown diff: {diff}")
 
@@ -285,6 +287,21 @@ class TextPrinter:
                     else:
                         x = "∞"
                     p(f"\n  {name}.shape={orig} -> {inflated} x{x}")
+        p("\n")
+
+    def print_path(self, diff: PathDiff):
+        """
+        Print a path diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        p = self.printer.write
+        p(f"{diff.name} are not equal")
+        if self.verbosity >= 1 and diff.message is not None:
+            p(f" ({diff.message})")
         p("\n")
 
     def print_text(self, diff: TextDiff):

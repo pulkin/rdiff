@@ -1,6 +1,10 @@
 from pathlib import Path
 from typing import Callable, TypeVar, Optional
 from dataclasses import dataclass
+import filecmp
+from functools import partial
+
+import pandas as pd
 
 from .base import AnyDiff
 from .text import TextDiff, diff as _diff_text
@@ -9,9 +13,9 @@ from ..sequence import MAX_COST
 
 try:
     import magic
-    magic = magic.Magic(mime=True)
+    magic_guess_custom = magic.Magic(mime=True, magic_file=Path(__file__).parent / "magic")
 except ImportError:
-    magic = None
+    magic = magic_guess_custom = None
 
 try:
     import pandas
@@ -29,6 +33,7 @@ mime_dispatch: dict[str, DiffKernel] = {}
 @dataclass
 class PathDiff(AnyDiff):
     eq: bool
+    message: Optional[str]
     """
     A diff indicating that two paths are exact same or different.
 
@@ -38,6 +43,8 @@ class PathDiff(AnyDiff):
         A name this diff belongs to.
     eq
         True if paths are the same and False otherwise.
+    message
+        Whatever message to share.
     """
 
 
@@ -91,49 +98,6 @@ def mime_kernel(*args: str) -> Callable[[T], T]:
             mime_dispatch[i] = kernel
         return kernel
     return _decorate
-
-
-def diff_exact(
-        a: Path,
-        b: Path,
-        name: str,
-        min_ratio: float = 0.75,
-        min_ratio_row: float = 0.75,
-        max_cost: int = MAX_COST,
-        max_cost_row: int = MAX_COST,
-        size: int = 0x10000,
-) -> PathDiff:
-    """
-    Compares two files exactly without computing diff at all.
-
-    Parameters
-    ----------
-    a
-        The first file path.
-    b
-        The second file path.
-    name
-        The name associated with this comparison.
-    min_ratio
-    min_ratio_row
-    max_cost
-    max_cost_row
-        Not used.
-    size
-        File read buffer size.
-
-    Returns
-    -------
-    A diff with a single flag telling whether two paths are the same.
-    """
-    with a.open("rb") as fa, b.open("rb") as fb:
-        while chunk_a := fa.read(size):
-            chunk_b = fb.read(size)
-            if chunk_a != chunk_b:
-                return PathDiff(name, False)
-        if fb.read(size):
-            return PathDiff(name, False)
-    return PathDiff(name, True)
 
 
 @mime_kernel("text/plain")
@@ -233,8 +197,8 @@ def diff_pd(
 
 
 if pandas:
-    @mime_kernel("text/csv", "application/vnd.apache.parquet", "application/vnd.apache.arrow.file")
     def diff_pd_simple(
+            reader: Callable[[Path], pd.DataFrame],
             a: Path,
             b: Path,
             name: str,
@@ -249,6 +213,8 @@ if pandas:
 
         Parameters
         ----------
+        reader
+            A reader transforming path into dataframe.
         a
             The first path with a table.
         b
@@ -276,10 +242,9 @@ if pandas:
         -------
         The table diff.
         """
-        kwargs = {"sep": ",", "dtype": str, "keep_default_na": False, "na_filter": False, "encoding_errors": "replace"}
         return diff_pd(
-            a=pandas.read_table(a, **kwargs),
-            b=pandas.read_table(b, **kwargs),
+            a=reader(a),
+            b=reader(b),
             name=name,
             min_ratio=min_ratio,
             min_ratio_row=min_ratio_row,
@@ -287,6 +252,12 @@ if pandas:
             max_cost_row=max_cost_row,
             table_drop_cols=table_drop_cols,
         )
+
+
+    diff_pd_csv = mime_kernel("text/csv")(partial(diff_pd_simple, partial(pd.read_csv, dtype=str, keep_default_na=False, na_filter=False, encoding_errors="replace")))
+    diff_pd_feather = mime_kernel("application/vnd.apache.arrow.file")(partial(diff_pd_simple, pd.read_feather))
+    diff_pd_parquet = mime_kernel("application/vnd.apache.parquet")(partial(diff_pd_simple, pd.read_parquet))
+
 
     @mime_kernel("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel",
                  "application/x-hdf5")
@@ -406,14 +377,20 @@ def diff_path(
     -------
     The diff.
     """
-    if mime is None:
-        if magic is None:
-            raise ValueError("MIME not provided: please provide mime= or install python-magic for MIME detection")
-        a_mime = magic.from_file(a)
-        b_mime = magic.from_file(b)
+    if filecmp.cmp(a, b, shallow=False):
+        return PathDiff(name, eq=True)
+    if mime is None and magic is not None:
+        a_mime = magic_guess_custom.from_file(a)
+        b_mime = magic_guess_custom.from_file(b)
         if a_mime != b_mime:
-            return PathDiff(name, a_mime, b_mime, False)
+            return MIMEDiff(name, a_mime, b_mime)
         mime = a_mime
-    kernel = mime_dispatch.get(mime, diff_exact)
+    if mime is None:
+        return PathDiff(name, eq=False, message=f"failed to determine MIME; tried libmagic: {magic is not None}")
+    print(mime)
+    try:
+        kernel = mime_dispatch[mime]
+    except KeyError:
+        return PathDiff(name, eq=False, message=f"unknown common MIME: {mime}")
     return kernel(a, b, name, min_ratio=min_ratio, min_ratio_row=min_ratio_row, max_cost=max_cost,
                   max_cost_row=max_cost_row)

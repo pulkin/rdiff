@@ -116,7 +116,7 @@ def diff(
         _a, _b = eq
         assert len(_a) == n
         assert len(_b) == m
-        if accept == 0:
+        if accept <= 0:
             raise ValueError(f"{accept=} has to be strictly positive in atomic comparison")
     if isinstance(rtn_diff, array):
         codes = rtn_diff

@@ -1,0 +1,12 @@
+# Apache arrow file format
+# MIME: https://www.iana.org/assignments/media-types/application/vnd.apache.arrow.stream
+# Description: https://arrow.apache.org/docs/format/Columnar.html
+0	string	ARROW1	Apache Arrow columnar file
+!:mime	application/vnd.apache.arrow.file
+!:ext	arrow/feather
+# Apache parquet file format
+# MIME: https://www.iana.org/assignments/media-types/application/vnd.apache.parquet
+# Description: https://parquet.apache.org/docs/file-format/
+0	string	PAR1	Apache Parquet file
+!:mime	application/vnd.apache.parquet
+!:ext	parquet

@@ -8,5 +8,5 @@ description = "Rich file comparison with a focus on structured and tabular data"
 license = {text = "BSD-2-Clause"}
 
 [build-system]
-requires = ["setuptools", "Cython"]
+requires = ["setuptools", "Cython", "numpy"]
 build-backend = "setuptools.build_meta"
