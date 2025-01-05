@@ -9,7 +9,7 @@ from itertools import groupby
 from ..contextual.base import AnyDiff
 from ..contextual.table import TableDiff
 from ..contextual.text import TextDiff
-from ..contextual.path import PathDiff
+from ..contextual.path import PathDiff, CompositeDiff
 from ..chunk import Item
 
 
@@ -256,8 +256,8 @@ class TextPrinter:
             self.print_table(diff)
         elif isinstance(diff, PathDiff):
             self.print_path(diff)
-        elif isinstance(diff, Sequence):
-            for _d in diff:
+        elif isinstance(diff, CompositeDiff):
+            for _d in diff.items:
                 self.print_diff(_d)
         else:
             raise NotImplementedError(f"unknown diff: {diff}")

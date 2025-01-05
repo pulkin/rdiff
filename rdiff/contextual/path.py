@@ -84,6 +84,21 @@ class DeltaDiff(AnyDiff):
         return not self.exist_a
 
 
+@dataclass
+class CompositeDiff(AnyDiff):
+    items: list[AnyDiff]
+    """
+    A diff with multiple parts.
+
+    Parameters
+    ----------
+    name
+        A name this diff belongs to.
+    items
+        Diff parts.
+    """
+
+
 def mime_kernel(*args: str) -> Callable[[T], T]:
     """
     Associates a diff function with one or more MIME types.
@@ -269,7 +284,7 @@ if pandas:
             max_cost: int = MAX_COST,
             max_cost_row: int = MAX_COST,
             table_drop_cols: Optional[list[str]] = None,
-    ) -> list[TableDiff]:
+    ) -> CompositeDiff:
         """
         Computes a table diff between two pandas-supported files with multiple tables.
 
@@ -332,7 +347,7 @@ if pandas:
                     table_drop_cols=table_drop_cols,
                 )
             )
-        return result
+        return CompositeDiff(name, result)
 
     diff_pd_excel = mime_kernel("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel")(partial(diff_pd_dict, partial(pd.read_excel, dtype=str, keep_default_na=False, na_filter=False, sheet_name=None)))
 
