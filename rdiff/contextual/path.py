@@ -259,9 +259,8 @@ if pandas:
     diff_pd_parquet = mime_kernel("application/vnd.apache.parquet")(partial(diff_pd_simple, pd.read_parquet))
 
 
-    @mime_kernel("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel",
-                 "application/x-hdf5")
     def diff_pd_dict(
+            reader: Callable[[Path], dict[str, pd.DataFrame]],
             a: Path,
             b: Path,
             name: str,
@@ -276,6 +275,8 @@ if pandas:
 
         Parameters
         ----------
+        reader
+            A reader transforming path into a dictionary of dataframes.
         a
             The first path with tables.
         b
@@ -303,14 +304,13 @@ if pandas:
         -------
         The table diff.
         """
-        kwargs = {"dtype": str, "keep_default_na": False, "na_filter": False, "sheet_name": None}
         fmt = "%s/%s"
-        a = pandas.read_table(a, **kwargs)
-        b = pandas.read_table(b, **kwargs)
+        a = reader(a)
+        b = reader(b)
 
         for dfs in a, b:
             for df in dfs.values():
-                df.set_axis(map(str, df.columns), axis=1, inplace=True)
+                df = df.set_axis(map(str, df.columns), axis=1, copy=False)
                 df.fillna("", inplace=True)
 
         result = []
@@ -333,6 +333,8 @@ if pandas:
                 )
             )
         return result
+
+    diff_pd_excel = mime_kernel("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel")(partial(diff_pd_dict, partial(pd.read_excel, dtype=str, keep_default_na=False, na_filter=False, sheet_name=None)))
 
 
 def diff_path(
@@ -387,7 +389,6 @@ def diff_path(
         mime = a_mime
     if mime is None:
         return PathDiff(name, eq=False, message=f"failed to determine MIME; tried libmagic: {magic is not None}")
-    print(mime)
     try:
         kernel = mime_dispatch[mime]
     except KeyError:

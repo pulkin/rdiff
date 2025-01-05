@@ -10,23 +10,31 @@ from .util import diff2text
 cases = Path(__file__).parent / "cases"
 
 
-@pytest.mark.parametrize("fmt, p_kwargs, ext", [
-    ("csv", {}, "txt"),
-    ("feather", {}, "txt"),
-    ("parquet", {}, "txt"),
-    ("csv", {"table_formats": MarkdownTableFormats()}, "md"),
+@pytest.mark.parametrize("fmt, out_fmt", [
+    ("csv", "txt"),
+    ("feather", "txt"),
+    ("parquet", "txt"),
+    ("excel", "txt"),
+    ("csv", "md"),
 ])
-def test_co2(tmp_path, test_diff_renders, fmt, p_kwargs, ext):
+def test_co2(tmp_path, test_diff_renders, fmt, out_fmt):
     if fmt == "csv":
         base = cases / "co2_emissions"
     else:
+        kwargs = {}
+        if fmt == "excel":
+            kwargs["index"] = False
+        if fmt == "hdf":
+            kwargs["key"] = "data"
         for n in "ab":
-            getattr(pd.read_csv(cases / f"co2_emissions/{n}.csv"), f"to_{fmt}")(tmp_path / f"{n}.{fmt}")
+            getattr(pd.read_csv(cases / f"co2_emissions/{n}.csv"), f"to_{fmt}")(tmp_path / f"{n}.{fmt}", **kwargs)
         base = tmp_path
-
+    p_kwargs = {}
+    if out_fmt == "md":
+        p_kwargs["table_formats"] = MarkdownTableFormats()
     text = diff2text(base / f"a.{fmt}", base / f"b.{fmt}", min_ratio=0, min_ratio_row=0, printer_kwargs=p_kwargs)
 
-    with open(cases / f"co2_emissions/diff.{fmt}.{ext}", "r" if test_diff_renders else "w") as f:
+    with open(cases / f"co2_emissions/diff.{fmt}.{out_fmt}", "r" if test_diff_renders else "w") as f:
         if test_diff_renders:
             assert text == f.read()
         else:

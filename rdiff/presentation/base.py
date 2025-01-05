@@ -241,7 +241,7 @@ class TextPrinter:
             except (AttributeError, ValueError, OSError):
                 self.width = 80
 
-    def print_diff(self, diff: AnyDiff):
+    def print_diff(self, diff: Union[AnyDiff, Sequence[[AnyDiff]]]):
         """
         Prints diff.
 
@@ -256,6 +256,9 @@ class TextPrinter:
             self.print_table(diff)
         elif isinstance(diff, PathDiff):
             self.print_path(diff)
+        elif isinstance(diff, Sequence):
+            for _d in diff:
+                self.print_diff(_d)
         else:
             raise NotImplementedError(f"unknown diff: {diff}")
 
