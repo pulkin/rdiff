@@ -1,4 +1,4 @@
-comparing a.txt/b.txt
+comparing .
 (27 lines match)
     from rdiff.sequence import diff
   

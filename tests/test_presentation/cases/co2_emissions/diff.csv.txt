@@ -1,4 +1,4 @@
-comparing a.csv/b.csv
+comparing .
     Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
 --- ----------- ------- ---------- --------------- -----------------------
 0A  Afghanistan Asia    01-01-2011 8930            0.31                   
