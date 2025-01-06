@@ -16,6 +16,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        ref: main
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -27,6 +30,5 @@ jobs:
       run: pip install --editable .
     - name: Test
       run: |
-        git fetch
         pip install pytest pytest-benchmark numpy pandas pyarrow openpyxl python-magic
         pytest -v --benchmark-disable --test-diff-renders -W ignore::pytest.PytestCollectionWarning
