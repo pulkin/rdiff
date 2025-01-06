@@ -349,6 +349,7 @@ if pandas:
             )
         return CompositeDiff(name, result)
 
+
     diff_pd_excel = mime_kernel("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel")(partial(diff_pd_dict, partial(pd.read_excel, dtype=str, keep_default_na=False, na_filter=False, sheet_name=None)))
 
 
@@ -361,6 +362,7 @@ def diff_path(
         min_ratio_row: float = 0.75,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
+        table_drop_cols: Optional[list[str]] = None,
 ) -> AnyDiff:
     """
     Computes a diff between two files based on their (common) MIME.
@@ -389,6 +391,8 @@ def diff_path(
         worst-case time complexity scales with this number.
     max_cost_row
         The maximal cost below which two lines of text are aligned.
+    table_drop_cols
+        Table columns to drop when comparing tables.
 
     Returns
     -------
@@ -408,5 +412,8 @@ def diff_path(
         kernel = mime_dispatch[mime]
     except KeyError:
         return PathDiff(name, eq=False, message=f"unknown common MIME: {mime}")
+    kwargs = {}
+    if kernel in (diff_pd_csv, diff_pd_feather, diff_pd_parquet, diff_pd_excel):
+        kwargs["table_drop_cols"] = table_drop_cols
     return kernel(a, b, name, min_ratio=min_ratio, min_ratio_row=min_ratio_row, max_cost=max_cost,
-                  max_cost_row=max_cost_row)
+                  max_cost_row=max_cost_row, **kwargs)
