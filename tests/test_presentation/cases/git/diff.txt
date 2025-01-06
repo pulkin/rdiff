@@ -1,0 +1,8 @@
+comparing .github/workflows/test.yml
+(27 lines match)
+      - name: Test
+        run: |
+---
+≈         pip install pytest pytest-benchmark numpy pandas pyarrow +++openpyxl +++python-magic
+---
+          pytest -v --benchmark-disable --test-diff-renders -W ignore::pytest.PytestCollectionWarning

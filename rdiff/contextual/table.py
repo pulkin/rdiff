@@ -47,6 +47,9 @@ class TableDiff(AnyDiff):
         Optional column names.
     """
 
+    def is_eq(self) -> bool:
+        return self.data.eq.all()
+
 
 def diff(
         a,

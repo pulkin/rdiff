@@ -15,3 +15,13 @@ class AnyDiff:
     name
         A name this diff belongs to.
     """
+
+    def is_eq(self) -> bool:
+        """
+        Checks if diff is trivial and the two objects compared are equal.
+
+        Returns
+        -------
+        True if equal.
+        """
+        raise NotImplementedError

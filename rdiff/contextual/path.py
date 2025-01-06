@@ -33,7 +33,7 @@ mime_dispatch: dict[str, DiffKernel] = {}
 @dataclass
 class PathDiff(AnyDiff):
     eq: bool
-    message: Optional[str]
+    message: Optional[str] = None
     """
     A diff indicating that two paths are exact same or different.
 
@@ -46,6 +46,9 @@ class PathDiff(AnyDiff):
     message
         Whatever message to share.
     """
+
+    def is_eq(self) -> bool:
+        return self.eq
 
 
 @dataclass
@@ -63,6 +66,9 @@ class MIMEDiff(AnyDiff):
     mime_b
         The two MIME types.
     """
+
+    def is_eq(self) -> bool:
+        return self.mime_a == self.mime_b
 
 
 @dataclass
@@ -83,6 +89,9 @@ class DeltaDiff(AnyDiff):
     def exist_b(self) -> bool:
         return not self.exist_a
 
+    def is_eq(self) -> bool:
+        return False
+
 
 @dataclass
 class CompositeDiff(AnyDiff):
@@ -97,6 +106,9 @@ class CompositeDiff(AnyDiff):
     items
         Diff parts.
     """
+
+    def is_eq(self) -> bool:
+        return all(i.is_eq() for i in self.items)
 
 
 def mime_kernel(*args: str) -> Callable[[T], T]:
@@ -399,7 +411,7 @@ def diff_path(
     The diff.
     """
     if filecmp.cmp(a, b, shallow=False):
-        return PathDiff(name, eq=True)
+        return PathDiff(name, eq=True, message="files are binary equal")
     if mime is None and magic is not None:
         a_mime = magic_guess_custom.from_file(a)
         b_mime = magic_guess_custom.from_file(b)

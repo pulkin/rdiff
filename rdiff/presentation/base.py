@@ -250,6 +250,10 @@ class TextPrinter:
         diff
             A diff to process.
         """
+        if diff.is_eq():
+            if self.verbosity >= 2:
+                self.printer.write(f"{diff.name} compare equal through {diff.__class__.name}\n")
+            return
         if isinstance(diff, TextDiff):
             self.print_text(diff)
         elif isinstance(diff, TableDiff):

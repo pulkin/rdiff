@@ -20,6 +20,9 @@ class TextDiff(AnyDiff):
         Diff data.
     """
 
+    def is_eq(self) -> bool:
+        return all(i.eq is True for i in self.data.diffs)
+
 
 def diff(
         a: Sequence[str],

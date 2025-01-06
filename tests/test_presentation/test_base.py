@@ -1,4 +1,6 @@
 from pathlib import Path
+from subprocess import Popen, check_output
+import tarfile
 
 import pytest
 import pandas as pd
@@ -48,4 +50,29 @@ def test_readme(test_diff_renders):
             assert text == f.read()
     else:
         with open(cases / "readme/diff.txt", "w") as f:
+            f.write(text)
+
+
+def test_git_history(tmp_path, test_diff_renders):
+    a = tmp_path / "a"
+    b = tmp_path / "b"
+    root = check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
+    for src, dst in [
+        ("0277db1191fa0189699ecf941664bdeab292f7bb", a),
+        ("4cedf58add8512ea1ed13e3c38e7faf86ba227d6", b),
+    ]:
+        t = dst.parent / f"{dst.name}.tar"
+        with open(t, "w+b") as f:
+            Popen(["git", "-C", root, "archive", src], stdout=f).communicate()
+            f.flush()
+            f.seek(0)
+            with tarfile.open(fileobj=f) as f_tar:
+                f_tar.extractall(dst)
+
+    text = diff2text(a, b)
+    if test_diff_renders:
+        with open(cases / "git/diff.txt", "r") as f:
+            assert text == f.read()
+    else:
+        with open(cases / "git/diff.txt", "w") as f:
             f.write(text)
