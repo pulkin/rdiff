@@ -20,6 +20,7 @@ def process_iter(
         max_cost_row: int = MAX_COST,
         mime: Optional[str] = None,
         table_drop_cols: Optional[Sequence[tuple[str, list[str]]]] = None,
+        sort: bool = False,
 ) -> Iterator[AnyDiff]:
     """
     Process anc compare to folders. Yields all diffs processed, even if they are equal.
@@ -52,6 +53,8 @@ def process_iter(
         The MIME of the two paths.
     table_drop_cols
         Table columns to drop when comparing tables.
+    sort
+        If True, sorts files.
 
     Yields
     ------
@@ -68,7 +71,7 @@ def process_iter(
                 result = re.sub(*args, result, count=1)
             return result
 
-    for child_a, child_b, readable_name in iter_match(a, b, rules=rules, transform=transform):
+    for child_a, child_b, readable_name in iter_match(a, b, rules=rules, transform=transform, sort=sort):
         if child_a is None or child_b is None:
             yield DeltaDiff(readable_name, child_a is not None)
         else:

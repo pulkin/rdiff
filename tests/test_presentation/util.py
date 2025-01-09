@@ -13,7 +13,7 @@ def diff2text(a, b, printer_kwargs=None, **kwargs):
 
     buffer = StringIO()
     printer = TextPrinter(printer=buffer, **printer_kwargs)
-    for i in process_iter(a, b, **kwargs):
+    for i in process_iter(a, b, sort=True, **kwargs):
         printer.print_diff(i)
 
     return buffer.getvalue()
@@ -32,12 +32,6 @@ def self_extract(commit, dst):
 def sync_contents(path, content, check):
     with open(path, "r" if check else "w") as f:
         if check:
-            print("START")
-            print(content)
-            print("===")
-            print(ref := f.read())
-            print("END")
-            assert content == ref
-            # assert content == f.read()
+            assert content == f.read()
         else:
             f.write(content)

@@ -110,6 +110,7 @@ def iterdir(
         node: Path,
         root: Optional[Path] = None,
         rules: Sequence[MatchRule] = (accept_all,),
+        sort: bool = False,
 ) -> Iterator[tuple[Path, MatchRule, str]]:
     """
     Recursive iteration over path tree using rsymc-like rules.
@@ -127,6 +128,8 @@ def iterdir(
         paths.
     rules
         The rules to use when iterating the path tree.
+    sort
+        If True, sorts files.
 
     Yields
     ------
@@ -152,7 +155,10 @@ def iterdir(
             if rule.accept:
                 yield node, rule, key
                 if node.is_dir():
-                    for sub_node in node.iterdir():
+                    sub_nodes = node.iterdir()
+                    if sort:
+                        sub_nodes = sorted(sub_nodes)
+                    for sub_node in sub_nodes:
                         yield from iterdir(sub_node, root, rules)
                 break
             else:  # reject explicitly
@@ -164,6 +170,7 @@ def iter_match(
         b: Path,
         transform: Optional[Callable[(str,), str]] = None,
         rules: Sequence[MatchRule] = (accept_all,),
+        sort: bool = False,
 ) -> Iterator[tuple[Optional[Path], Optional[Path], str]]:
     """
     Iterates two path trees and matches the nodes.
@@ -177,6 +184,8 @@ def iter_match(
         An optional transform for path keys.
     rules
         The rules to use when iterating the path trees.
+    sort
+        If True, sorts files.
 
     Yields
     ------
@@ -194,6 +203,7 @@ def iter_match(
                 node=_path,
                 root=_path,
                 rules=rules,
+                sort=sort,
         ):
             if _child.is_file():
                 logging.debug("matched %s in %s: %s", _child, _name, _rule)
