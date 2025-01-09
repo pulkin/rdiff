@@ -159,7 +159,6 @@ class Diff:
         return float(self) > other
 
     def __bool__(self):
-        print(f"bool {self.diffs}")
         if self.diffs is None:
             raise ValueError("no diff information available")
         if len(self.diffs) == 0:
