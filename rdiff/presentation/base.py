@@ -9,7 +9,7 @@ from itertools import groupby
 from ..contextual.base import AnyDiff
 from ..contextual.table import TableDiff
 from ..contextual.text import TextDiff
-from ..contextual.path import PathDiff, CompositeDiff
+from ..contextual.path import PathDiff, CompositeDiff, DeltaDiff
 from ..chunk import Item
 
 
@@ -252,7 +252,7 @@ class TextPrinter:
         """
         if diff.is_eq():
             if self.verbosity >= 2:
-                self.printer.write(f"{diff.name} compare equal through {diff.__class__.name}\n")
+                self.printer.write(f"{diff.name} compare equal through {diff.__class__.__name__}\n")
             return
         if isinstance(diff, TextDiff):
             self.print_text(diff)
@@ -260,6 +260,8 @@ class TextPrinter:
             self.print_table(diff)
         elif isinstance(diff, PathDiff):
             self.print_path(diff)
+        elif isinstance(diff, DeltaDiff):
+            self.print_delta(diff)
         elif isinstance(diff, CompositeDiff):
             for _d in diff.items:
                 self.print_diff(_d)
@@ -310,6 +312,21 @@ class TextPrinter:
         if self.verbosity >= 1 and diff.message is not None:
             p(f" ({diff.message})")
         p("\n")
+
+    def print_delta(self, diff: DeltaDiff):
+        """
+        Print a delta diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        p = self.printer.write
+        if diff.exist_a:
+            p(f"DEL {diff.name}\n")
+        else:
+            p(f"NEW {diff.name}\n")
 
     def print_text(self, diff: TextDiff):
         """
@@ -367,7 +384,6 @@ class TextPrinter:
                                 for c in i.diff.diffs
                             )
                             self.printer.write(fmt % (line,))
-
 
     def print_table(self, diff: TableDiff):
         """

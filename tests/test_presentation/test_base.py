@@ -41,8 +41,11 @@ def test_readme(test_diff_renders):
     sync_contents(cases / "readme/diff.txt", text, test_diff_renders)
 
 
-def test_git_history(tmp_path, test_diff_renders):
-    self_extract("0277db1191fa0189699ecf941664bdeab292f7bb", a := tmp_path / "a")
-    self_extract("4cedf58add8512ea1ed13e3c38e7faf86ba227d6", b := tmp_path / "b")
-    text = diff2text(a, b)
-    sync_contents(cases / "git/diff.txt", text, test_diff_renders)
+@pytest.mark.parametrize("args, name", [
+    ({}, "default")
+])
+def test_git_history(tmp_path, test_diff_renders, args, name):
+    self_extract("0c197f2cdb0bf8c0ca95e76a837296fbebad436d", a := tmp_path / "a")
+    self_extract("e807d333433209f9328decc8290d40c270d832cd", b := tmp_path / "b")
+    text = diff2text(a, b, **args)
+    sync_contents(cases / f"git/diff-{name}.txt", text, test_diff_renders)

@@ -5,7 +5,7 @@ import re
 
 from .path_util import accept_all, glob_rule, iter_match
 from ..contextual.base import AnyDiff
-from ..contextual.path import diff_path
+from ..contextual.path import diff_path, DeltaDiff
 from ..myers import MAX_COST
 
 
@@ -69,14 +69,17 @@ def process_iter(
             return result
 
     for child_a, child_b, readable_name in iter_match(a, b, rules=rules, transform=transform):
-        yield diff_path(
-            a=child_a,
-            b=child_b,
-            name=str(readable_name),
-            mime=mime,
-            min_ratio=min_ratio,
-            min_ratio_row=min_ratio_row,
-            max_cost=max_cost,
-            max_cost_row=max_cost_row,
-            table_drop_cols=table_drop_cols,
-        )
+        if child_a is None or child_b is None:
+            yield DeltaDiff(readable_name, child_a is not None)
+        else:
+            yield diff_path(
+                a=child_a,
+                b=child_b,
+                name=str(readable_name),
+                mime=mime,
+                min_ratio=min_ratio,
+                min_ratio_row=min_ratio_row,
+                max_cost=max_cost,
+                max_cost_row=max_cost_row,
+                table_drop_cols=table_drop_cols,
+            )
