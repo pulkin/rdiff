@@ -159,7 +159,7 @@ def iterdir(
                     if sort:
                         sub_nodes = sorted(sub_nodes)
                     for sub_node in sub_nodes:
-                        yield from iterdir(sub_node, root, rules)
+                        yield from iterdir(sub_node, root, rules, sort=sort)
                 break
             else:  # reject explicitly
                 break
