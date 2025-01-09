@@ -32,16 +32,6 @@ def self_extract(commit, dst):
 def sync_contents(path, content, check):
     with open(path, "r" if check else "w") as f:
         if check:
-            print("======================")
-            print("START")
-            print("======================")
-            print(content)
-            print("======================")
-            print(ref := f.read())
-            print("======================")
-            print("END")
-            print("======================")
-            assert content == ref
-            # assert content == f.read()
+            assert content == f.read()
         else:
             f.write(content)
