@@ -263,7 +263,7 @@ cdef Py_ssize_t _search_graph_recursive(
     cdef:
         Py_ssize_t ix, nm, n_m, cost, diag, diag_src, diag_dst, diag_facing_from, diag_facing_to, diag_updated_from,\
             diag_updated_to, diag_, diag_updated_from_, diag_updated_to_, _p, x, y, x2, y2, progress, progress_start,\
-            previous, is_reverse_front, reverse_as_sign, max_front_forward, min_front_reverse, n_calls = 2
+            previous, is_reverse_front, reverse_as_sign, n_calls = 2
         Py_ssize_t* front_updated
         Py_ssize_t* front_facing
         Py_ssize_t** fronts = [front_forward, front_reverse]
@@ -331,17 +331,9 @@ cdef Py_ssize_t _search_graph_recursive(
         front_forward[ix] = 0
         front_reverse[ix] = n_m
 
-    max_front_forward = 0
-    min_front_reverse = n_m
-
     # we, effectively, iterate over the cost itself
     # though it may also be seen as a round counter
     for cost in range(max_cost + 1):
-        # early return for eq_only
-        if eq_only:
-            _p = min_front_reverse - max_front_forward + cost
-            if _p <= max_cost:
-                return _p
 
         # first, figure out whether step is reverse or not
         is_reverse_front = cost % 2
@@ -400,14 +392,6 @@ cdef Py_ssize_t _search_graph_recursive(
                 x += reverse_as_sign
                 y += reverse_as_sign
             front_updated[ix] = progress
-
-            if eq_only:
-                if not is_reverse_front:
-                    if progress >= max_front_forward:
-                        max_front_forward = progress + 1
-                else:
-                    if progress <= min_front_reverse:
-                        min_front_reverse = progress - 1
 
             # if front and reverse overlap we are done
             # to figure this out we first check whether we are facing ANY diagonal

@@ -331,3 +331,8 @@ def test_strictly_no_python_3():
 def test_strictly_no_python_4(dtype):
     a = np.arange(3).astype(dtype)
     diff(a, a, no_python=True)
+
+
+def test_bug_0():
+    a, b = 'comparing a.csv/b.csvX', 'comparing .X'
+    assert diff(a, b, eq_only=True, min_ratio=0.75).ratio < 0.75

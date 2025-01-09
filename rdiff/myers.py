@@ -186,7 +186,7 @@ def search_graph_recursive(
     the optimal path in the end of the search. But we will still be able
     to compute its cost.
     
-    To vizualise the approach, you may rotate the graph by 45d.
+    To visualise the approach, you may rotate the graph by 45d.
     
                  0    0                     progress
         ----------- ◉ ---------------     < 0
@@ -227,17 +227,11 @@ def search_graph_recursive(
     front_reverse = array('Q', (n_m,) * nm)
     fronts = (front_forward, front_reverse)
     dimensions = (n, m)
-    max_front_forward = 0
-    min_front_reverse = n_m
 
     # we, effectively, iterate over the cost itself
     # though it may also be seen as a round counter
     for cost in range(max_cost + 1):
         # early return for eq_only
-        if eq_only and (result := (min_front_reverse - max_front_forward + cost)) <= max_cost:
-            # here, we estimated the upper bound for the "cost" to be below max_cost
-            # more details on fronts are given below
-            return result
 
         # first, figure out whether step is reverse or not
         is_reverse_front = cost % 2
@@ -301,12 +295,6 @@ def search_graph_recursive(
                 x += reverse_as_sign
                 y += reverse_as_sign
             front_updated[ix] = progress
-
-            # track min-max for eq_only=True early returns
-            if eq_only and not is_reverse_front and progress >= max_front_forward:
-                max_front_forward = progress + 1
-            if eq_only and is_reverse_front and progress <= min_front_reverse:
-                min_front_reverse = progress - 1
 
             # if front and reverse overlap we are done
             # to figure this out we first check whether we are facing ANY diagonal
