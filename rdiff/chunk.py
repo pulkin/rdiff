@@ -158,6 +158,23 @@ class Diff:
     def __gt__(self, other):
         return float(self) > other
 
+    def __bool__(self):
+        print(f"bool {self.diffs}")
+        if self.diffs is None:
+            raise ValueError("no diff information available")
+        if len(self.diffs) == 0:
+            return True
+        elif len(self.diffs) == 1:
+            c, = self.diffs
+            if c.eq is True:
+                return True
+            elif c.eq is False:
+                return False
+            else:
+                raise ValueError(f"a nested diff cannot be cast to a bool; inner diff: {c.eq}")
+        else:
+            raise ValueError(f"a non-trivial diff cannot be cast to a bool ({len(self.diffs)} chunks)")
+
     def get_a(self):
         """
         Computes the first sequence.

@@ -216,7 +216,7 @@ def test_complex_nested_raw():
 
 def test_nested_same():
     a = ["alice1", "bob1", "xxx", [0, 1, 2, "charlie1", []], [5, 6, 7]]
-    assert diff_nested(a, a) is True
+    assert diff_nested(a, a) == Diff(ratio=1.0, diffs=[Chunk(data_a=a, data_b=a, eq=True)])
 
 
 def test_nested_cyclic():

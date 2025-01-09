@@ -291,7 +291,7 @@ def diff_nested(
         max_depth: int = MAX_DEPTH,
         _blacklist_a: set = frozenset(),
         _blacklist_b: set = frozenset(),
-) -> Union[Diff, bool]:
+) -> Diff:
     """
     Computes a diff between nested sequences.
 
@@ -402,7 +402,7 @@ def diff_nested(
 
             if rtn_diff:
                 def _dig(i: int, j: int):
-                    return diff_nested(
+                    _dig_result = diff_nested(
                         a=a[i],
                         b=b[j],
                         eq=(a_[i], b_[j]),
@@ -418,6 +418,10 @@ def diff_nested(
                         _blacklist_a=_blacklist_a,
                         _blacklist_b=_blacklist_b,
                     )
+                    try:
+                        return bool(_dig_result)
+                    except ValueError:
+                        return _dig_result
             else:
                 _dig = None
 
@@ -448,7 +452,4 @@ def diff_nested(
         strict=True,
     )
 
-    # if equal exactly return True
-    if result.diffs is not None and (len(result.diffs) == 0 or (len(result.diffs) == 1 and result.diffs[0].eq is True)):
-        return True
     return result

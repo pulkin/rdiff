@@ -24,10 +24,7 @@ def test_equal(monkeypatch, a):
     assert diff(a, a) == Diff(
         ratio=1,
         diffs=[
-            Chunk(data_a=a, data_b=a, eq=[
-                Diff(ratio=1.0, diffs=[Chunk(data_a=_i, data_b=_i, eq=True)])
-                for _i in a
-            ])
+            Chunk(data_a=a, data_b=a, eq=True)
         ]
     )
 
@@ -43,10 +40,8 @@ def test_random(monkeypatch, a):
     assert diff(a, b) == Diff(
         ratio=0.9,
         diffs=[
-            Chunk(data_a=a[:3], data_b=b[:3], eq=[
-                Diff(ratio=1.0, diffs=[
-                    Chunk(data_a=a[0], data_b=b[0], eq=True),
-                ]),
+            Chunk(data_a=a[:1], data_b=b[:1], eq=True),
+            Chunk(data_a=a[1:3], data_b=b[1:3], eq=[
                 Diff(ratio=0.9, diffs=[
                     Chunk(data_a=a[1, :1], data_b=b[1, :1], eq=True),
                     Chunk(data_a=a[1, 1:2], data_b=b[1, 1:2], eq=False),

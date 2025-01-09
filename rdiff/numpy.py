@@ -224,7 +224,10 @@ def get_row_col_diff(
     row_sig = base_diff.signature
     in_row_diff = []
     for chunk in base_diff.diffs:
-        if chunk.eq is not False:
+        if chunk.eq is True:
+            for i, j in zip(chunk.data_a, chunk.data_b):
+                in_row_diff.append(Diff(ratio=1.0, diffs=[Chunk(data_a=i, data_b=j, eq=True)]))
+        elif chunk.eq is not False:
             in_row_diff.extend(chunk.eq)
     col_sig = common_diff_sig(a.shape[1], b.shape[1], in_row_diff)
     return row_sig, col_sig
