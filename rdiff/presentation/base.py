@@ -208,32 +208,23 @@ class MarkdownTableFormats(TableFormats):
 
 
 @dataclass
-class TextPrinter:
+class AbstractTextPrinter:
     printer: TextIOBase = stdout
-    context_size: int = 2
     verbosity: int = 0
-    table_collapse_columns: bool = False
-    width : int = 0
-    table_formats: TableFormats = field(default_factory=TableFormats)
-    text_formats: TextFormats = field(default_factory=TextFormats)
+    width: int = 0
     """
-    A simple diff printer.
-    
+    Diff printer.
+
     Parameters
     ----------
     printer
         The text printer.
-    context_size
-        The number of non-diff rows to surround diffs with.
     verbosity
         The verbosity level.
-    table_collapse_columns
-        If True, collapses table columns that do not contain diffs.
     width
-        Total table width.
-    table_formats
-        Table formats.
+        Total screen width.
     """
+
     def __post_init__(self):
         if not self.width:
             try:
@@ -252,9 +243,8 @@ class TextPrinter:
         """
         if diff.is_eq():
             if self.verbosity >= 2:
-                self.printer.write(f"{diff.name} compare equal through {diff.__class__.__name__}\n")
-            return
-        if isinstance(diff, TextDiff):
+                self.print_equal(diff)
+        elif isinstance(diff, TextDiff):
             self.print_text(diff)
         elif isinstance(diff, TableDiff):
             self.print_table(diff)
@@ -267,6 +257,100 @@ class TextPrinter:
                 self.print_diff(_d)
         else:
             raise NotImplementedError(f"unknown diff: {diff}")
+
+    def print_equal(self, diff: AnyDiff):
+        """
+        Prints equal (empty) diff.
+
+        Parameters
+        ----------
+        diff
+            A diff to process.
+        """
+        raise NotImplementedError
+
+    def print_path(self, diff: PathDiff):
+        """
+        Print a path diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        raise NotImplementedError
+
+    def print_delta(self, diff: DeltaDiff):
+        """
+        Print a delta diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        raise NotImplementedError
+
+    def print_text(self, diff: TextDiff):
+        """
+        Prints a text diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        raise NotImplementedError
+
+    def print_table(self, diff: TableDiff):
+        """
+        Prints a table diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        raise NotImplementedError
+
+
+@dataclass
+class TextPrinter(AbstractTextPrinter):
+    context_size: int = 2
+    table_collapse_columns: bool = False
+    table_formats: TableFormats = field(default_factory=TableFormats)
+    text_formats: TextFormats = field(default_factory=TextFormats)
+    """
+    A simple diff printer.
+    
+    Parameters
+    ----------
+    printer
+        The text printer.
+    verbosity
+        The verbosity level.
+    width
+        Total screen width.
+    context_size
+        The number of non-diff rows to surround diffs with.
+    table_collapse_columns
+        If True, collapses table columns that do not contain diffs.
+    table_formats
+        Table formats.
+    text_format
+        Text formats.
+    """
+
+    def print_equal(self, diff: AnyDiff):
+        """
+        Prints equal (empty) diff.
+
+        Parameters
+        ----------
+        diff
+            A diff to process.
+        """
+        self.printer.write(f"{diff.name} compare equal through {diff.__class__.__name__}\n")
 
     def print_header(self, diff: AnyDiff):
         """
@@ -308,10 +392,13 @@ class TextPrinter:
             The diff to print.
         """
         p = self.printer.write
-        p(f"{diff.name} are not equal")
-        if self.verbosity >= 1 and diff.message is not None:
-            p(f" ({diff.message})")
-        p("\n")
+        if diff.eq:
+            self.print_equal(diff)
+        else:
+            p(f"{diff.name} are not equal")
+            if self.verbosity >= 1 and diff.message is not None:
+                p(f" ({diff.message})")
+            p("\n")
 
     def print_delta(self, diff: DeltaDiff):
         """
@@ -322,11 +409,7 @@ class TextPrinter:
         diff
             The diff to print.
         """
-        p = self.printer.write
-        if diff.exist_a:
-            p(f"DEL {diff.name}\n")
-        else:
-            p(f"NEW {diff.name}\n")
+        self.printer.write(f"{'DEL' if diff.exist_a else 'NEW'} {diff.name}\n")
 
     def print_text(self, diff: TextDiff):
         """
@@ -445,3 +528,121 @@ class TextPrinter:
 
         for row in table.compute(self.table_formats.row_spacer):
             self.printer.write(self.table_formats.row_head + row + self.table_formats.row_tail + "\n")
+
+
+@dataclass(kw_only=True)
+class TextSummaryFormats:
+    ratio_fmt: str = "{:.4f}"
+    ratio_non_fmt: str = "{:<6}"
+    n_equal_fmt: str = "={:<7d}"
+    n_equal_non_fmt: str = "{:<8}"
+    n_neq_fmt: str = "≠{:<7d}"
+    n_neq_non_fmt: str = "{:<8}"
+    n_aligned_fmt: str = "≈{:<7d}"
+    n_aligned_non_fmt: str = "{:<8}"
+    sep = " "
+
+
+@dataclass
+class SummaryTextPrinter(TextPrinter):
+    formats: TextSummaryFormats = field(default_factory=TextSummaryFormats)
+    """
+    A summary diff printer.
+
+    Parameters
+    ----------
+    printer
+        The text printer.
+    verbosity
+        The verbosity level.
+    width
+        Total screen width.
+    formats
+        Text formats.
+    """
+
+    @property
+    def _empty_fmt(self) -> str:
+        f = self.formats
+        return f"{f.ratio_non_fmt}{f.sep}{f.n_equal_non_fmt}{f.sep}{f.n_aligned_non_fmt}{f.sep}{f.n_neq_non_fmt}{f.sep}{{}}"
+
+    @property
+    def _ratio_fmt(self) -> str:
+        f = self.formats
+        return f"{f.ratio_fmt}{f.sep}{f.n_equal_non_fmt}{f.sep}{f.n_aligned_non_fmt}{f.sep}{f.n_neq_non_fmt}{f.sep}{{}}"
+
+    @property
+    def _full_fmt(self) -> str:
+        f = self.formats
+        return f"{f.ratio_fmt}{f.sep}{f.n_equal_fmt}{f.sep}{f.n_aligned_fmt}{f.sep}{f.n_neq_fmt}{f.sep}{{}}"
+
+    def print_equal(self, diff: AnyDiff):
+        """
+        Prints equal (empty) diff.
+
+        Parameters
+        ----------
+        diff
+            A diff to process.
+        """
+        self.printer.write(self._empty_fmt.format("1", "", "", "", f"{diff.name} match\n"))
+
+    def print_path(self, diff: PathDiff):
+        """
+        Print a path diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        p = self.printer.write
+        if diff.eq:
+            self.print_equal(diff)
+        else:
+            p(self._empty_fmt.format("0", "", "", "", f"{diff.name} do not match\n"))
+            if self.verbosity >= 1 and diff.message is not None:
+                p(f" ({diff.message})")
+            p("\n")
+
+    def print_delta(self, diff: DeltaDiff):
+        """
+        Print a delta diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        self.printer.write(self._empty_fmt.format('DEL' if diff.exist_a else 'NEW', "", "", "", f"{diff.name}\n"))
+
+    def print_text(self, diff: TextDiff):
+        """
+        Prints a text diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        if diff.data.diffs is not None:
+            n_eq = sum(len(i.data_a) for i in diff.data.diffs if i.eq is True)
+            n_al = sum(len(i.data_a) for i in diff.data.diffs if not isinstance(i.eq, bool))
+            n_ne = sum(len(i.data_a) for i in diff.data.diffs if i.eq is False)
+            self.printer.write(self._full_fmt.format(diff.data.ratio, n_eq, n_al, n_ne, f"{diff.name}\n"))
+        else:
+            self.printer.write(self._ratio_fmt.format(diff.data.ratio, "", "", "", f"{diff.name}\n"))
+
+    def print_table(self, diff: TableDiff):
+        """
+        Prints a table diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        n_eq = diff.data.eq.all(axis=1).sum()
+        n_al = diff.data.eq.any(axis=1).sum()
+        n_ne = (~diff.data.eq).all(axis=1).sum()
+        self.printer.write(self._full_fmt.format(diff.data.ratio, n_eq, n_al, n_ne, f"{diff.name}\n"))

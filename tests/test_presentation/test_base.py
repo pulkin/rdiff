@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import pandas as pd
 
-from rdiff.presentation.base import MarkdownTableFormats
+from rdiff.presentation.base import MarkdownTableFormats, SummaryTextPrinter
 
 from .util import diff2text, self_extract, sync_contents
 
@@ -42,7 +42,8 @@ def test_readme(test_diff_renders):
 
 
 @pytest.mark.parametrize("args, name", [
-    ({}, "default")
+    ({}, "default"),
+    ({"printer_class": SummaryTextPrinter}, "summary")
 ])
 def test_git_history(tmp_path, test_diff_renders, args, name):
     self_extract("0c197f2cdb0bf8c0ca95e76a837296fbebad436d", a := tmp_path / "a")
