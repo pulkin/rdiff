@@ -1,0 +1,8 @@
+0.9762 =41      ≈0       ≠1       tests/test_presentation/cases/co2_emissions/diff.csv.md
+0.9762 =41      ≈0       ≠1       tests/test_presentation/cases/co2_emissions/diff.csv.txt
+0.9762 =41      ≈0       ≠1       tests/test_presentation/cases/co2_emissions/diff.excel.txt
+0.9762 =41      ≈0       ≠1       tests/test_presentation/cases/co2_emissions/diff.feather.txt
+0.9762 =41      ≈0       ≠1       tests/test_presentation/cases/co2_emissions/diff.parquet.txt
+0.9875 =79      ≈0       ≠1       tests/test_presentation/cases/readme/diff.txt
+0.8750 =13      ≈1       ≠2       tests/test_presentation/util.py
+NEW                               rdiff/cli/processor.py
