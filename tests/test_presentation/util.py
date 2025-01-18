@@ -3,23 +3,16 @@ from subprocess import Popen, check_output
 import tarfile
 from tempfile import NamedTemporaryFile
 
-from rdiff.cli.processor import process_iter
-from rdiff.presentation.base import TextPrinter
+from rdiff.cli.processor import process_print
 
 
-def diff2text(a, b, printer_class=TextPrinter, printer_kwargs=None, **kwargs):
-    if printer_kwargs is None:
-        printer_kwargs = {}
-
+def diff2text(a, b, **kwargs):
     buffer = StringIO()
-    printer = printer_class(printer=buffer, **printer_kwargs)
-    for i in process_iter(a, b, sort=True, **kwargs):
-        printer.print_diff(i)
-
+    process_print(a, b, output_file=buffer, sort=True, **kwargs)
     return buffer.getvalue()
 
 
-def self_extract(commit, dst):
+def git_self_extract(commit, dst):
     root = check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
     with NamedTemporaryFile("w+b") as f:
         Popen(["git", "-C", root, "archive", commit], stdout=f).communicate()
