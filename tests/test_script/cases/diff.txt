@@ -1,0 +1,75 @@
+DEL rdiff/cli/processor.py
+comparing tests/test_presentation/cases/co2_emissions/diff.csv.md
+< comparing .
+---
+> comparing a.csv/b.csv
+---
+  |     | Country     | -Region | Date       | Kilotons of Co2 | -Metric Tons Per Capita |
+  | --- | ----------- | ------- | ---------- | --------------- | ----------------------- |
+(39 lines match)
+comparing tests/test_presentation/cases/co2_emissions/diff.csv.txt
+< comparing .
+---
+> comparing a.csv/b.csv
+---
+      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+  --- ----------- ------- ---------- --------------- -----------------------
+(39 lines match)
+comparing tests/test_presentation/cases/co2_emissions/diff.excel.txt
+< comparing ./Sheet1
+---
+> comparing a.excel/b.excel/Sheet1
+---
+      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+  --- ----------- ------- ---------- --------------- -----------------------
+(39 lines match)
+comparing tests/test_presentation/cases/co2_emissions/diff.feather.txt
+< comparing .
+---
+> comparing a.feather/b.feather
+---
+      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+  --- ----------- ------- ---------- --------------- -----------------------
+(39 lines match)
+comparing tests/test_presentation/cases/co2_emissions/diff.parquet.txt
+< comparing .
+---
+> comparing a.parquet/b.parquet
+---
+      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+  --- ----------- ------- ---------- --------------- -----------------------
+(39 lines match)
+comparing tests/test_presentation/cases/readme/diff.txt
+< comparing .
+---
+> comparing a.txt/b.txt
+---
+  (27 lines match)
+      from rdiff.sequence import diff
+(77 lines match)
+comparing tests/test_presentation/util.py
+  from io import StringIO
+  
+---
+< from rdiff.cli.processor import process_iter
+---
+> from rdiff.contextual.path import diff_path
+---
+  from rdiff.presentation.base import TextPrinter
+  
+(2 lines match)
+      if printer_kwargs is None:
+          printer_kwargs = {}
+---
+>     diff = diff_path(a, b, f"{a.name}/{b.name}", **kwargs)
+---
+  
+      buffer = StringIO()
+      printer = TextPrinter(printer=buffer, **printer_kwargs)
+---
+<     for i in process_iter(a, b, **kwargs):
+---
+≈     ---    ---printer.print_diff(---i---+++diff+++)
+---
+  
+      return buffer.getvalue()

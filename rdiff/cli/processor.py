@@ -1,7 +1,10 @@
+import argparse
+from collections import namedtuple
 from pathlib import Path
 from typing import Optional
 from collections.abc import Iterator, Sequence
 import re
+from contextlib import nullcontext
 
 from .path_util import accept_all, glob_rule, iter_match
 from ..contextual.base import AnyDiff
@@ -186,3 +189,101 @@ def process_print(
         any_diff |= i.is_eq()
         printer.print_diff(i)
     return any_diff
+
+
+def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
+    """
+    Parse CLI arguments.
+
+    Parameters
+    ----------
+    args
+        Arguments to parse.
+
+    Returns
+    -------
+    A namespace with arguments.
+    """
+
+    class RepeatingOrderedAction(argparse.Action):
+        def __init__(self, option_strings: list[str], dest, bucket_name: str, **kwargs):
+            super().__init__(option_strings, dest, **kwargs)
+            self.bucket_name = bucket_name
+
+        def __call__(self, parser, namespace, values, option_string=None):
+            bucket = getattr(namespace, self.bucket_name, [])
+            bucket.append((self.dest, values))
+            setattr(namespace, self.bucket_name, bucket)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("a", type=Path, metavar="FILE", help="the A version of the file tree or a single file")
+    parser.add_argument("b", type=Path, metavar="FILE", help="the B version of the file tree or a single file")
+    parser.add_argument("reverse", action="store_true", help="swap A and B")
+
+    consumption_group = parser.add_argument_group("path consumption options")
+    consumption_group.add_argument("--include", action=RepeatingOrderedAction, bucket_name="includes", metavar="PATTERN", help="paths to include")
+    consumption_group.add_argument("--exclude", action=RepeatingOrderedAction, bucket_name="includes", metavar="PATTERN", help="paths to exclude")
+    consumption_group.add_argument("--rename", nargs=2, action="append", metavar="PATTERN REPLACE", help="rename files using re.sub")
+    consumption_group.add_argument("--sort", action="store_true", help="sort diffs by file name")
+
+    algorithm_group = parser.add_argument_group("algorithm settings")
+    algorithm_group.add_argument("--min-ratio", type=float, default=0.75, metavar="[0..1]", help="the minimal required similarity ratio value. Setting this to a higher value will make the algorithm stop earlier")
+    algorithm_group.add_argument("--min-ratio-row", type=float, default=0.75, metavar="[0..1]", help="the minimal required similarity ratio value for individual lines/rows. Setting this to a higher value will make the algorithm stop earlier")
+    algorithm_group.add_argument("--max-cost", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost. Setting this to a lower value will make the algorithm stop earlier")
+    algorithm_group.add_argument("--max-cost-row", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost for individual lines/rows. Setting this to a lower value will make the algorithm stop earlier")
+
+    misc_group = parser.add_argument_group("misc settings")
+    misc_group.add_argument("--mime", metavar="MIME", help="enforce the MIME")
+    misc_group.add_argument("--table-drop-cols", nargs="+", metavar="COL1, COL2, ...", help="drop the specified columns from parsed tables")
+
+    print_group = parser.add_argument_group("printing")
+    print_group.add_argument("--format", choices=["plain", "md", "summary"], default="default", help="output print format")
+    print_group.add_argument("-v", "--verbose", action="count", default=0, help="verbosity")
+    print_group.add_argument("--context-size", type=int, default=2, metavar="INT", help="the number of lines/rows to surround diffs")
+    print_group.add_argument("--table-collapse", action="store_true", help="hide table columns without diffs")
+    print_group.add_argument("--width", type=int, metavar="INT", help="terminal width")
+    print_group.add_argument("--output", type=str, metavar="FILE", help="output to file")
+
+    result = parser.parse_args(args)
+
+    include_options_type = namedtuple("include", ("what", "value"))
+    rules = getattr(result, "includes", [])
+    result.includes = [
+        include_options_type(what, {"include": True, "exclude": False}[action])
+        for action, what in rules
+    ]
+    del result.include
+    del result.exclude
+
+    if result.reverse:
+        result.a, result.b = result.b, result.a
+    del result.reverse
+
+    return result
+
+
+def run(args=None) -> bool:
+    args = parse_args(args)
+    with open(args.output, "w") if args.output else nullcontext() as f:
+        return process_print(
+            a=args.a, b=args.b,
+            includes=args.includes,
+            rename=args.rename,
+            min_ratio=args.min_ratio,
+            min_ratio_row=args.min_ratio_row,
+            max_cost=args.max_cost,
+            max_cost_row=args.max_cost_row,
+            mime=args.mime,
+            table_drop_cols=args.table_drop_cols,
+            sort=args.sort,
+            output_format=args.format,
+            output_verbosity=args.verbose,
+            output_context_size=args.context_size,
+            output_table_collapse_columns=args.table_collapse,
+            output_file=f,
+            output_term_width=args.width,
+        )
+
+
+if __name__ == "__main__":
+    exit(run())

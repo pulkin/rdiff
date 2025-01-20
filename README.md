@@ -91,7 +91,7 @@ Context comparison
 
 CLI
 
-- [ ] CLI
+- [x] CLI
 - [x] file walk
 - [ ] rich terminal output
 - [ ] HTML output

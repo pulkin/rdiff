@@ -10,3 +10,6 @@ license = {text = "BSD-2-Clause"}
 [build-system]
 requires = ["setuptools", "Cython", "numpy"]
 build-backend = "setuptools.build_meta"
+
+[project.scripts]
+rdiff = "rdiff.cli.processor:run"
