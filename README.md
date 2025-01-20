@@ -7,6 +7,17 @@ About
 
 This a WIP implementation of Myers' algorithm for constructing meaningful diffs beyond text files.
 
+Features
+--------
+
+`rdiff` is not a drop-in replacement for your diff tool. But it does some things nicely.
+
+- you can use it for text file diffs as usual
+- **rdiff** also supports tables
+- it is pretty fast
+- it exposes low-level python API to compare/align arbitrary sequences
+- **rdiff** can be fine-tuned to include/exclude files, align file names through regexes, set various similarity measures
+
 Install
 -------
 

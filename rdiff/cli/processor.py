@@ -5,12 +5,13 @@ from typing import Optional
 from collections.abc import Iterator, Sequence
 import re
 from contextlib import nullcontext
+from sys import stdout
 
 from .path_util import accept_all, glob_rule, iter_match
 from ..contextual.base import AnyDiff
 from ..contextual.path import diff_path, DeltaDiff
 from ..myers import MAX_COST
-from ..presentation.base import TextPrinter, SummaryTextPrinter, MarkdownTableFormats
+from ..presentation.base import TextPrinter, SummaryTextPrinter, MarkdownTableFormats, TermTextFormats
 
 
 def process_iter(
@@ -163,6 +164,8 @@ def process_print(
     """
     if output_format is None or output_format == "default":
         output_format = "plain"
+    if output_file is None:
+        output_file = stdout
     printer_kwargs = {
         "printer": output_file,
         "verbosity": output_verbosity,
@@ -177,6 +180,8 @@ def process_print(
         printer_class = SummaryTextPrinter
     elif output_format == "markdown" or output_format == "md":
         printer_kwargs["table_formats"] = MarkdownTableFormats
+    elif output_format == "color":
+        printer_kwargs["text_formats"] = TermTextFormats
     else:
         raise ValueError(f"unknown output format: {output_format}")
     printer = printer_class(**printer_kwargs)
@@ -237,7 +242,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     misc_group.add_argument("--table-drop-cols", nargs="+", metavar="COL1, COL2, ...", help="drop the specified columns from parsed tables")
 
     print_group = parser.add_argument_group("printing")
-    print_group.add_argument("--format", choices=["plain", "md", "summary"], default="default", help="output print format")
+    print_group.add_argument("--format", choices=["plain", "md", "summary", "color"], default="default", help="output print format")
     print_group.add_argument("-v", "--verbose", action="count", default=0, help="verbosity")
     print_group.add_argument("--context-size", type=int, default=2, metavar="INT", help="the number of lines/rows to surround diffs")
     print_group.add_argument("--table-collapse", action="store_true", help="hide table columns without diffs")

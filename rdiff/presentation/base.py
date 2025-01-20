@@ -171,6 +171,9 @@ class Table:
 
 @dataclass(kw_only=True)
 class TextFormats:
+    header: str = "%s"
+    del_entry: str = "DEL %s"
+    new_entry: str = "NEW %s"
     skip_equal: str = "(%d lines match)"
     line_ctx: str = "  %s"
     line_add: str = "> %s"
@@ -179,6 +182,33 @@ class TextFormats:
     block_spacer: str = "---\n"
     chunk_add: str = "+++%s+++"
     chunk_rm: str = "---%s---"
+
+
+_tformat = "\033[%dm%%s\033[0m"
+
+tf_strike = _tformat % 9
+tf_black = _tformat % 30
+tf_red = _tformat % 31
+tf_green = _tformat % 32
+tf_on_red = _tformat % 41
+tf_on_light_grey = _tformat % 47
+tf_grey = _tformat % 90
+tf_on_white = _tformat % 107
+
+
+@dataclass(kw_only=True)
+class TermTextFormats:
+    header: str = tf_on_light_grey % tf_black
+    del_entry: str = f"{tf_red % 'DEL'} %s"
+    new_entry: str = f"{tf_green % 'NEW'} %s"
+    skip_equal: str = tf_grey % "(%d lines match)"
+    line_ctx: str = tf_grey % "  %s"
+    line_add: str = tf_green % "> %s"
+    line_rm: str = tf_red % "< %s"
+    line_aligned: str = "≈ %s"
+    block_spacer: str = ""
+    chunk_add: str = tf_green
+    chunk_rm: str = tf_strike % tf_red
 
 
 @dataclass(kw_only=True)
@@ -198,6 +228,25 @@ class TableFormats:
     row_spacer: str = " "
     row_tail: str = ""
     hline: str = "-"
+
+
+@dataclass(kw_only=True)
+class TermTableFormats:
+    skip_equal: str = tf_grey % "(%d rows match)"
+    column_plain: str = "%s"
+    column_add: str = tf_green
+    column_rm: str = tf_red
+    column_both: str = f"{tf_red}>{tf_green}"
+    ix_row_plain: str = "%d"
+    ix_row_add: str = tf_green % "%d"
+    ix_row_rm: str = tf_red % "%d"
+    ix_row_both: str = f"{tf_red % '%d'}>{tf_green % '%d'}"
+    ix_row_a: str = tf_red % "%d"
+    ix_row_b: str = tf_green % "%d"
+    row_head: str = ""
+    row_spacer: str = " "
+    row_tail: str = ""
+    hline: str = ""
 
 
 @dataclass(kw_only=True)
@@ -364,7 +413,7 @@ class TextPrinter(AbstractTextPrinter):
         p = self.printer.write
         v = self.verbosity
 
-        p(f"comparing {diff.name}")
+        p(self.text_formats.header % f"comparing {diff.name}")
         if isinstance(diff, TableDiff):
             if v >= 1:
                 p(f" (ratio={diff.data.ratio:.4f})")
@@ -409,7 +458,8 @@ class TextPrinter(AbstractTextPrinter):
         diff
             The diff to print.
         """
-        self.printer.write(f"{'DEL' if diff.exist_a else 'NEW'} {diff.name}\n")
+        fmt = self.text_formats.del_entry if diff.exist_a else self.text_formats.new_entry
+        self.printer.write(f"{fmt % diff.name}\n")
 
     def print_text(self, diff: TextDiff):
         """
@@ -501,7 +551,8 @@ class TextPrinter(AbstractTextPrinter):
                 row.append(col)
             table.append_row(row)
 
-        table.append_hline(self.table_formats.hline)
+        if self.table_formats.hline:
+            table.append_hline(self.table_formats.hline)
 
         # print table data
         for i in diff.data.to_plain().iter_important(context_size=self.context_size):
