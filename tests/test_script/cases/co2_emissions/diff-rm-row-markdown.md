@@ -1,0 +1,9 @@
+comparing .
+
+|      | Country           | Region     | Date             | Kilotons of Co2 | Metric Tons Per Capita |
+| ---- | ----------------- | ---------- | ---------------- | --------------- | ---------------------- |
+| 0    | Afghanistan       | Asia       | 01-01-2011       | 8930            | 0.31                   |
+| 1A   | ---Afghanistan--- | ---Asia--- | ---01-01-2012--- | ---8080---      | ---0.27---             |
+| 2A1B | Afghanistan       | Asia       | 01-01-2010       | 7110            | 0.25                   |
+| 3A2B | Afghanistan       | Asia       | 01-01-2019       | 6080            | 0.16                   |
+| (5 row(s) match) |

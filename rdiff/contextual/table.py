@@ -48,7 +48,7 @@ class TableDiff(AnyDiff):
     """
 
     def is_eq(self) -> bool:
-        return self.data.eq.all()
+        return bool(self.data.eq.all())
 
 
 def diff(

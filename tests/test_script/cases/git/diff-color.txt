@@ -1,0 +1,55 @@
+[47m[30mcomparing tests/test_presentation/cases/co2_emissions/diff.csv.md[0m
+[31m< comparing a.csv/b.csv
+[0m[32m> comparing .
+[0m[90m  |     | Country     | -Region | Date       | Kilotons of Co2 | -Metric Tons Per Capita |
+[0m[90m  | --- | ----------- | ------- | ---------- | --------------- | ----------------------- |
+[0m[90m(39 lines match)[0m
+[47m[30mcomparing tests/test_presentation/cases/co2_emissions/diff.csv.txt[0m
+[31m< comparing a.csv/b.csv
+[0m[32m> comparing .
+[0m[90m      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+[0m[90m  --- ----------- ------- ---------- --------------- -----------------------
+[0m[90m(39 lines match)[0m
+[47m[30mcomparing tests/test_presentation/cases/co2_emissions/diff.excel.txt[0m
+[31m< comparing a.excel/b.excel/Sheet1
+[0m[32m> comparing ./Sheet1
+[0m[90m      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+[0m[90m  --- ----------- ------- ---------- --------------- -----------------------
+[0m[90m(39 lines match)[0m
+[47m[30mcomparing tests/test_presentation/cases/co2_emissions/diff.feather.txt[0m
+[31m< comparing a.feather/b.feather
+[0m[32m> comparing .
+[0m[90m      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+[0m[90m  --- ----------- ------- ---------- --------------- -----------------------
+[0m[90m(39 lines match)[0m
+[47m[30mcomparing tests/test_presentation/cases/co2_emissions/diff.parquet.txt[0m
+[31m< comparing a.parquet/b.parquet
+[0m[32m> comparing .
+[0m[90m      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+[0m[90m  --- ----------- ------- ---------- --------------- -----------------------
+[0m[90m(39 lines match)[0m
+[47m[30mcomparing tests/test_presentation/cases/readme/diff.txt[0m
+[31m< comparing a.txt/b.txt
+[0m[32m> comparing .
+[0m[90m  (27 lines match)
+[0m[90m      from rdiff.sequence import diff
+[0m[90m(77 lines match)[0m
+[47m[30mcomparing tests/test_presentation/util.py[0m
+[90m  from io import StringIO
+[0m[90m  
+[0m[31m< from rdiff.contextual.path import diff_path
+[0m[32m> from rdiff.cli.processor import process_iter
+[0m[90m  from rdiff.presentation.base import TextPrinter
+[0m[90m  
+[0m[90m(2 lines match)[0m
+[90m      if printer_kwargs is None:
+[0m[90m          printer_kwargs = {}
+[0m[31m<     diff = diff_path(a, b, f"{a.name}/{b.name}", **kwargs)
+[0m[90m  
+[0m[90m      buffer = StringIO()
+[0m[90m      printer = TextPrinter(printer=buffer, **printer_kwargs)
+[0m[32m>     for i in process_iter(a, b, **kwargs):
+[0m≈     [32m    [0mprinter.print_diff([41m[30mdiff[0m[32mi[0m)
+[90m  
+[0m[90m      return buffer.getvalue()
+[0m[32mNEW[0m rdiff/cli/processor.py

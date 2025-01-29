@@ -5,40 +5,14 @@ import os
 from typing import Union, Any, Optional
 from collections.abc import Sequence, Callable, Iterator
 from itertools import groupby
+import re
 
+from .string_tools import align, visible_len
 from ..contextual.base import AnyDiff
 from ..contextual.table import TableDiff
 from ..contextual.text import TextDiff
 from ..contextual.path import PathDiff, CompositeDiff, DeltaDiff
 from ..chunk import Item
-
-
-def align(s: str, n: int, elli: str = "…", fill: str = " ", just=str.ljust) -> str:
-    """
-    Aligns a string towards a specific length. Truncates if the string is longer
-    than the provided number and justifies it if the string is shorter.
-
-    Parameters
-    ----------
-    s
-        The string to align.
-    n
-        The desired string length.
-    elli
-        Suffix to add when truncating the string.
-    fill
-        A character to use for justifying.
-    just
-        Justify function.
-
-    Returns
-    -------
-    The resulting string of the desired length.
-    """
-    if len(s) > n:
-        return s[:n - len(elli)] + elli
-    else:
-        return just(s, n, fill)
 
 
 class TableBreak(str):
@@ -52,7 +26,7 @@ class TableHline(str):
 @dataclass
 class Table:
     column_mask: Sequence[bool]
-    data: list[Union[tuple[str, ...], str]] = field(default_factory=list)
+    data: list[Union[tuple[str, ...], TableBreak, TableHline]] = field(default_factory=list)
     etc: str = "..."
     pre_str: Callable[(Any,), str] = str
     """
@@ -138,7 +112,7 @@ class Table:
         -------
         A list of integers with row widths.
         """
-        return [max(len(d[i]) for d in self.data if type(d) is tuple) for i in range(self.row_len)]
+        return [max(visible_len(d[i]) for d in self.data if type(d) is tuple) for i in range(self.row_len)]
 
     def compute(self, join: str, widths: Optional[list[int]] = None) -> Iterator[str]:
         """
@@ -172,6 +146,8 @@ class Table:
 @dataclass(kw_only=True)
 class TextFormats:
     header: str = "%s"
+    textwrap_start: str = ""
+    textwrap_end: str = ""
     del_entry: str = "DEL %s"
     new_entry: str = "NEW %s"
     skip_equal: str = "(%d lines match)"
@@ -183,8 +159,38 @@ class TextFormats:
     chunk_add: str = "+++%s+++"
     chunk_rm: str = "---%s---"
 
+    @staticmethod
+    def escape(s: str) -> str:
+        if s.endswith("\n"):
+            s, x = s[:-1], s[-1:]
+        else:
+            x = ""
+        return repr(s)[1:-1] + x
+
+
+@dataclass(kw_only=True)
+class MarkdownTextFormats(TextFormats):
+    header: str = "%s\n"
+    textwrap_start: str = "~~~text\n"
+    textwrap_end: str = "~~~\n"
+    del_entry: str = "DEL %s\n"
+    new_entry: str = "NEW %s\n"
+    skip_equal: str = "(%d lines match)"
+    line_ctx: str = "  %s"
+    line_add: str = "> %s"
+    line_rm: str = "< %s"
+    line_aligned: str = "≈ %s"
+    block_spacer: str = "---\n"
+    chunk_add: str = "+++%s+++"
+    chunk_rm: str = "---%s---"
+
+    @staticmethod
+    def escape(s: str) -> str:
+        return re.sub(f'(~~~)', r'[triple ~]', s)
+
 
 _tformat = "\033[%dm%%s\033[0m"
+
 
 tf_strike = _tformat % 9
 tf_black = _tformat % 30
@@ -197,8 +203,10 @@ tf_on_white = _tformat % 107
 
 
 @dataclass(kw_only=True)
-class TermTextFormats:
-    header: str = tf_on_light_grey % tf_black
+class TermTextFormats(TextFormats):
+    header: str = (tf_on_light_grey % tf_black)[:-4]
+    textwrap_start: str = ""
+    textwrap_end: str = ""
     del_entry: str = f"{tf_red % 'DEL'} %s"
     new_entry: str = f"{tf_green % 'NEW'} %s"
     skip_equal: str = tf_grey % "(%d lines match)"
@@ -208,44 +216,60 @@ class TermTextFormats:
     line_aligned: str = "≈ %s"
     block_spacer: str = ""
     chunk_add: str = tf_green
-    chunk_rm: str = tf_strike % tf_red
+    chunk_rm: str = (tf_on_red % tf_black)[:-4]
 
 
 @dataclass(kw_only=True)
 class TableFormats:
-    skip_equal: str = "(%d rows match)"
+    skip_equal: str = "(%d row(s) match)"
+
     column_plain: str = "%s"
     column_add: str = "+%s"
     column_rm: str = "-%s"
     column_both: str = "%s>%s"
-    ix_row_plain: str = "%d"
-    ix_row_add: str = "%d+"
-    ix_row_rm: str = "%d-"
-    ix_row_both: str = "%d>%d"
+
+    ix_row_context_one: str = "%d"
+    ix_row_context_both: str = "%dA%dB"
+    ix_row_same: str = "%d"
     ix_row_a: str = "%dA"
     ix_row_b: str = "%dB"
+
+    data_row_context: str = "%s"
+    data_row_same: str = "%s"
+    data_row_a: str = "---%s---"
+    data_row_b: str = "+++%s+++"
+
     row_head: str = ""
     row_spacer: str = " "
     row_tail: str = ""
+
     hline: str = "-"
 
 
 @dataclass(kw_only=True)
-class TermTableFormats:
-    skip_equal: str = tf_grey % "(%d rows match)"
+class TermTableFormats(TableFormats):
+    skip_equal: str = tf_grey % "(%d row(s) match)"
+
     column_plain: str = "%s"
     column_add: str = tf_green
     column_rm: str = tf_red
     column_both: str = f"{tf_red}>{tf_green}"
-    ix_row_plain: str = "%d"
-    ix_row_add: str = tf_green % "%d"
-    ix_row_rm: str = tf_red % "%d"
-    ix_row_both: str = f"{tf_red % '%d'}>{tf_green % '%d'}"
+
+    ix_row_context_one: str = tf_grey % "%d"
+    ix_row_context_both: str = tf_grey % "%dA%dB"
+    ix_row_same: str = "%d"
     ix_row_a: str = tf_red % "%d"
     ix_row_b: str = tf_green % "%d"
+
+    data_row_context: str = tf_grey
+    data_row_same: str = "%s"
+    data_row_a: str = tf_red
+    data_row_b: str = tf_green
+
     row_head: str = ""
     row_spacer: str = " "
     row_tail: str = ""
+
     hline: str = ""
 
 
@@ -471,6 +495,8 @@ class TextPrinter(AbstractTextPrinter):
             The diff to print.
         """
         self.print_header(diff)
+        p = self.printer.write
+        e = self.text_formats.escape
         formats = {
             (True, False, False): self.text_formats.line_rm,
             (False, True, False): self.text_formats.line_add,
@@ -479,26 +505,27 @@ class TextPrinter(AbstractTextPrinter):
         }
 
         separator = False
+        p(self.text_formats.textwrap_start)
         for is_skip, group in groupby(diff.data.iter_important(context_size=self.context_size), lambda i: isinstance(i, int)):
             if is_skip:
                 for i in group:
-                    self.printer.write(self.text_formats.skip_equal % (i,) + "\n")
+                    p(self.text_formats.skip_equal % (i,) + "\n")
                     separator = False
             else:
                 for key, group_2 in groupby(group, lambda i: (i.a is not None, i.b is not None, i.diff is not None)):
                     if separator:
-                        self.printer.write(self.text_formats.block_spacer)
+                        p(self.text_formats.block_spacer)
                     separator = True
                     fmt = formats[key]
                     for i in group_2:
-                        if i.a is None:  # addition
-                            self.printer.write(fmt % (i.b,))
+                        if i.a is None and i.b is not None:  # addition
+                            p(fmt % (e(i.b),))
 
-                        elif i.b is None:  # removal
-                            self.printer.write(fmt % (i.a,))
+                        elif i.b is None and i.a is not None:  # removal
+                            p(fmt % (e(i.a),))
 
                         elif i.diff is None:  # context
-                            self.printer.write(fmt % (i.a,))
+                            p(fmt % (e(i.a),))
 
                         else:  # inline diff
                             assert i.diff is not None
@@ -507,7 +534,7 @@ class TextPrinter(AbstractTextPrinter):
                                 if c.eq
                                 else
                                 "".join(
-                                    _fmt % (_i,)
+                                    _fmt % (e(_i),)
                                     for _fmt, _i in [
                                         (self.text_formats.chunk_rm, c.data_a),
                                         (self.text_formats.chunk_add, c.data_b),
@@ -516,7 +543,8 @@ class TextPrinter(AbstractTextPrinter):
                                 )
                                 for c in i.diff.diffs
                             )
-                            self.printer.write(fmt % (line,))
+                            p(fmt % (line,))
+        p(self.text_formats.textwrap_end)
 
     def print_table(self, diff: TableDiff):
         """
@@ -561,21 +589,41 @@ class TextPrinter(AbstractTextPrinter):
             elif isinstance(i, Item):
 
                 if i.a is None:  # addition
-                    table.append_row([self.table_formats.ix_row_add % (i.ix_b,), *i.b])
+                    table.append_row([self.table_formats.ix_row_b % (i.ix_b,), *(self.table_formats.data_row_b % s for s in i.b)])
 
                 elif i.b is None:  # removal
-                    table.append_row([self.table_formats.ix_row_rm % (i.ix_a,), *i.a])
+                    table.append_row([self.table_formats.ix_row_a % (i.ix_a,), *(self.table_formats.data_row_a % s for s in i.a)])
 
                 elif i.diff is None:  # context
                     if i.ix_a == i.ix_b:
-                        code = self.table_formats.ix_row_plain % (i.ix_a,)
+                        code = self.table_formats.ix_row_context_one % (i.ix_a,)
                     else:
-                        code = self.table_formats.ix_row_both % (i.ix_a, i.ix_b)
-                    table.append_row([code, *i.a])
+                        code = self.table_formats.ix_row_context_both % (i.ix_a, i.ix_b)
+                    table.append_row([code, *(self.table_formats.data_row_context % s for s in i.a)])
 
                 else:  # inline diff
-                    table.append_row([self.table_formats.ix_row_a % (i.ix_a,), *i.a])
-                    table.append_row([self.table_formats.ix_row_b % (i.ix_b,), *i.b])
+                    row_a = []
+                    row_b = []
+                    if i.ix_a != i.ix_b:
+                        row_a.append(self.table_formats.ix_row_a % (i.ix_a,))
+                        row_b.append(self.table_formats.ix_row_b % (i.ix_b,))
+                    else:
+                        row_a.append(self.table_formats.ix_row_same % (i.ix_a,))
+                        row_b.append("")
+                    for a, b, eq in zip(i.a, i.b, i.diff):
+                        if eq:
+                            row_a.append(self.table_formats.data_row_same % (a,))
+                            row_b.append("")
+                        else:
+                            if a:
+                                row_a.append(self.table_formats.data_row_a % (a,))
+                                row_b.append(self.table_formats.data_row_b % (b,) if b else "")
+                            else:
+                                row_a.append(self.table_formats.data_row_b % (b,) if b else "")
+                                row_b.append("")
+                    table.append_row(row_a)
+                    if any(row_b):
+                        table.append_row(row_b)
 
         for row in table.compute(self.table_formats.row_spacer):
             self.printer.write(self.table_formats.row_head + row + self.table_formats.row_tail + "\n")
@@ -694,6 +742,6 @@ class SummaryTextPrinter(TextPrinter):
             The diff to print.
         """
         n_eq = diff.data.eq.all(axis=1).sum()
-        n_al = diff.data.eq.any(axis=1).sum()
+        n_al = diff.data.eq.any(axis=1).sum() - n_eq
         n_ne = (~diff.data.eq).all(axis=1).sum()
         self.printer.write(self._full_fmt.format(diff.data.ratio, n_eq, n_al, n_ne, f"{diff.name}\n"))

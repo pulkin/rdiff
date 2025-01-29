@@ -1,0 +1,11 @@
+[47m[30mcomparing .[0m
+  Country     Region [31mDate[0m       Kilotons of Co2 Metric Tons Per Capita
+0 Afghanistan Asia   [31m01-01-2011[0m 8930            0.31                  
+1 Afghanistan Asia   [31m01-01-2012[0m 8080            0.27                  
+2 Afghanistan Asia   [31m01-01-2010[0m 7110            0.25                  
+3 Afghanistan Asia   [31m01-01-2019[0m 6080            0.16                  
+4 Afghanistan Asia   [31m01-01-2018[0m 6070            0.17                  
+5 Afghanistan Asia   [31m01-01-2013[0m 5990            0.19                  
+6 Afghanistan Asia   [31m01-01-2015[0m 5950            0.18                  
+7 Afghanistan Asia   [31m01-01-2016[0m 5300            0.15                  
+8 Afghanistan Asia   [31m01-01-2014[0m 4880            0.15                  

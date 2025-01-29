@@ -1,0 +1,7 @@
+[47m[30mcomparing .[0m
+     Country     Region Date       Kilotons of Co2 Metric Tons Per Capita
+[90m0[0m    [90mAfghanistan[0m [90mAsia[0m   [90m01-01-2011[0m [90m8930[0m            [90m0.31[0m                  
+[31m1[0m    [31mAfghanistan[0m [31mAsia[0m   [31m01-01-2012[0m [31m8080[0m            [31m0.27[0m                  
+[90m2A1B[0m [90mAfghanistan[0m [90mAsia[0m   [90m01-01-2010[0m [90m7110[0m            [90m0.25[0m                  
+[90m3A2B[0m [90mAfghanistan[0m [90mAsia[0m   [90m01-01-2019[0m [90m6080[0m            [90m0.16[0m                  
+[90m(5 row(s) match)[0m

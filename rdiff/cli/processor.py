@@ -11,7 +11,8 @@ from .path_util import accept_all, glob_rule, iter_match
 from ..contextual.base import AnyDiff
 from ..contextual.path import diff_path, DeltaDiff
 from ..myers import MAX_COST
-from ..presentation.base import TextPrinter, SummaryTextPrinter, MarkdownTableFormats, TermTextFormats
+from ..presentation.base import (TextPrinter, SummaryTextPrinter, MarkdownTextFormats, MarkdownTableFormats,
+                                 TermTextFormats, TermTableFormats)
 
 
 def process_iter(
@@ -179,9 +180,11 @@ def process_print(
     elif output_format == "summary":
         printer_class = SummaryTextPrinter
     elif output_format == "markdown" or output_format == "md":
+        printer_kwargs["text_formats"] = MarkdownTextFormats
         printer_kwargs["table_formats"] = MarkdownTableFormats
     elif output_format == "color":
         printer_kwargs["text_formats"] = TermTextFormats
+        printer_kwargs["table_formats"] = TermTableFormats
     else:
         raise ValueError(f"unknown output format: {output_format}")
     printer = printer_class(**printer_kwargs)
@@ -191,7 +194,7 @@ def process_print(
             a=a, b=b, includes=includes, rename=rename, min_ratio=min_ratio, min_ratio_row=min_ratio_row,
             max_cost=max_cost, max_cost_row=max_cost_row, mime=mime, table_drop_cols=table_drop_cols, sort=sort,
     ):
-        any_diff |= i.is_eq()
+        any_diff |= not i.is_eq()
         printer.print_diff(i)
     return any_diff
 
@@ -223,7 +226,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("a", type=Path, metavar="FILE", help="the A version of the file tree or a single file")
     parser.add_argument("b", type=Path, metavar="FILE", help="the B version of the file tree or a single file")
-    parser.add_argument("reverse", action="store_true", help="swap A and B")
+    parser.add_argument("--reverse", action="store_true", help="swap A and B")
 
     consumption_group = parser.add_argument_group("path consumption options")
     consumption_group.add_argument("--include", action=RepeatingOrderedAction, bucket_name="includes", metavar="PATTERN", help="paths to include")
