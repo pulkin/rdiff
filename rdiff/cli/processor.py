@@ -24,6 +24,7 @@ def process_iter(
         min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
+        align_col_data: bool = False,
         mime: Optional[str] = None,
         table_drop_cols: Optional[Sequence[tuple[str, list[str]]]] = None,
         sort: bool = False,
@@ -55,6 +56,9 @@ def process_iter(
         worst-case time complexity scales with this number.
     max_cost_row
         The maximal cost below which two lines of text are aligned.
+    align_col_data
+        For tables, (force) compare columns by data as opposed to their names.
+        This may result in much slower comparisons.
     mime
         The MIME of the two paths.
     table_drop_cols
@@ -90,6 +94,7 @@ def process_iter(
                 min_ratio_row=min_ratio_row,
                 max_cost=max_cost,
                 max_cost_row=max_cost_row,
+                align_col_data=align_col_data,
                 table_drop_cols=table_drop_cols,
             )
 
@@ -103,6 +108,7 @@ def process_print(
         min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
+        align_col_data: bool = False,
         mime: Optional[str] = None,
         table_drop_cols: Optional[Sequence[tuple[str, list[str]]]] = None,
         sort: bool = False,
@@ -140,6 +146,9 @@ def process_print(
         worst-case time complexity scales with this number.
     max_cost_row
         The maximal cost below which two lines of text are aligned.
+    align_col_data
+        For tables, (force) compare columns by data as opposed to their names.
+        This may result in much slower comparisons.
     mime
         The MIME of the two paths.
     table_drop_cols
@@ -192,7 +201,8 @@ def process_print(
 
     for i in process_iter(
             a=a, b=b, includes=includes, rename=rename, min_ratio=min_ratio, min_ratio_row=min_ratio_row,
-            max_cost=max_cost, max_cost_row=max_cost_row, mime=mime, table_drop_cols=table_drop_cols, sort=sort,
+            max_cost=max_cost, max_cost_row=max_cost_row, align_col_data=align_col_data, mime=mime,
+            table_drop_cols=table_drop_cols, sort=sort,
     ):
         any_diff |= not i.is_eq()
         printer.print_diff(i)
@@ -239,6 +249,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     algorithm_group.add_argument("--min-ratio-row", type=float, default=MIN_RATIO, metavar="[0..1]", help="the minimal required similarity ratio value for individual lines/rows. Setting this to a higher value will make the algorithm stop earlier")
     algorithm_group.add_argument("--max-cost", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost. Setting this to a lower value will make the algorithm stop earlier")
     algorithm_group.add_argument("--max-cost-row", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost for individual lines/rows. Setting this to a lower value will make the algorithm stop earlier")
+    algorithm_group.add_argument("--align-col-data", action="store_true", help="align table columns by comparing their data instead of column names. May slow down comparison significantly")
 
     misc_group = parser.add_argument_group("misc settings")
     misc_group.add_argument("--mime", metavar="MIME", help="enforce the MIME")
@@ -281,6 +292,7 @@ def run(args=None) -> bool:
             min_ratio_row=args.min_ratio_row,
             max_cost=args.max_cost,
             max_cost_row=args.max_cost_row,
+            align_col_data=args.align_col_data,
             mime=args.mime,
             table_drop_cols=args.table_drop_cols,
             sort=args.sort,

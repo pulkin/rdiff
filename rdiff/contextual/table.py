@@ -29,6 +29,9 @@ class Columns:
         Column names in a and b.
     """
 
+    def is_eq(self) -> bool:
+        return all(i == j for i, j  in zip(self.a, self.b))
+
 
 @dataclass
 class TableDiff(AnyDiff):
@@ -48,7 +51,7 @@ class TableDiff(AnyDiff):
     """
 
     def is_eq(self) -> bool:
-        return bool(self.data.eq.all())
+        return bool(self.data.eq.all()) and (self.columns is None or self.columns.is_eq())
 
 
 def diff(

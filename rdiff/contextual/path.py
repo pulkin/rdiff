@@ -5,10 +5,12 @@ import filecmp
 from functools import partial
 
 import pandas as pd
+import numpy as np
 
 from .base import AnyDiff
 from .text import TextDiff, diff as _diff_text
-from .table import TableDiff, diff as _diff_table
+from .table import TableDiff, diff as _diff_table, Columns
+from ..numpy import align_inflate
 from ..sequence import MAX_COST, MIN_RATIO
 
 try:
@@ -180,6 +182,7 @@ def diff_pd(
         min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
+        align_col_data: bool = False,
         table_drop_cols: Optional[list[str]] = None,
 ) -> TableDiff:
     """
@@ -207,6 +210,9 @@ def diff_pd(
         worst-case time complexity scales with this number.
     max_cost_row
         The maximal cost below which two lines of text are aligned.
+    align_col_data
+        For tables, (force) compare columns by data as opposed to their names.
+        This may result in much slower comparisons.
     table_drop_cols
         Columns to drop before comparing.
 
@@ -219,8 +225,13 @@ def diff_pd(
         b = b.copy()
         for df in a, b:
             df.drop(columns=table_drop_cols, inplace=True, errors="ignore")
-    return _diff_table(a=a, b=b, name=name, min_ratio=min_ratio, min_ratio_row=min_ratio_row, max_cost=max_cost,
-                       max_cost_row=max_cost_row)
+    result = _diff_table(a=a, b=b, name=name, min_ratio=min_ratio, min_ratio_row=min_ratio_row, max_cost=max_cost,
+                         max_cost_row=max_cost_row, columns=None if align_col_data else "columns")
+    if align_col_data:  # columns were discarded in the diff; add them back
+        cols_a, cols_b = align_inflate(np.array(a.columns), np.array(b.columns), "", result.data.col_diff_sig, 0)
+        columns = Columns(list(cols_a), list(cols_b))
+        result.columns = columns
+    return result
 
 
 if pandas:
@@ -233,6 +244,7 @@ if pandas:
             min_ratio_row: float = MIN_RATIO,
             max_cost: int = MAX_COST,
             max_cost_row: int = MAX_COST,
+            align_col_data: bool = False,
             table_drop_cols: Optional[list[str]] = None,
     ) -> TableDiff:
         """
@@ -262,6 +274,9 @@ if pandas:
             worst-case time complexity scales with this number.
         max_cost_row
             The maximal cost below which two lines of text are aligned.
+        align_col_data
+            For tables, (force) compare columns by data as opposed to their names.
+            This may result in much slower comparisons.
         table_drop_cols
             Columns to drop before comparing.
 
@@ -277,6 +292,7 @@ if pandas:
             min_ratio_row=min_ratio_row,
             max_cost=max_cost,
             max_cost_row=max_cost_row,
+            align_col_data=align_col_data,
             table_drop_cols=table_drop_cols,
         )
 
@@ -295,6 +311,7 @@ if pandas:
             min_ratio_row: float = MIN_RATIO,
             max_cost: int = MAX_COST,
             max_cost_row: int = MAX_COST,
+            align_col_data: bool = False,
             table_drop_cols: Optional[list[str]] = None,
     ) -> CompositeDiff:
         """
@@ -324,6 +341,9 @@ if pandas:
             worst-case time complexity scales with this number.
         max_cost_row
             The maximal cost below which two lines of text are aligned.
+        align_col_data
+            For tables, (force) compare columns by data as opposed to their names.
+            This may result in much slower comparisons.
         table_drop_cols
             Columns to drop before comparing.
 
@@ -356,6 +376,7 @@ if pandas:
                     min_ratio_row=min_ratio_row,
                     max_cost=max_cost,
                     max_cost_row=max_cost_row,
+                    align_col_data=align_col_data,
                     table_drop_cols=table_drop_cols,
                 )
             )
@@ -374,6 +395,7 @@ def diff_path(
         min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
+        align_col_data: bool = False,
         table_drop_cols: Optional[list[str]] = None,
 ) -> AnyDiff:
     """
@@ -403,6 +425,9 @@ def diff_path(
         worst-case time complexity scales with this number.
     max_cost_row
         The maximal cost below which two lines of text are aligned.
+    align_col_data
+        For tables, (force) compare columns by data as opposed to their names.
+        This may result in much slower comparisons.
     table_drop_cols
         Table columns to drop when comparing tables.
 
@@ -427,5 +452,6 @@ def diff_path(
     kwargs = {}
     if kernel in (diff_pd_csv, diff_pd_feather, diff_pd_parquet, diff_pd_excel):
         kwargs["table_drop_cols"] = table_drop_cols
+        kwargs["align_col_data"] = align_col_data
     return kernel(a, b, name, min_ratio=min_ratio, min_ratio_row=min_ratio_row, max_cost=max_cost,
                   max_cost_row=max_cost_row, **kwargs)

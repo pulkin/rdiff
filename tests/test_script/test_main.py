@@ -51,6 +51,10 @@ def test_co2_emissions(test_diff_renders, b, args, name):
 @pytest.mark.parametrize("b", ["rename-col"])
 @pytest.mark.parametrize("args, name", [
     ([], "default.txt"),
+    (["--align-col-data"], "precise.txt"),
+    (["--align-col-data", "--format", "color"], "precise-color.txt"),
+    (["--align-col-data", "--format", "md"], "precise-markdown.md"),
+    (["--align-col-data", "--format", "summary"], "precise-summary.txt"),
 ])
 def test_co2_emissions_2(test_diff_renders, b, args, name):
     code, text = process2text([

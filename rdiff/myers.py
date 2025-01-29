@@ -10,6 +10,7 @@ from itertools import groupby
 MAX_COST = 0xFFFFFFFF  # a reasonably high maximal diff cost
 MAX_CALLS = 0xFFFFFFFF  # maximal calls
 MAX_DEPTH = 0xFF  # maximal recursion depth
+MIN_RATIO = 0.749  # minimal similarity ratio
 
 
 def search_graph_recursive(

@@ -104,15 +104,20 @@ class Table:
                 row_repr.append(self.etc)
         self.data.append(tuple(row_repr))
 
-    def get_full_widths(self) -> list[int]:
+    def get_full_widths(self, m: int = 1) -> list[int]:
         """
         Computes actual row widths.
+
+        Parameters
+        ----------
+        m
+            Minimal column width.
 
         Returns
         -------
         A list of integers with row widths.
         """
-        return [max(visible_len(d[i]) for d in self.data if type(d) is tuple) for i in range(self.row_len)]
+        return [max(max(visible_len(d[i]), m) for d in self.data if type(d) is tuple) for i in range(self.row_len)]
 
     def compute(self, join: str, widths: Optional[list[int]] = None) -> Iterator[str]:
         """
@@ -226,7 +231,7 @@ class TableFormats:
     column_plain: str = "%s"
     column_add: str = "+%s"
     column_rm: str = "-%s"
-    column_both: str = "%s>%s"
+    column_both: str = "---%s>>>%s+++"
 
     ix_row_context_one: str = "%d"
     ix_row_context_both: str = "%dA%dB"
@@ -253,7 +258,7 @@ class TermTableFormats(TableFormats):
     column_plain: str = "%s"
     column_add: str = tf_green
     column_rm: str = tf_red
-    column_both: str = f"{tf_red}>{tf_green}"
+    column_both: str = f"{tf_red}{tf_green}"
 
     ix_row_context_one: str = tf_grey % "%d"
     ix_row_context_both: str = tf_grey % "%dA%dB"
@@ -280,7 +285,7 @@ class MarkdownTableFormats(TableFormats):
     column_plain: str = "%s"
     column_add: str = "*%s*"
     column_rm: str = "~~%s~~"
-    column_both: str = "%s>%s"
+    column_both: str = "~~%s~~*%s*"
 
     ix_row_context_one: str = "%d"
     ix_row_context_both: str = "%dA%dB"
