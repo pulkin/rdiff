@@ -275,9 +275,29 @@ class TermTableFormats(TableFormats):
 
 @dataclass(kw_only=True)
 class MarkdownTableFormats(TableFormats):
+    skip_equal: str = "(%d row(s) match)"
+
+    column_plain: str = "%s"
+    column_add: str = "*%s*"
+    column_rm: str = "~~%s~~"
+    column_both: str = "%s>%s"
+
+    ix_row_context_one: str = "%d"
+    ix_row_context_both: str = "%dA%dB"
+    ix_row_same: str = "%d"
+    ix_row_a: str = "~~%d~~"
+    ix_row_b: str = "*%d*"
+
+    data_row_context: str = "%s"
+    data_row_same: str = "%s"
+    data_row_a: str = "~~%s~~"
+    data_row_b: str = "*%s*"
+
     row_head: str = "| "
     row_spacer: str = " | "
     row_tail: str = " |"
+
+    hline: str = "-"
 
 
 @dataclass
