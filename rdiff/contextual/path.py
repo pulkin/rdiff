@@ -9,7 +9,7 @@ import pandas as pd
 from .base import AnyDiff
 from .text import TextDiff, diff as _diff_text
 from .table import TableDiff, diff as _diff_table
-from ..sequence import MAX_COST
+from ..sequence import MAX_COST, MIN_RATIO
 
 try:
     import magic
@@ -132,8 +132,8 @@ def diff_text(
         a: Path,
         b: Path,
         name: str,
-        min_ratio: float = 0.75,
-        min_ratio_row: float = 0.75,
+        min_ratio: float = MIN_RATIO,
+        min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
 ) -> TextDiff:
@@ -176,8 +176,8 @@ def diff_pd(
         a,
         b,
         name: str,
-        min_ratio: float = 0.75,
-        min_ratio_row: float = 0.75,
+        min_ratio: float = MIN_RATIO,
+        min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
         table_drop_cols: Optional[list[str]] = None,
@@ -229,8 +229,8 @@ if pandas:
             a: Path,
             b: Path,
             name: str,
-            min_ratio: float = 0.75,
-            min_ratio_row: float = 0.75,
+            min_ratio: float = MIN_RATIO,
+            min_ratio_row: float = MIN_RATIO,
             max_cost: int = MAX_COST,
             max_cost_row: int = MAX_COST,
             table_drop_cols: Optional[list[str]] = None,
@@ -291,8 +291,8 @@ if pandas:
             a: Path,
             b: Path,
             name: str,
-            min_ratio: float = 0.75,
-            min_ratio_row: float = 0.75,
+            min_ratio: float = MIN_RATIO,
+            min_ratio_row: float = MIN_RATIO,
             max_cost: int = MAX_COST,
             max_cost_row: int = MAX_COST,
             table_drop_cols: Optional[list[str]] = None,
@@ -370,8 +370,8 @@ def diff_path(
         b: Path,
         name: str,
         mime: Optional[str] = None,
-        min_ratio: float = 0.75,
-        min_ratio_row: float = 0.75,
+        min_ratio: float = MIN_RATIO,
+        min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
         table_drop_cols: Optional[list[str]] = None,

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from collections.abc import Sequence
 
 from .base import AnyDiff
-from ..sequence import MAX_COST, diff_nested
+from ..sequence import MAX_COST, MIN_RATIO, diff_nested
 from ..chunk import Diff
 
 
@@ -28,8 +28,8 @@ def diff(
         a: Sequence[str],
         b: Sequence[str],
         name: str,
-        min_ratio: float = 0.75,
-        min_ratio_row: float = 0.75,
+        min_ratio: float = MIN_RATIO,
+        min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
 ) -> TextDiff:

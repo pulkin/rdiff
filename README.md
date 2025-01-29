@@ -117,7 +117,7 @@ CLI
 
 - [x] CLI
 - [x] file walk
-- [ ] rich terminal output
+- [x] rich terminal output
 - [ ] HTML output
 - [ ] fine-tuned parameters
 - [ ] ETA/progress reporting

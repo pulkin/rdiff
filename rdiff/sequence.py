@@ -5,7 +5,7 @@ from itertools import groupby
 from warnings import warn
 
 from .chunk import Diff, Chunk
-from .myers import search_graph_recursive as pymyers, MAX_COST, MAX_CALLS, MAX_DEPTH, resume_search
+from .myers import search_graph_recursive as pymyers, MAX_COST, MAX_CALLS, MAX_DEPTH, MIN_RATIO, resume_search
 from .cmyers import search_graph_recursive as cmyers
 
 _nested_containers = (list, tuple)
@@ -29,8 +29,8 @@ def diff(
         a: Sequence[object],
         b: Sequence[object],
         eq=None,
-        accept: float = 0.75,
-        min_ratio: float = 0.75,
+        accept: float = MIN_RATIO,
+        min_ratio: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_calls: int = MAX_CALLS,
         max_recursion: int = MAX_DEPTH,
@@ -280,7 +280,7 @@ def diff_nested(
         a,
         b,
         eq=None,
-        min_ratio: Union[float, tuple[float, ...]] = 0.75,
+        min_ratio: Union[float, tuple[float, ...]] = MIN_RATIO,
         max_cost: Union[int, tuple[int, ...]] = MAX_COST,
         max_calls: Union[int, tuple[int, ...]] = MAX_CALLS,
         max_recursion: Union[int, tuple[int, ...]] = MAX_DEPTH,

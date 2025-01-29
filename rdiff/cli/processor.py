@@ -10,7 +10,7 @@ from sys import stdout
 from .path_util import accept_all, glob_rule, iter_match
 from ..contextual.base import AnyDiff
 from ..contextual.path import diff_path, DeltaDiff
-from ..myers import MAX_COST
+from ..myers import MAX_COST, MIN_RATIO
 from ..presentation.base import (TextPrinter, SummaryTextPrinter, MarkdownTextFormats, MarkdownTableFormats,
                                  TermTextFormats, TermTableFormats)
 
@@ -20,8 +20,8 @@ def process_iter(
         b: Path,
         includes: Sequence[tuple[bool, str]] = tuple(),
         rename: Sequence[tuple[str, str]] = tuple(),
-        min_ratio: float = 0.75,
-        min_ratio_row: float = 0.75,
+        min_ratio: float = MIN_RATIO,
+        min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
         mime: Optional[str] = None,
@@ -99,8 +99,8 @@ def process_print(
         b: Path,
         includes: Sequence[tuple[bool, str]] = tuple(),
         rename: Sequence[tuple[str, str]] = tuple(),
-        min_ratio: float = 0.75,
-        min_ratio_row: float = 0.75,
+        min_ratio: float = MIN_RATIO,
+        min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
         mime: Optional[str] = None,
@@ -235,8 +235,8 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     consumption_group.add_argument("--sort", action="store_true", help="sort diffs by file name")
 
     algorithm_group = parser.add_argument_group("algorithm settings")
-    algorithm_group.add_argument("--min-ratio", type=float, default=0.75, metavar="[0..1]", help="the minimal required similarity ratio value. Setting this to a higher value will make the algorithm stop earlier")
-    algorithm_group.add_argument("--min-ratio-row", type=float, default=0.75, metavar="[0..1]", help="the minimal required similarity ratio value for individual lines/rows. Setting this to a higher value will make the algorithm stop earlier")
+    algorithm_group.add_argument("--min-ratio", type=float, default=MIN_RATIO, metavar="[0..1]", help="the minimal required similarity ratio value. Setting this to a higher value will make the algorithm stop earlier")
+    algorithm_group.add_argument("--min-ratio-row", type=float, default=MIN_RATIO, metavar="[0..1]", help="the minimal required similarity ratio value for individual lines/rows. Setting this to a higher value will make the algorithm stop earlier")
     algorithm_group.add_argument("--max-cost", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost. Setting this to a lower value will make the algorithm stop earlier")
     algorithm_group.add_argument("--max-cost-row", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost for individual lines/rows. Setting this to a lower value will make the algorithm stop earlier")
 

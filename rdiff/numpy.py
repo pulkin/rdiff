@@ -5,7 +5,7 @@ from itertools import groupby
 import numpy as np
 
 from .chunk import Diff, Chunk, ChunkSignature, Signature
-from .myers import MAX_COST, MAX_CALLS
+from .myers import MAX_COST, MAX_CALLS, MIN_RATIO
 from .sequence import diff_nested, diff as sequence_diff, _pop_optional
 
 
@@ -13,7 +13,7 @@ def diff(
         a,
         b,
         eq=None,
-        min_ratio: Union[float, tuple[float]] = 0.75,
+        min_ratio: Union[float, tuple[float]] = MIN_RATIO,
         max_cost: Union[int, tuple[int]] = MAX_COST,
         max_calls: Union[int, tuple[int]] = MAX_CALLS,
         eq_only: bool = False,
@@ -166,7 +166,7 @@ def common_diff_sig(n: int, m: int, diffs: Sequence[Diff]) -> Signature:
 def get_row_col_diff(
         a: np.ndarray,
         b: np.ndarray,
-        min_ratio: Union[float, tuple[float]] = 0.75,
+        min_ratio: Union[float, tuple[float]] = MIN_RATIO,
         max_cost: Union[int, tuple[int]] = MAX_COST,
         max_calls: Union[int, tuple[int]] = MAX_CALLS,
         kernel: Optional[str] = None,
@@ -385,7 +385,7 @@ def diff_aligned_2d(
         fill,
         eq=None,
         fill_eq=_undefined,
-        min_ratio: Union[float, tuple[float, ...]] = 0.75,
+        min_ratio: Union[float, tuple[float, ...]] = MIN_RATIO,
         max_cost: Union[int, tuple[int, ...]] = MAX_COST,
         max_calls: Union[int, tuple[int, ...]] = MAX_CALLS,
         col_diff_sig: Optional[Signature] = None,
@@ -464,14 +464,14 @@ def diff_aligned_2d(
             a_, b_ = a, b
         # compute a mask telling which columns can be compared
         # and which ones have to be ignored
-        mask = np.empty(len(col_diff_sig), dtype=bool)
+        mask = np.empty(len(col_diff_sig), dtype=int)
         offset = 0
         for chunk in col_diff_sig.parts:
             delta = len(chunk)
-            mask[offset:offset + delta] = chunk.eq
+            mask[offset:offset + delta] = chunk.eq * 2
             offset += delta
 
-        def _eq(_i, _j, _a=a_, _b=b_, _mask=mask, _m=a_.shape[1]):
+        def _eq(_i, _j, _a=a_, _b=b_, _mask=mask, _m=mask.sum() + (mask == 0).sum()):
             # a quick comparison for aligned columns
             return ((_a[_i] == _b[_j]) * _mask).sum() / _m
 

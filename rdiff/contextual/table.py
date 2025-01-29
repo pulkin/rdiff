@@ -6,7 +6,7 @@ from numpy.random.mtrand import Sequence
 
 from ..chunk import Signature
 from .base import AnyDiff
-from ..sequence import diff as diff_sequence, MAX_COST
+from ..sequence import diff as diff_sequence, MAX_COST, MIN_RATIO
 from ..numpy import diff_aligned_2d, NumpyDiff, align_inflate
 
 try:
@@ -55,8 +55,8 @@ def diff(
         a,
         b,
         name: str,
-        min_ratio: float = 0.75,
-        min_ratio_row: float = 0.75,
+        min_ratio: float = MIN_RATIO,
+        min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
         fill="",

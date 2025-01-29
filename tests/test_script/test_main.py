@@ -42,6 +42,18 @@ def test_readme(test_diff_renders, args, name):
 ])
 def test_co2_emissions(test_diff_renders, b, args, name):
     code, text = process2text([
+        str(cases / "co2_emissions/a.csv"), str(cases / f"co2_emissions/b-{b}.csv"), "--min-ratio-row", "0.8", *args
+    ])
+    sync_contents(cases / f"co2_emissions/diff-{b}-{name}", text, test_diff_renders)
+    assert code is True
+
+
+@pytest.mark.parametrize("b", ["rename-col"])
+@pytest.mark.parametrize("args, name", [
+    ([], "default.txt"),
+])
+def test_co2_emissions_2(test_diff_renders, b, args, name):
+    code, text = process2text([
         str(cases / "co2_emissions/a.csv"), str(cases / f"co2_emissions/b-{b}.csv"), *args
     ])
     sync_contents(cases / f"co2_emissions/diff-{b}-{name}", text, test_diff_renders)
