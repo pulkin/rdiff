@@ -1,0 +1,10 @@
+comparing .
+(4 lines match)
+  Afghanistan,Asia,01-01-2019,6080,0.16
+  Afghanistan,Asia,01-01-2018,6070,0.17
+---
+≈ Afghanistan,Asia,01-01-2013,---599---+++600+++0,0.19
+---
+  Afghanistan,Asia,01-01-2015,5950,0.18
+  Afghanistan,Asia,01-01-2016,5300,0.15
+(1 lines match)

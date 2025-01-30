@@ -76,6 +76,7 @@ def test_co2_emissions_2(test_diff_renders, b, args, name):
     (["--max-cost-row", "2"], "max-cost-row-2.txt"),
     (["--min-ratio", "0.9", "--min-ratio-row", "1"], "tight-ratios.txt"),
     (["--max-cost", "1", "--min-ratio-row", "1"], "tight-ratios-2.txt"),
+    (["--mime", "text/plain"], "mime.txt")
 ])
 def test_co2_emissions_3(test_diff_renders, b, args, name):
     code, text = process2text([
