@@ -585,6 +585,11 @@ class TextPrinter(AbstractTextPrinter):
         # hide columns (optionally)
         if self.table_collapse_columns:
             show_col = [True, *~diff.data.eq.all(axis=0)]
+            if diff.columns is not None:
+                show_col = [True, *(
+                    i or col_a != col_b
+                    for i, col_a, col_b in zip(show_col[1:], diff.columns.a, diff.columns.b)
+                )]
         else:
             show_col = [True] * (diff.data.eq.shape[1] + 1)
         table = Table(column_mask=show_col)

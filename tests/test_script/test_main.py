@@ -42,6 +42,7 @@ def test_readme(test_diff_renders, args, name):
     (["--format", "color"], "color.txt"),
     (["--format", "md"], "markdown.md"),
     (["--format", "summary"], "summary.txt"),
+    (["--table-collapse"], "collapse.txt"),
 ])
 def test_co2_emissions(test_diff_renders, b, args, name):
     code, text = process2text([
@@ -58,6 +59,7 @@ def test_co2_emissions(test_diff_renders, b, args, name):
     (["--align-col-data", "--format", "color"], "precise-color.txt"),
     (["--align-col-data", "--format", "md"], "precise-markdown.md"),
     (["--align-col-data", "--format", "summary"], "precise-summary.txt"),
+    (["--align-col-data", "--table-collapse"], "collapse.txt"),
 ])
 def test_co2_emissions_2(test_diff_renders, b, args, name):
     code, text = process2text([
