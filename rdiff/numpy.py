@@ -450,11 +450,12 @@ def diff_aligned_2d(
             fill_eq = fill
     if col_diff_sig:
         # column diff provided: run a faster algorithm using column-aligned data
-        min_ratio_row, min_ratio = _pop_optional(min_ratio)
-        min_ratio_col, _ = _pop_optional(min_ratio)
+        min_ratio_here, min_ratio = _pop_optional(min_ratio)
+        min_ratio_row, _ = _pop_optional(min_ratio)
 
+        max_cost_here, max_cost = _pop_optional(max_cost)
         max_cost_row, _ = _pop_optional(max_cost)
-        max_calls_row, _ = _pop_optional(max_calls)
+        max_calls_here, _ = _pop_optional(max_calls)
 
         # align columns  using the provided column diff
         a, b = align_inflate(a, b, fill, col_diff_sig, 1)
@@ -471,19 +472,23 @@ def diff_aligned_2d(
             mask[offset:offset + delta] = chunk.eq * 2
             offset += delta
 
-        def _eq(_i, _j, _a=a_, _b=b_, _mask=mask, _m=mask.sum() + (mask == 0).sum()):
+        _max_cost = mask.sum() + (mask == 0).sum()
+
+        def _eq(_i, _j, _a=a_, _b=b_, _mask=mask, _m=_max_cost):
             # a quick comparison for aligned columns
             return ((_a[_i] == _b[_j]) * _mask).sum() / _m
+
+        min_ratio_row = max(min_ratio_row, (_max_cost - max_cost_row) / _max_cost)
 
         # crunch row differences without using shallow algorithm
         raw_diff = sequence_diff(
             a=a,
             b=b,
             eq=_eq,
-            accept=min_ratio_col,
-            min_ratio=min_ratio_row,
-            max_cost=max_cost_row,
-            max_calls=max_calls_row,
+            accept=min_ratio_row,
+            min_ratio=min_ratio_here,
+            max_cost=max_cost_here,
+            max_calls=max_calls_here,
             kernel=kernel,
         )
         row_diff_sig = raw_diff.signature

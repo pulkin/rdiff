@@ -65,3 +65,18 @@ def test_co2_emissions_2(test_diff_renders, b, args, name):
     ])
     sync_contents(cases / f"co2_emissions/diff-{b}-{name}", text, test_diff_renders)
     assert code is True
+
+
+@pytest.mark.parametrize("b", ["single-edit"])
+@pytest.mark.parametrize("args, name", [
+    (["--min-ratio-row", "1"], "min-ratio-row-1.txt"),
+    (["--min-ratio-row", "0.79"], "min-ratio-row-079.txt"),
+    (["--max-cost-row", "1"], "max-cost-row-1.txt"),
+    (["--max-cost-row", "2"], "max-cost-row-2.txt"),
+])
+def test_co2_emissions_3(test_diff_renders, b, args, name):
+    code, text = process2text([
+        str(cases / "co2_emissions/a.csv"), str(cases / f"co2_emissions/b-{b}.csv"), "--min-ratio-row", "0.8", *args
+    ])
+    sync_contents(cases / f"co2_emissions/diff-{b}-{name}", text, test_diff_renders)
+    assert code is True
