@@ -265,10 +265,10 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
 
     result = parser.parse_args(args)
 
-    include_options_type = namedtuple("include", ("what", "value"))
+    include_options_type = namedtuple("include", ("value", "what"))
     rules = getattr(result, "includes", [])
     result.includes = [
-        include_options_type(what, {"include": True, "exclude": False}[action])
+        include_options_type({"include": True, "exclude": False}[action], what)
         for action, what in rules
     ]
     del result.include
