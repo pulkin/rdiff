@@ -60,6 +60,7 @@ def test_co2_emissions(test_diff_renders, b, args, name):
     (["--align-col-data", "--format", "md"], "precise-markdown.md"),
     (["--align-col-data", "--format", "summary"], "precise-summary.txt"),
     (["--align-col-data", "--table-collapse"], "collapse.txt"),
+    (["--table-drop-cols", "Date"], "drop-cols.txt"),
 ])
 def test_co2_emissions_2(test_diff_renders, b, args, name):
     code, text = process2text([
@@ -78,7 +79,8 @@ def test_co2_emissions_2(test_diff_renders, b, args, name):
     (["--max-cost-row", "2"], "max-cost-row-2.txt"),
     (["--min-ratio", "0.9", "--min-ratio-row", "1"], "tight-ratios.txt"),
     (["--max-cost", "1", "--min-ratio-row", "1"], "tight-ratios-2.txt"),
-    (["--mime", "text/plain"], "mime.txt")
+    (["--mime", "text/plain"], "mime.txt"),
+    (["--context-size", "0"], "context-size-0.txt"),
 ])
 def test_co2_emissions_3(test_diff_renders, b, args, name):
     code, text = process2text([
