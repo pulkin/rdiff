@@ -9,6 +9,8 @@ cases = Path(__file__).parent / "cases"
 
 @pytest.mark.parametrize("args, name", [
     ([], "default.txt"),
+    (["-v"], "default-v.txt"),
+    (["-vv"], "default-vv.txt"),
     (["--format", "color"], "color.txt"),
     (["--format", "md"], "markdown.md"),
     (["--format", "summary"], "summary.txt"),
@@ -22,6 +24,21 @@ def test_git(tmp_path, test_diff_renders, args, name):
     code, text = process2text([str(a), str(b), *args])
     sync_contents(cases / f"git/diff-{name}", text, test_diff_renders)
     assert code is True
+
+
+@pytest.mark.parametrize("args, name", [
+    ([], "default.txt"),
+    (["-vv"], "verbose.txt"),
+    (["-vv", "--format", "color"], "verbose-color.txt"),
+    (["-vv", "--format", "md"], "verbose-markdown.md"),
+    (["-vv", "--format", "summary"], "verbose-summary.txt"),
+])
+def test_git_same(tmp_path, test_diff_renders, args, name):
+    git_self_extract("0c197f2cdb0bf8c0ca95e76a837296fbebad436d", a := tmp_path / "a")
+    git_self_extract("0c197f2cdb0bf8c0ca95e76a837296fbebad436d", b := tmp_path / "b")
+    code, text = process2text([str(a), str(b), *args])
+    sync_contents(cases / f"git/diff-same-{name}", text, test_diff_renders)
+    assert code is False
 
 
 @pytest.mark.parametrize("args, name", [
