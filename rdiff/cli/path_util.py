@@ -168,7 +168,7 @@ def iterdir(
 def iter_match(
         a: Path,
         b: Path,
-        transform: Optional[Callable[(str,), str]] = None,
+        transform: Optional[Callable[[str], str]] = None,
         rules: Sequence[MatchRule] = (accept_all,),
         sort: bool = False,
 ) -> Iterator[tuple[Optional[Path], Optional[Path], str]]:
