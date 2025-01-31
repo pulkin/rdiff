@@ -333,7 +333,7 @@ class AbstractTextPrinter:
             except (AttributeError, ValueError, OSError):
                 self.width = 80
 
-    def print_diff(self, diff: Union[AnyDiff, Sequence[[AnyDiff]]]):
+    def print_diff(self, diff: AnyDiff):
         """
         Prints diff.
 
