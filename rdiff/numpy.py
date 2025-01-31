@@ -380,8 +380,8 @@ _undefined = object()
 
 
 def diff_aligned_2d(
-        a: np.ndarray[Any],
-        b: np.ndarray[Any],
+        a: np.ndarray,
+        b: np.ndarray,
         fill,
         eq=None,
         fill_eq=_undefined,

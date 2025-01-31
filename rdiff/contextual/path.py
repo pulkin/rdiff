@@ -15,7 +15,7 @@ from ..sequence import MAX_COST, MIN_RATIO
 
 try:
     import magic
-    magic_guess_custom = magic.Magic(mime=True, magic_file=Path(__file__).parent / "magic")
+    magic_guess_custom = magic.Magic(mime=True, magic_file=str(Path(__file__).parent / "magic"))
 except ImportError:
     magic = magic_guess_custom = None
 
@@ -357,7 +357,7 @@ if pandas:
 
         for dfs in a, b:
             for df in dfs.values():
-                df = df.set_axis(map(str, df.columns), axis=1, copy=False)
+                df = df.set_axis(map(str, df.columns), axis=1)
                 df.fillna("", inplace=True)
 
         result = []
@@ -438,8 +438,8 @@ def diff_path(
     if filecmp.cmp(a, b, shallow=False):
         return PathDiff(name, eq=True, message="files are binary equal")
     if mime is None and magic is not None:
-        a_mime = magic_guess_custom.from_file(a)
-        b_mime = magic_guess_custom.from_file(b)
+        a_mime = magic_guess_custom.from_file(str(a))
+        b_mime = magic_guess_custom.from_file(str(b))
         if a_mime != b_mime:
             return MIMEDiff(name, a_mime, b_mime)
         mime = a_mime
