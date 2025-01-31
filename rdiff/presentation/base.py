@@ -148,7 +148,7 @@ class Table:
                 raise ValueError(f"unknown row type: {type(i)}")
 
 
-@dataclass(kw_only=True)
+@dataclass
 class TextFormats:
     header: str = "%s"
     textwrap_start: str = ""
@@ -174,7 +174,7 @@ class TextFormats:
         return repr(s)[1:-1] + x
 
 
-@dataclass(kw_only=True)
+@dataclass
 class MarkdownTextFormats(TextFormats):
     header: str = "%s\n"
     textwrap_start: str = "~~~text\n"
@@ -209,7 +209,7 @@ tf_grey = _tformat % 90
 tf_on_white = _tformat % 107
 
 
-@dataclass(kw_only=True)
+@dataclass
 class TermTextFormats(TextFormats):
     header: str = (tf_on_light_grey % tf_black)[:-4]
     textwrap_start: str = ""
@@ -227,7 +227,7 @@ class TermTextFormats(TextFormats):
     chunk_rm: str = (tf_on_red % tf_black)[:-4]
 
 
-@dataclass(kw_only=True)
+@dataclass
 class TableFormats:
     skip_equal: str = "(%d row(s) match)"
 
@@ -254,7 +254,7 @@ class TableFormats:
     hline: str = "-"
 
 
-@dataclass(kw_only=True)
+@dataclass
 class TermTableFormats(TableFormats):
     skip_equal: str = tf_grey % "(%d row(s) match)"
 
@@ -281,7 +281,7 @@ class TermTableFormats(TableFormats):
     hline: str = ""
 
 
-@dataclass(kw_only=True)
+@dataclass
 class MarkdownTableFormats(TableFormats):
     skip_equal: str = "(%d row(s) match)"
 
@@ -638,7 +638,7 @@ class TextPrinter(AbstractTextPrinter):
             self.printer.write(self.table_formats.row_head + row + self.table_formats.row_tail + "\n")
 
 
-@dataclass(kw_only=True)
+@dataclass
 class TextSummaryFormats:
     ratio_fmt: str = "{:.4f}"
     ratio_non_fmt: str = "{:<6}"
