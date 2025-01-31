@@ -11,7 +11,7 @@ from .string_tools import align, visible_len
 from ..contextual.base import AnyDiff
 from ..contextual.table import TableDiff
 from ..contextual.text import TextDiff
-from ..contextual.path import PathDiff, CompositeDiff, DeltaDiff
+from ..contextual.path import PathDiff, CompositeDiff, DeltaDiff, MIMEDiff
 from ..chunk import Item
 
 
@@ -155,6 +155,7 @@ class TextFormats:
     textwrap_end: str = ""
     del_entry: str = "DEL %s"
     new_entry: str = "NEW %s"
+    mime_entry: str = "MIME %s"
     skip_equal: str = "(%d lines match)"
     line_ctx: str = "  %s"
     line_add: str = "> %s"
@@ -180,6 +181,7 @@ class MarkdownTextFormats(TextFormats):
     textwrap_end: str = "~~~\n"
     del_entry: str = "DEL %s\n"
     new_entry: str = "NEW %s\n"
+    mime_entry: str = "MIME %s\n"
     skip_equal: str = "(%d lines match)"
     line_ctx: str = "  %s"
     line_add: str = "> %s"
@@ -214,6 +216,7 @@ class TermTextFormats(TextFormats):
     textwrap_end: str = ""
     del_entry: str = f"{tf_red % 'DEL'} %s"
     new_entry: str = f"{tf_green % 'NEW'} %s"
+    mime_entry: str = "MIME %s"
     skip_equal: str = tf_grey % "(%d lines match)"
     line_ctx: str = tf_grey % "  %s"
     line_add: str = tf_green % "> %s"
@@ -350,6 +353,8 @@ class AbstractTextPrinter:
             self.print_path(diff)
         elif isinstance(diff, DeltaDiff):
             self.print_delta(diff)
+        elif isinstance(diff, MIMEDiff):
+            self.print_mime(diff)
         elif isinstance(diff, CompositeDiff):
             for _d in diff.items:
                 self.print_diff(_d)
@@ -357,58 +362,21 @@ class AbstractTextPrinter:
             raise NotImplementedError(f"unknown diff: {diff}")
 
     def print_equal(self, diff: AnyDiff):
-        """
-        Prints equal (empty) diff.
-
-        Parameters
-        ----------
-        diff
-            A diff to process.
-        """
         raise NotImplementedError
 
     def print_path(self, diff: PathDiff):
-        """
-        Print a path diff.
-
-        Parameters
-        ----------
-        diff
-            The diff to print.
-        """
         raise NotImplementedError
 
     def print_delta(self, diff: DeltaDiff):
-        """
-        Print a delta diff.
+        raise NotImplementedError
 
-        Parameters
-        ----------
-        diff
-            The diff to print.
-        """
+    def print_mime(self, diff: MIMEDiff):
         raise NotImplementedError
 
     def print_text(self, diff: TextDiff):
-        """
-        Prints a text diff.
-
-        Parameters
-        ----------
-        diff
-            The diff to print.
-        """
         raise NotImplementedError
 
     def print_table(self, diff: TableDiff):
-        """
-        Prints a table diff.
-
-        Parameters
-        ----------
-        diff
-            The diff to print.
-        """
         raise NotImplementedError
 
 
@@ -509,6 +477,17 @@ class TextPrinter(AbstractTextPrinter):
         """
         fmt = self.text_formats.del_entry if diff.exist_a else self.text_formats.new_entry
         self.printer.write(f"{fmt % diff.name}\n")
+
+    def print_mime(self, diff: MIMEDiff):
+        """
+        Print a MIME diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        self.printer.write(self.text_formats.mime_entry % f"{diff.name} {diff.mime_a} ≠ {diff.mime_b}")
 
     def print_text(self, diff: TextDiff):
         """
@@ -744,6 +723,17 @@ class SummaryTextPrinter(TextPrinter):
             The diff to print.
         """
         self.printer.write(self._empty_fmt.format('DEL' if diff.exist_a else 'NEW', "", "", "", f"{diff.name}\n"))
+
+    def print_mime(self, diff: MIMEDiff):
+        """
+        Print a MIME diff.
+
+        Parameters
+        ----------
+        diff
+            The diff to print.
+        """
+        self.printer.write(self._empty_fmt.format("MIME", "", "", "", f"{diff.name} {diff.mime_a} ≠ {diff.mime_b}\n"))
 
     def print_text(self, diff: TextDiff):
         """

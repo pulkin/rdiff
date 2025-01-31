@@ -36,7 +36,7 @@ def test_readme(test_diff_renders, args, name):
     assert code is True
 
 
-@pytest.mark.parametrize("b", ["single-edit", "rm-row", "add-row", "add-col", "rm-col"])
+@pytest.mark.parametrize("b", ["single-edit", "rm-row", "add-row", "add-col", "rm-col", "not-a"])
 @pytest.mark.parametrize("args, name", [
     ([], "default.txt"),
     (["--format", "color"], "color.txt"),
