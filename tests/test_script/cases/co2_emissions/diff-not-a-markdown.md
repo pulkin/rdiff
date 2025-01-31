@@ -1,1 +1,1 @@
-MIME . text/csv≠text/plain
+MIME . text/csv ≠ text/plain
