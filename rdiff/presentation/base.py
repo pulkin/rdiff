@@ -28,7 +28,7 @@ class Table:
     column_mask: Sequence[bool]
     data: list[Union[tuple[str, ...], TableBreak, TableHline]] = field(default_factory=list)
     etc: str = "..."
-    pre_str: Callable[(Any,), str] = str
+    pre_str: Callable[[Any], str] = str
     """
     Represents a simple table.
     
