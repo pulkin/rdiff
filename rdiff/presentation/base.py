@@ -156,6 +156,7 @@ class TextFormats:
     del_entry: str = "DEL %s"
     new_entry: str = "NEW %s"
     mime_entry: str = "MIME %s"
+    same_entry: str = "same %s"
     skip_equal: str = "(%d lines match)"
     line_ctx: str = "  %s"
     line_add: str = "> %s"
@@ -182,6 +183,7 @@ class MarkdownTextFormats(TextFormats):
     del_entry: str = "DEL %s\n"
     new_entry: str = "NEW %s\n"
     mime_entry: str = "MIME %s\n"
+    same_entry: str = "same %s\n"
     skip_equal: str = "(%d lines match)"
     line_ctx: str = "  %s"
     line_add: str = "> %s"
@@ -217,6 +219,7 @@ class TermTextFormats(TextFormats):
     del_entry: str = f"{tf_red % 'DEL'} %s"
     new_entry: str = f"{tf_green % 'NEW'} %s"
     mime_entry: str = "MIME %s"
+    same_entry: str = "same %s"
     skip_equal: str = tf_grey % "(%d lines match)"
     line_ctx: str = tf_grey % "  %s"
     line_add: str = tf_green % "> %s"
@@ -416,7 +419,11 @@ class TextPrinter(AbstractTextPrinter):
         diff
             A diff to process.
         """
-        self.printer.write(f"{diff.name} compare equal through {diff.__class__.__name__}\n")
+        p = self.printer.write
+        add = ""
+        if self.verbosity >= 1 and isinstance(diff, PathDiff) and diff.message is not None:
+            add = f" ({diff.message})"
+        p(self.text_formats.same_entry % f"{diff.name} -- {diff.__class__.__name__}{add}\n")
 
     def print_header(self, diff: AnyDiff):
         """
@@ -431,10 +438,11 @@ class TextPrinter(AbstractTextPrinter):
         v = self.verbosity
 
         p(self.text_formats.header % f"comparing {diff.name}")
-        if isinstance(diff, TableDiff):
-            if v >= 1:
+        if v >= 1:
+            if isinstance(diff, (TableDiff, TextDiff)):
                 p(f" (ratio={diff.data.ratio:.4f})")
-            if v >= 2:
+        if v >= 2:
+            if isinstance(diff, TableDiff):
                 p(f"\n  aligned ratio={diff.data.aligned_ratio:.4f}")
                 for name, orig, inflated in [
                     ("a", diff.data.a_shape, diff.data.a.shape),
@@ -708,7 +716,7 @@ class SummaryTextPrinter(TextPrinter):
         if diff.eq:
             self.print_equal(diff)
         else:
-            p(self._empty_fmt.format("0", "", "", "", f"{diff.name} do not match\n"))
+            p(self._empty_fmt.format("0", "", "", "", f"{diff.name} do not match"))
             if self.verbosity >= 1 and diff.message is not None:
                 p(f" ({diff.message})")
             p("\n")
