@@ -83,23 +83,14 @@ a≈b (ratio=0.7500)
   ··a[0:0]≠b[0:2]: [] ≠ [0, 1]
   ··a[0:2]≈b[2:4]: [['alice', 'bob'], ['charlie', 'dan']] ≈ [['friends', 'alice2', 'bob2'], ['karen', 'dan']]
   ····a[0]≈b[2] (ratio=0.8000)  # recognizes partially aligned ["alice", "bob"] and ["friends", "alice2", "bob2"]
-  ······a[0][0:0]≠b[2][0:1]: [] ≠ ['friends']
-  ······a[0][0:2]≈b[2][1:3]: ['alice', 'bob'] ≈ ['alice2', 'bob2']
+  (...)
   ········a[0][0]≈b[2][1] (ratio=0.9091)  # recognizes similarity between 'alice' and 'alice2'
   ··········a[0][0][0:5]=b[2][1][0:5]: 'alice' = 'alice'
   ··········a[0][0][5:5]≠b[2][1][5:6]: '' ≠ '2'
-  ········a[0][1]≈b[2][2] (ratio=0.8571)
+  ········a[0][1]≈b[2][2] (ratio=0.8571)  # recognizes similarity between 'bob' and 'bob2'
   ··········a[0][1][0:3]=b[2][2][0:3]: 'bob' = 'bob'  # recognizes similarity between 'bob' and 'bob2'
   ··········a[0][1][3:3]≠b[2][2][3:4]: '' ≠ '2'
-  ····a[1]≈b[3] (ratio=1.0000)
-  ······a[1][0:1]≈b[3][0:1]: ['charlie'] ≈ ['karen']  # a lower min_ratio=0.5 results in aligning 'charlie', 'karen'
-  ········a[1][0]≈b[3][0] (ratio=0.5000)
-  ··········a[1][0][0:2]≠b[3][0][0:1]: 'ch' ≠ 'k'
-  ··········a[1][0][2:4]=b[3][0][1:3]: 'ar' = 'ar'
-  ··········a[1][0][4:6]≠b[3][0][3:3]: 'li' ≠ ''
-  ··········a[1][0][6:7]=b[3][0][3:4]: 'e' = 'e'
-  ··········a[1][0][7:7]≠b[3][0][4:5]: '' ≠ 'n'
-  ······a[1][1:2]=b[3][1:2]: ['dan'] = ['dan']
+  (...)
   ```
 
 TODO
