@@ -642,7 +642,25 @@ class TextPrinter(AbstractTextPrinter):
                     if any(row_b):
                         table.append_row(row_b)
 
-        for row in table.compute(self.table_formats.row_spacer):
+        widths = None
+        # trim table width
+        if self.width:
+            min_width = 1
+            widths = table.get_full_widths(min_width)
+            cs = [0]  # np.cumsum
+            s = 0
+            for w in widths:
+                s += w - min_width
+                cs.append(s)
+            spacer_len = visible_len(self.table_formats.row_spacer)
+            adj_width = self.width - len(widths) * (min_width + spacer_len) + spacer_len
+            assert adj_width >= 0
+            if s > adj_width:
+                ratio = adj_width / s
+                cs = [int(i * ratio) for i in cs]
+            widths = [j - i + min_width for i, j in zip(cs[:-1], cs[1:])]
+
+        for row in table.compute(self.table_formats.row_spacer, widths=widths):
             self.printer.write(self.table_formats.row_head + row + self.table_formats.row_tail + "\n")
 
 
