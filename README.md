@@ -45,33 +45,35 @@ comparing .
 (1 row(s) match)
 ```
 
-### python
+### API
 
-- sequence comparison
-  ```python
-  from rdiff.sequence import diff
-  
-  print(diff(
-      ['apples', 'bananas', 'carrots', 'dill'],
-      ['apples', 'carrots', 'dill', 'eggplant']
-  ).to_string())
-  ```
-  
-  ```text
-  a≈b (ratio=0.7500)
-  ··a[0:1]=b[0:1]: ['apples'] = ['apples']
-  ··a[1:2]≠b[1:1]: ['bananas'] ≠ []
-  ··a[2:4]=b[1:3]: ['carrots', 'dill'] = ['carrots', 'dill']
-  ··a[4:4]≠b[3:4]: [] ≠ ['eggplant']
-  ```
+```python
+from rdiff.sequence import diff
 
-- nested sequences
+print(diff(
+    ['apples', 'bananas', 'carrots', 'dill'],
+    ['apples', 'carrots', 'dill', 'eggplant']
+).to_string())
+```
+
+```text
+a≈b (ratio=0.7500)
+··a[0:1]=b[0:1]: ['apples'] = ['apples']
+··a[1:2]≠b[1:1]: ['bananas'] ≠ []
+··a[2:4]=b[1:3]: ['carrots', 'dill'] = ['carrots', 'dill']
+··a[4:4]≠b[3:4]: [] ≠ ['eggplant']
+```
+
+### More examples
+
+- align and correspond nested sequences: strings inside a list inside another list
+
   ```python
   from rdiff.sequence import diff_nested
 
   print(diff_nested(
       [0, 1, ["alice", "bob", "charlie", "dan"]],
-      [0, 1, ["alice2", "bob2", "karen", "dan"]]
+      [0, 1, ["alice2", "bob2", "karen", "dan"]],
   ).to_string())
   ```
   
@@ -91,33 +93,10 @@ comparing .
   ······a[2][3:4]=b[2][3:4]: ['dan'] = ['dan']
   ```
 
-Project scope
--------------
+TODO
+----
 
-What is complete/planned:
-
-Core
-
-- [x] reference implementation in python
-- [x] Cython implementation
-- [x] supporting buffer protocol in Cython
-
-Raw comparison
-
-- [x] linear sequence comparison
-- [x] nested comparison
-- [x] 2D numpy comparison / matrix alignment
-
-Context comparison
-
-- [x] text diffs
-- [x] table diffs
-
-CLI
-
-- [x] CLI
-- [x] file walk
-- [x] rich terminal output
+- [ ] semi-sorted arrays
 - [ ] HTML output
 - [ ] fine-tuned parameters
 - [ ] ETA/progress reporting
