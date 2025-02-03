@@ -15,7 +15,7 @@ def diff2text(a, b, **kwargs):
 
 def process2text(args):
     with NamedTemporaryFile("w+") as f:
-        exit_code = run(args + ["--output", f.name, "--sort"])
+        exit_code = run(args + ["--output", f.name, "--sort", "--width", "160"])
         f.seek(0)
         return exit_code, f.read()
 

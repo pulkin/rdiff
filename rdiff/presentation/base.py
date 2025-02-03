@@ -129,6 +129,8 @@ class Table:
             A string for joining cells.
         widths
             Row widths to use. Defaults to ``self.get_full_widths()``.
+        elli
+            Ellipsis.
 
         Returns
         -------
@@ -139,7 +141,7 @@ class Table:
 
         for i in self.data:
             if isinstance(i, tuple):
-                yield join.join(align(s, n) for s, n in zip(i, widths))
+                yield join.join(align(s, n, elli=elli) for s, n in zip(i, widths))
             elif isinstance(i, TableBreak):
                 yield str(i)
             elif isinstance(i, TableHline):
@@ -255,6 +257,7 @@ class TableFormats:
     row_tail: str = ""
 
     hline: str = "-"
+    elli: str = "…"
 
 
 @dataclass
@@ -282,6 +285,7 @@ class TermTableFormats(TableFormats):
     row_tail: str = ""
 
     hline: str = ""
+    elli: str = "…\033[0m"
 
 
 @dataclass
@@ -309,6 +313,7 @@ class MarkdownTableFormats(TableFormats):
     row_tail: str = " |"
 
     hline: str = "-"
+    elli: str = "…"
 
 
 @dataclass
@@ -647,20 +652,24 @@ class TextPrinter(AbstractTextPrinter):
         if self.width:
             min_width = 1
             widths = table.get_full_widths(min_width)
+            head_len = visible_len(self.table_formats.row_head)
+            spacer_len = visible_len(self.table_formats.row_spacer)
+            tail_len = visible_len(self.table_formats.row_tail)
+            # adjustable width excludes spacer, head, tail, index column and minimal width
+            adj_width = max(0, self.width - head_len - tail_len - (len(widths) - 1) * (min_width + spacer_len) - widths[0])
+
             cs = [0]  # np.cumsum
             s = 0
-            for w in widths:
+            for w in widths[1:]:
                 s += w - min_width
                 cs.append(s)
-            spacer_len = visible_len(self.table_formats.row_spacer)
-            adj_width = self.width - len(widths) * (min_width + spacer_len) + spacer_len
-            assert adj_width >= 0
             if s > adj_width:
                 ratio = adj_width / s
                 cs = [int(i * ratio) for i in cs]
-            widths = [j - i + min_width for i, j in zip(cs[:-1], cs[1:])]
+            widths = [widths[0], *(j - i + min_width for i, j in zip(cs[:-1], cs[1:]))]
 
-        for row in table.compute(self.table_formats.row_spacer, widths=widths):
+        for row in table.compute(self.table_formats.row_spacer, widths=widths, elli=self.table_formats.elli):
+            assert visible_len(self.table_formats.row_head + row + self.table_formats.row_tail) <= self.width
             self.printer.write(self.table_formats.row_head + row + self.table_formats.row_tail + "\n")
 
 
