@@ -119,7 +119,7 @@ class Table:
         """
         return [max(max(visible_len(d[i]), m) for d in self.data if type(d) is tuple) for i in range(self.row_len)]
 
-    def compute(self, join: str, widths: Optional[list[int]] = None) -> Iterator[str]:
+    def compute(self, join: str, widths: Optional[list[int]] = None, elli: str = "…") -> Iterator[str]:
         """
         Computes the table.
 
