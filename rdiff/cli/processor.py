@@ -27,7 +27,8 @@ def process_iter(
         max_cost_row: int = MAX_COST,
         align_col_data: bool = False,
         mime: Optional[str] = None,
-        table_drop_cols: Optional[Sequence[tuple[str, list[str]]]] = None,
+        table_drop_cols: Optional[Sequence[str]] = None,
+        table_sort: Optional[Sequence[str]] = None,
         sort: bool = False,
 ) -> Iterator[AnyDiff]:
     """
@@ -66,6 +67,8 @@ def process_iter(
         The MIME of the two paths.
     table_drop_cols
         Table columns to drop when comparing tables.
+    table_sort
+        Sorts tables by the columns specified.
     sort
         If True, sorts files.
 
@@ -104,6 +107,7 @@ def process_iter(
                 max_cost_row=max_cost_row,
                 align_col_data=align_col_data,
                 table_drop_cols=table_drop_cols,
+                table_sort=table_sort,
             )
         if cherry_pick is not None:
             break
@@ -121,7 +125,8 @@ def process_print(
         max_cost_row: int = MAX_COST,
         align_col_data: bool = False,
         mime: Optional[str] = None,
-        table_drop_cols: Optional[Sequence[tuple[str, list[str]]]] = None,
+        table_drop_cols: Optional[Sequence[str]] = None,
+        table_sort: Optional[Sequence[str]] = None,
         sort: bool = False,
         output_format: Optional[str] = None,
         output_verbosity: int = 0,
@@ -166,6 +171,8 @@ def process_print(
         The MIME of the two paths.
     table_drop_cols
         Table columns to drop when comparing tables.
+    table_sort
+        Sorts tables by the columns specified.
     sort
         If True, sorts files.
     output_format
@@ -218,7 +225,7 @@ def process_print(
             a=a, b=b, includes=includes, rename=rename, cherry_pick=cherry_pick,
             min_ratio=min_ratio, min_ratio_row=min_ratio_row,
             max_cost=max_cost, max_cost_row=max_cost_row, align_col_data=align_col_data, mime=mime,
-            table_drop_cols=table_drop_cols, sort=sort,
+            table_drop_cols=table_drop_cols, table_sort=table_sort, sort=sort,
     ):
         any_diff |= not i.is_eq()
         printer.print_diff(i)
@@ -271,6 +278,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     misc_group = parser.add_argument_group("misc settings")
     misc_group.add_argument("--mime", metavar="MIME", help="enforce the MIME")
     misc_group.add_argument("--table-drop-cols", nargs="+", metavar="COL1, COL2, ...", help="drop the specified columns from parsed tables")
+    misc_group.add_argument("--table-sort", nargs="*", metavar="COL1, COL2, ...", help="sort tables by the columns specified")
 
     print_group = parser.add_argument_group("printing")
     print_group.add_argument("--format", choices=["plain", "md", "summary", "color"], default="default", help="output print format")
@@ -313,6 +321,7 @@ def run(args=None) -> bool:
             align_col_data=args.align_col_data,
             mime=args.mime,
             table_drop_cols=args.table_drop_cols,
+            table_sort=args.table_sort,
             sort=args.sort,
             output_format=args.format,
             output_verbosity=args.verbose,

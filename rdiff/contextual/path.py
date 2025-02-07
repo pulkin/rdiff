@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, TypeVar, Optional
+from typing import Callable, TypeVar, Optional, Sequence
 from dataclasses import dataclass
 import filecmp
 from functools import partial
@@ -183,7 +183,8 @@ def diff_pd(
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
         align_col_data: bool = False,
-        table_drop_cols: Optional[list[str]] = None,
+        table_drop_cols: Optional[Sequence[str]] = None,
+        table_sort: Optional[Sequence[str]] = None,
 ) -> TableDiff:
     """
     Computes a table diff between two ``pandas.DataFrame``.
@@ -215,16 +216,21 @@ def diff_pd(
         This may result in much slower comparisons.
     table_drop_cols
         Columns to drop before comparing.
+    table_sort
+        Sorts tables by the columns specified.
 
     Returns
     -------
     The table diff.
     """
-    if table_drop_cols is not None:
+    if table_drop_cols is not None or table_sort is not None:
         a = a.copy()
         b = b.copy()
         for df in a, b:
-            df.drop(columns=table_drop_cols, inplace=True, errors="ignore")
+            if table_drop_cols is not None:
+                df.drop(columns=table_drop_cols, inplace=True, errors="ignore")
+            if table_sort is not None:
+                df.sort_values(by=table_sort or list(df.columns), inplace=True)
     result = _diff_table(a=a, b=b, name=name, min_ratio=min_ratio, min_ratio_row=min_ratio_row, max_cost=max_cost,
                          max_cost_row=max_cost_row, columns=None if align_col_data else "columns")
     if align_col_data:  # columns were discarded in the diff; add them back
@@ -245,7 +251,8 @@ if pandas:
             max_cost: int = MAX_COST,
             max_cost_row: int = MAX_COST,
             align_col_data: bool = False,
-            table_drop_cols: Optional[list[str]] = None,
+            table_drop_cols: Optional[Sequence[str]] = None,
+            table_sort: Optional[Sequence[str]] = None,
     ) -> TableDiff:
         """
         Computes a table diff between two pandas-supported files with tables.
@@ -279,6 +286,8 @@ if pandas:
             This may result in much slower comparisons.
         table_drop_cols
             Columns to drop before comparing.
+        table_sort
+            Sorts tables by the columns specified.
 
         Returns
         -------
@@ -294,6 +303,7 @@ if pandas:
             max_cost_row=max_cost_row,
             align_col_data=align_col_data,
             table_drop_cols=table_drop_cols,
+            table_sort=table_sort,
         )
 
 
@@ -312,7 +322,8 @@ if pandas:
             max_cost: int = MAX_COST,
             max_cost_row: int = MAX_COST,
             align_col_data: bool = False,
-            table_drop_cols: Optional[list[str]] = None,
+            table_drop_cols: Optional[Sequence[str]] = None,
+            table_sort: Optional[Sequence[str]] = None,
     ) -> CompositeDiff:
         """
         Computes a table diff between two pandas-supported files with multiple tables.
@@ -346,6 +357,8 @@ if pandas:
             This may result in much slower comparisons.
         table_drop_cols
             Columns to drop before comparing.
+        table_sort
+            Sorts tables by the columns specified.
 
         Returns
         -------
@@ -378,6 +391,7 @@ if pandas:
                     max_cost_row=max_cost_row,
                     align_col_data=align_col_data,
                     table_drop_cols=table_drop_cols,
+                    table_sort=table_sort,
                 )
             )
         return CompositeDiff(name, result)
@@ -396,7 +410,8 @@ def diff_path(
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
         align_col_data: bool = False,
-        table_drop_cols: Optional[list[str]] = None,
+        table_drop_cols: Optional[Sequence[str]] = None,
+        table_sort: Optional[Sequence[str]] = None,
 ) -> AnyDiff:
     """
     Computes a diff between two files based on their (common) MIME.
@@ -430,6 +445,8 @@ def diff_path(
         This may result in much slower comparisons.
     table_drop_cols
         Table columns to drop when comparing tables.
+    table_sort
+        Sorts tables by the columns specified.
 
     Returns
     -------
@@ -452,6 +469,7 @@ def diff_path(
     kwargs = {}
     if kernel in (diff_pd_csv, diff_pd_feather, diff_pd_parquet, diff_pd_excel):
         kwargs["table_drop_cols"] = table_drop_cols
+        kwargs["table_sort"] = table_sort
         kwargs["align_col_data"] = align_col_data
     return kernel(a, b, name, min_ratio=min_ratio, min_ratio_row=min_ratio_row, max_cost=max_cost,
                   max_cost_row=max_cost_row, **kwargs)
