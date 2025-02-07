@@ -20,6 +20,7 @@ def process_iter(
         b: Path,
         includes: Sequence[tuple[bool, str]] = tuple(),
         rename: Sequence[tuple[str, str]] = tuple(),
+        cherry_pick: Optional[str] = None,
         min_ratio: float = MIN_RATIO,
         min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
@@ -42,6 +43,8 @@ def process_iter(
         A sequence of include/exclude rules as (flag, pattern) tuples.
     rename
         A sequence with rename rules as (pattern, replacement) tuples.
+    cherry_pick
+        Once set, will only consider one file matching this argument.
     min_ratio
         The ratio below which the algorithm exits. The values closer to 1
         typically result in faster run times while setting to 0 will force
@@ -82,6 +85,11 @@ def process_iter(
             return result
 
     for child_a, child_b, readable_name in iter_match(a, b, rules=rules, transform=transform, sort=sort):
+        if cherry_pick is not None:
+            try:
+                next(re.finditer(cherry_pick, readable_name))
+            except StopIteration:
+                continue
         if child_a is None or child_b is None:
             yield DeltaDiff(readable_name, child_a is not None)
         else:
@@ -97,6 +105,8 @@ def process_iter(
                 align_col_data=align_col_data,
                 table_drop_cols=table_drop_cols,
             )
+        if cherry_pick is not None:
+            break
 
 
 def process_print(
@@ -104,6 +114,7 @@ def process_print(
         b: Path,
         includes: Sequence[tuple[bool, str]] = tuple(),
         rename: Sequence[tuple[str, str]] = tuple(),
+        cherry_pick: Optional[str] = None,
         min_ratio: float = MIN_RATIO,
         min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
@@ -132,6 +143,8 @@ def process_print(
         A sequence of include/exclude rules as (flag, pattern) tuples.
     rename
         A sequence with rename rules as (pattern, replacement) tuples.
+    cherry_pick
+        Once set, will only consider one file matching this argument.
     min_ratio
         The ratio below which the algorithm exits. The values closer to 1
         typically result in faster run times while setting to 0 will force
@@ -174,6 +187,8 @@ def process_print(
     """
     if output_format is None or output_format == "default":
         output_format = "plain"
+    if output_format == "summary" and cherry_pick:
+        output_format = "plain"  # fall back
     if output_file is None:
         output_file = stdout
     printer_kwargs = {
@@ -200,7 +215,8 @@ def process_print(
     any_diff = False
 
     for i in process_iter(
-            a=a, b=b, includes=includes, rename=rename, min_ratio=min_ratio, min_ratio_row=min_ratio_row,
+            a=a, b=b, includes=includes, rename=rename, cherry_pick=cherry_pick,
+            min_ratio=min_ratio, min_ratio_row=min_ratio_row,
             max_cost=max_cost, max_cost_row=max_cost_row, align_col_data=align_col_data, mime=mime,
             table_drop_cols=table_drop_cols, sort=sort,
     ):
@@ -243,6 +259,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     consumption_group.add_argument("--exclude", action=RepeatingOrderedAction, bucket_name="includes", metavar="PATTERN", help="paths to exclude")
     consumption_group.add_argument("--rename", nargs=2, action="append", metavar="PATTERN REPLACE", help="rename files using re.sub")
     consumption_group.add_argument("--sort", action="store_true", help="sort diffs by file name")
+    consumption_group.add_argument("--cherry-pick", help="cherry-picks one file to diff")
 
     algorithm_group = parser.add_argument_group("algorithm settings")
     algorithm_group.add_argument("--min-ratio", type=float, default=MIN_RATIO, metavar="[0..1]", help="the minimal required similarity ratio value. Setting this to a higher value will make the algorithm stop earlier")
@@ -288,6 +305,7 @@ def run(args=None) -> bool:
             a=args.a, b=args.b,
             includes=args.includes,
             rename=args.rename,
+            cherry_pick=args.cherry_pick,
             min_ratio=args.min_ratio,
             min_ratio_row=args.min_ratio_row,
             max_cost=args.max_cost,

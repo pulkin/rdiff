@@ -1,0 +1,8 @@
+comparing tests/test_presentation/cases/co2_emissions/diff.feather.txt
+< comparing a.feather/b.feather
+---
+> comparing .
+---
+      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+  --- ----------- ------- ---------- --------------- -----------------------
+(39 lines match)
