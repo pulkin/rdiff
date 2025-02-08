@@ -88,7 +88,7 @@ comparing tests/test_presentation/util.py
 ---
 >     for i in process_iter(a, b, **kwargs):
 ---
-≈     +++    +++printer.print_diff(---diff---+++i+++)
+≈     +++    +++printer.print_diff(---d---i---ff---)
 ---
   
       return buffer.getvalue()

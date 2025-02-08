@@ -9,7 +9,6 @@ from itertools import groupby
 
 MAX_COST = 0xFFFFFFFF  # a reasonably high maximal diff cost
 MAX_CALLS = 0xFFFFFFFF  # maximal calls
-MAX_DEPTH = 0xFF  # maximal recursion depth
 MIN_RATIO = 0.749  # minimal similarity ratio
 
 
@@ -22,7 +21,6 @@ def search_graph_recursive(
         max_cost: int = MAX_COST,
         max_calls: int = MAX_CALLS,
         eq_only: bool = False,
-        max_depth: int = MAX_DEPTH,
         no_python: bool = False,
         i: int = 0,
         j: int = 0,
@@ -78,8 +76,6 @@ def search_graph_recursive(
         Note that without specifying max_cost explicitly
         setting eq_only=True will return almost instantly as
         the default value of max_cost is very large.
-    max_depth
-        Maximal recursion depth.
     no_python
         If True will disallow slow python-based comparison protocols
         (c kernel only).
@@ -140,15 +136,6 @@ def search_graph_recursive(
                 out[ix] = 1
             for ix in range(i + j + n, i + j + n + m):
                 out[ix] = 2
-        return n + m
-
-    if max_depth == 0:
-        # write "special" codes indicating WIP
-        if out is not None:
-            for ix in range(i + j, i + j + n):
-                out[ix] = 5
-            for ix in range(i + j + n, i + j + n + m):
-                out[ix] = 6
         return n + m
 
     """
@@ -324,7 +311,6 @@ def search_graph_recursive(
                             out=out,
                             accept=accept,
                             max_cost=cost // 2 + cost % 2,
-                            max_depth=max_depth - 1,
                             i=i,
                             j=j,
                         )
@@ -335,7 +321,6 @@ def search_graph_recursive(
                             out=out,
                             accept=accept,
                             max_cost=cost // 2,
-                            max_depth=max_depth - 1,
                             i=i + x2,
                             j=j + y2,
                         )
@@ -424,61 +409,3 @@ def search_graph_recursive(
         for ix in range(i + j + n, i + j + n + m):
             out[ix] = 2
     return n + m
-
-
-def resume_search(
-        similarity_ratio_getter: Callable[[int, int], float],
-        out: array,
-        kernel=search_graph_recursive,
-        accept: float = 1,
-        max_depth: int = MAX_DEPTH,
-        no_python: bool = False,
-) -> int:
-    """
-    Resumes the previous recursive search.
-
-    Parameters
-    ----------
-    similarity_ratio_getter
-    out
-    kernel
-    accept
-    max_depth
-    no_python
-        See `search_graph_recursive` for the description.
-
-    Returns
-    -------
-    The diff cost: the number of deletions + the number
-    of additions.
-    """
-    x = y = 0
-    iterator = groupby(out)
-    cost = 0
-    for key, chunk in iterator:
-        n = len(list(chunk))
-        if key == 1:
-            cost += n
-            x += n
-        elif key == 2:
-            cost += n
-            y += n
-        elif key == 3:
-            x += n
-            y += n
-        elif key == 5:
-            key, chunk = next(iterator)
-            assert key == 6
-            m = len(list(chunk))
-            cost += kernel(
-                n=n,
-                m=m,
-                similarity_ratio_getter=similarity_ratio_getter,
-                out=out,
-                accept=accept,
-                max_depth=max_depth,
-                no_python=no_python,
-                i=x,
-                j=y,
-            )
-    return cost

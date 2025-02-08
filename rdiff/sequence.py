@@ -5,7 +5,7 @@ from itertools import groupby
 from warnings import warn
 
 from .chunk import Diff, Chunk
-from .myers import search_graph_recursive as pymyers, MAX_COST, MAX_CALLS, MAX_DEPTH, MIN_RATIO, resume_search
+from .myers import search_graph_recursive as pymyers, MAX_COST, MAX_CALLS, MIN_RATIO
 from .cmyers import search_graph_recursive as cmyers
 
 _nested_containers = (list, tuple)
@@ -33,13 +33,11 @@ def diff(
         min_ratio: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_calls: int = MAX_CALLS,
-        max_recursion: int = MAX_DEPTH,
         eq_only: bool = False,
         kernel: Optional[str] = None,
         rtn_diff: Union[bool, array] = True,
         dig=None,
         strict: bool = True,
-        resume: Optional[array] = None,
         no_python: bool = False,
 ) -> Diff:
     """
@@ -72,8 +70,6 @@ def diff(
     max_calls
         The maximal number of calls (iterations) after which the algorithm gives
         up. This has to be lower than ``len(a) * len(b)`` to have any effect.
-    max_recursion
-        The maximal recursion depth.
     eq_only
         If True, attempts to guarantee the existence of an edit script
         satisfying both min_ratio and max_cost without actually finding the
@@ -96,8 +92,6 @@ def diff(
     strict
         If True, ensures that the returned diff either satisfies both
         min_ratio and max_cost or otherwise has a zero ratio.
-    resume
-        If specified, will resume the search from the provided state.
     no_python
         If True will disallow slow python-based comparison protocols
         (c kernel only).
@@ -129,9 +123,6 @@ def diff(
     if not rtn_diff and dig is not None:
         warn("using dig=... has no effect when rtn_diff=False or array")
 
-    if resume is not None:
-        codes[:] = resume
-
     _kernel = _kernels[kernel]
 
     total_len = n + m
@@ -140,29 +131,17 @@ def diff(
 
     max_cost = min(max_cost, int(total_len - total_len * min_ratio))
 
-    if resume is not None:
-        cost = resume_search(
-            similarity_ratio_getter=eq,
-            out=codes,
-            kernel=_kernel,
-            accept=accept,
-            max_depth=max_recursion,
-            no_python=no_python,
-        )
-
-    else:
-        cost = _kernel(
-            n=n,
-            m=m,
-            similarity_ratio_getter=eq,
-            accept=accept,
-            max_cost=max_cost,
-            eq_only=eq_only,
-            max_calls=max_calls,
-            max_depth=max_recursion,
-            out=codes,
-            no_python=no_python,
-        )
+    cost = _kernel(
+        n=n,
+        m=m,
+        similarity_ratio_getter=eq,
+        accept=accept,
+        max_cost=max_cost,
+        eq_only=eq_only,
+        max_calls=max_calls,
+        out=codes,
+        no_python=no_python,
+    )
 
     if strict and cost > max_cost:
         if rtn_diff:
@@ -283,12 +262,11 @@ def diff_nested(
         min_ratio: Union[float, tuple[float, ...]] = MIN_RATIO,
         max_cost: Union[int, tuple[int, ...]] = MAX_COST,
         max_calls: Union[int, tuple[int, ...]] = MAX_CALLS,
-        max_recursion: Union[int, tuple[int, ...]] = MAX_DEPTH,
         eq_only: bool = False,
         kernel: Optional[str] = None,
         rtn_diff: Union[bool, array] = True,
         nested_containers: tuple = _nested_containers,
-        max_depth: int = MAX_DEPTH,
+        max_depth: int = 0xFF,
         _blacklist_a: set = frozenset(),
         _blacklist_b: set = frozenset(),
 ) -> Diff:
@@ -318,8 +296,6 @@ def diff_nested(
     max_calls
         The maximal number of calls (iterations) after which the algorithm gives
         up. This has to be lower than ``len(a) * len(b)`` to have any effect.
-    max_recursion
-        The maximal recursion depth.
     eq_only
         If True, attempts to guarantee the existence of an edit script
         satisfying both min_ratio and max_cost without actually finding the
@@ -358,7 +334,6 @@ def diff_nested(
     min_ratio_here, min_ratio_pass = _pop_optional(min_ratio)
     max_cost_here, max_cost_pass = _pop_optional(max_cost)
     max_calls_here, max_calls_pass = _pop_optional(max_calls)
-    max_recursion_here, max_recursion_pass = _pop_optional(max_recursion)
     accept, _ = _pop_optional(min_ratio_pass)
 
     if max_depth <= 1:
@@ -369,7 +344,6 @@ def diff_nested(
             min_ratio=min_ratio_here,
             max_cost=max_cost_here,
             max_calls=max_calls_here,
-            max_recursion=max_recursion_here,
             eq_only=eq_only,
             kernel=kernel,
             rtn_diff=rtn_diff,
@@ -391,7 +365,6 @@ def diff_nested(
                     min_ratio=min_ratio_pass,
                     max_cost=max_cost_pass,
                     max_calls=max_calls_pass,
-                    max_recursion=max_recursion_pass,
                     eq_only=True,
                     kernel=kernel,
                     nested_containers=nested_containers,
@@ -409,7 +382,6 @@ def diff_nested(
                         min_ratio=min_ratio_pass,
                         max_cost=max_cost_pass,
                         max_calls=max_calls_pass,
-                        max_recursion=max_recursion_pass,
                         eq_only=False,
                         kernel=kernel,
                         rtn_diff=rtn_diff,
@@ -444,7 +416,6 @@ def diff_nested(
         min_ratio=min_ratio_here,
         max_cost=max_cost_here,
         max_calls=max_calls_here,
-        max_recursion=max_recursion_here,
         eq_only=eq_only,
         kernel=kernel,
         rtn_diff=rtn_diff,

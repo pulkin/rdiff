@@ -251,7 +251,6 @@ cdef Py_ssize_t _search_graph_recursive(
     const double accept,
     Py_ssize_t max_cost,
     Py_ssize_t max_calls,
-    Py_ssize_t max_depth,
     char eq_only,
     char[::1] out,
     Py_ssize_t i,
@@ -316,14 +315,8 @@ cdef Py_ssize_t _search_graph_recursive(
                 out[ix] = 2
         return n + m
 
-    if max_depth == 0:
-        # write "special" codes indicating WIP
-        if rtn_script:
-            for ix in range(i + j, i + j + n):
-                out[ix] = 5
-            for ix in range(i + j + n, i + j + n + m):
-                out[ix] = 6
-        return n + m
+    # if abs(n - m) > max_cost:
+    #     return n + m
 
     nm = min(n, m) + 1
     n_m = n + m
@@ -425,7 +418,6 @@ cdef Py_ssize_t _search_graph_recursive(
                             accept=accept,
                             max_cost=cost // 2 + cost % 2,
                             max_calls=max_calls,
-                            max_depth=max_depth - 1,
                             eq_only=0,
                             out=out,
                             i=i,
@@ -440,7 +432,6 @@ cdef Py_ssize_t _search_graph_recursive(
                             accept=accept,
                             max_cost=cost // 2,
                             max_calls=max_calls,
-                            max_depth=max_depth - 1,
                             eq_only=0,
                             out=out,
                             i=i + x2,
@@ -506,7 +497,6 @@ def search_graph_recursive(
     Py_ssize_t max_cost=0xFFFFFFFF,
     Py_ssize_t max_calls=0xFFFFFFFF,
     char eq_only=0,
-    Py_ssize_t max_depth=0xFF,
     Py_ssize_t i=0,
     Py_ssize_t j=0,
     int no_python=0,
@@ -534,7 +524,6 @@ def search_graph_recursive(
             max_cost=max_cost,
             max_calls=max_calls,
             eq_only=eq_only,
-            max_depth=max_depth,
             out=cout,
             i=i,
             j=j,

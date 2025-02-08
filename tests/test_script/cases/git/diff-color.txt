@@ -49,7 +49,7 @@
 [0m[90m      buffer = StringIO()
 [0m[90m      printer = TextPrinter(printer=buffer, **printer_kwargs)
 [0m[32m>     for i in process_iter(a, b, **kwargs):
-[0m≈     [32m    [0mprinter.print_diff([41m[30mdiff[0m[32mi[0m)
+[0m≈     [32m    [0mprinter.print_diff([41m[30md[0mi[41m[30mff[0m)
 [90m  
 [0m[90m      return buffer.getvalue()
 [0m[32mNEW[0m rdiff/cli/processor.py

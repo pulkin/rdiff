@@ -68,7 +68,7 @@ def diff(
         b=b,
         min_ratio=(min_ratio, min_ratio_row),
         max_cost=(max_cost, max_cost_row),
-        max_recursion=2,
+        max_depth=2,
     )
     return TextDiff(
         name=name,
