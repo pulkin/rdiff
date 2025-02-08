@@ -1,13 +1,9 @@
-from io import StringIO
-from textwrap import dedent
-
 import pytest
 import numpy as np
-import pandas as pd
 
 from rdiff.contextual.table import diff, TableDiff
 from rdiff.numpy import NumpyDiff
-from rdiff.chunk import Diff, Chunk, Signature, ChunkSignature
+from rdiff.chunk import Signature, ChunkSignature
 
 from ..util import np_raw_diff_eq
 
