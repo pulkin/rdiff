@@ -410,6 +410,7 @@ def diff_path(
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
         align_col_data: bool = False,
+        shallow: bool = False,
         table_drop_cols: Optional[Sequence[str]] = None,
         table_sort: Optional[Sequence[str]] = None,
 ) -> AnyDiff:
@@ -443,6 +444,8 @@ def diff_path(
     align_col_data
         For tables, (force) compare columns by data as opposed to their names.
         This may result in much slower comparisons.
+    shallow
+        If True, performs a shallow comparison without building diffs at all.
     table_drop_cols
         Table columns to drop when comparing tables.
     table_sort
@@ -454,6 +457,8 @@ def diff_path(
     """
     if filecmp.cmp(a, b, shallow=False):
         return PathDiff(name, eq=True, message="files are binary equal")
+    if shallow:
+        return PathDiff(name, eq=False, message="files are not equal (shallow comparison)")
     if mime is None and magic is not None:
         a_mime = magic_guess_custom.from_file(str(a))
         b_mime = magic_guess_custom.from_file(str(b))

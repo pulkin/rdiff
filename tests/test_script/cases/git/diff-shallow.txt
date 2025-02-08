@@ -1,0 +1,8 @@
+tests/test_presentation/cases/co2_emissions/diff.csv.md are not equal
+tests/test_presentation/cases/co2_emissions/diff.csv.txt are not equal
+tests/test_presentation/cases/co2_emissions/diff.excel.txt are not equal
+tests/test_presentation/cases/co2_emissions/diff.feather.txt are not equal
+tests/test_presentation/cases/co2_emissions/diff.parquet.txt are not equal
+tests/test_presentation/cases/readme/diff.txt are not equal
+tests/test_presentation/util.py are not equal
+NEW rdiff/cli/processor.py

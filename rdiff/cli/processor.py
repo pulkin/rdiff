@@ -26,6 +26,7 @@ def process_iter(
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
         align_col_data: bool = False,
+        shallow: bool = False,
         mime: Optional[str] = None,
         table_drop_cols: Optional[Sequence[str]] = None,
         table_sort: Optional[Sequence[str]] = None,
@@ -63,6 +64,8 @@ def process_iter(
     align_col_data
         For tables, (force) compare columns by data as opposed to their names.
         This may result in much slower comparisons.
+    shallow
+        If True, performs a shallow comparison without building diffs at all.
     mime
         The MIME of the two paths.
     table_drop_cols
@@ -106,6 +109,7 @@ def process_iter(
                 max_cost=max_cost,
                 max_cost_row=max_cost_row,
                 align_col_data=align_col_data,
+                shallow=shallow,
                 table_drop_cols=table_drop_cols,
                 table_sort=table_sort,
             )
@@ -124,6 +128,7 @@ def process_print(
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
         align_col_data: bool = False,
+        shallow: bool = False,
         mime: Optional[str] = None,
         table_drop_cols: Optional[Sequence[str]] = None,
         table_sort: Optional[Sequence[str]] = None,
@@ -167,6 +172,8 @@ def process_print(
     align_col_data
         For tables, (force) compare columns by data as opposed to their names.
         This may result in much slower comparisons.
+    shallow
+        If True, performs a shallow comparison without building diffs at all.
     mime
         The MIME of the two paths.
     table_drop_cols
@@ -224,7 +231,7 @@ def process_print(
     for i in process_iter(
             a=a, b=b, includes=includes, rename=rename, cherry_pick=cherry_pick,
             min_ratio=min_ratio, min_ratio_row=min_ratio_row,
-            max_cost=max_cost, max_cost_row=max_cost_row, align_col_data=align_col_data, mime=mime,
+            max_cost=max_cost, max_cost_row=max_cost_row, align_col_data=align_col_data, shallow=shallow, mime=mime,
             table_drop_cols=table_drop_cols, table_sort=table_sort, sort=sort,
     ):
         any_diff |= not i.is_eq()
@@ -274,6 +281,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     algorithm_group.add_argument("--max-cost", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost. Setting this to a lower value will make the algorithm stop earlier")
     algorithm_group.add_argument("--max-cost-row", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost for individual lines/rows. Setting this to a lower value will make the algorithm stop earlier")
     algorithm_group.add_argument("--align-col-data", action="store_true", help="align table columns by comparing their data instead of column names. May slow down comparison significantly")
+    algorithm_group.add_argument("--shallow", action="store_true", help="disables diff comparison and simply prints mismatching files")
 
     misc_group = parser.add_argument_group("misc settings")
     misc_group.add_argument("--mime", metavar="MIME", help="enforce the MIME")
@@ -319,6 +327,7 @@ def run(args=None) -> bool:
             max_cost=args.max_cost,
             max_cost_row=args.max_cost_row,
             align_col_data=args.align_col_data,
+            shallow=args.shallow,
             mime=args.mime,
             table_drop_cols=args.table_drop_cols,
             table_sort=args.table_sort,

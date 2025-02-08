@@ -18,6 +18,7 @@ cases = Path(__file__).parent / "cases"
     (["--exclude", "tests/test_presentation/cases/co2_emissions/", "--format", "summary"], "exclude-2.txt"),
     (["--reverse", "--format", "summary"], "reverse.txt"),
     (["--cherry-pick", "diff.feather.txt"], "cherry-pick.txt"),
+    (["--shallow"], "shallow.txt"),
 ])
 def test_git(tmp_path, test_diff_renders, args, name):
     git_self_extract("0c197f2cdb0bf8c0ca95e76a837296fbebad436d", a := tmp_path / "a")
