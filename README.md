@@ -88,7 +88,7 @@ a≈b (ratio=0.6667)
 ··········a[0][0][0:5]=b[2][1][0:5]: 'alice' = 'alice'
 ··········a[0][0][5:5]≠b[2][1][5:6]: '' ≠ '2'
 ········a[0][1]≈b[2][2] (ratio=0.8571)  # recognizes similarity between 'bob' and 'bob2'
-··········a[0][1][0:3]=b[2][2][0:3]: 'bob' = 'bob'  # recognizes similarity between 'bob' and 'bob2'
+··········a[0][1][0:3]=b[2][2][0:3]: 'bob' = 'bob'
 ··········a[0][1][3:3]≠b[2][2][3:4]: '' ≠ '2'
 (...)
 ```
