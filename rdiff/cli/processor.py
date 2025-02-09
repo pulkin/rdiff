@@ -4,12 +4,14 @@ from pathlib import Path
 from typing import Optional
 from collections.abc import Iterator, Sequence
 import re
-from contextlib import nullcontext
 from sys import stdout
+from multiprocessing import Pool
+from contextlib import nullcontext
 
 from .path_util import accept_all, glob_rule, iter_match
+from .func_util import starpartial
 from ..contextual.base import AnyDiff
-from ..contextual.path import diff_path, DeltaDiff
+from ..contextual.path import diff_path
 from ..myers import MAX_COST, MIN_RATIO
 from ..presentation.base import (TextPrinter, SummaryTextPrinter, MarkdownTextFormats, MarkdownTableFormats,
                                  TermTextFormats, TermTableFormats, HTMLTextFormats, HTMLTableFormats)
@@ -31,6 +33,7 @@ def process_iter(
         table_drop_cols: Optional[Sequence[str]] = None,
         table_sort: Optional[Sequence[str]] = None,
         sort: bool = False,
+        pool: Optional[int] = None,
 ) -> Iterator[AnyDiff]:
     """
     Process anc compare to folders. Yields all diffs processed, even if they are equal.
@@ -74,6 +77,8 @@ def process_iter(
         Sorts tables by the columns specified.
     sort
         If True, sorts files.
+    pool
+        Process diffs in parallel with the specified number of processes.
 
     Yields
     ------
@@ -90,31 +95,27 @@ def process_iter(
                 result = re.sub(*args, result, count=1)
             return result
 
-    for child_a, child_b, readable_name in iter_match(a, b, rules=rules, transform=transform, sort=sort):
-        if cherry_pick is not None:
-            try:
-                next(re.finditer(cherry_pick, readable_name))
-            except StopIteration:
-                continue
-        if child_a is None or child_b is None:
-            yield DeltaDiff(readable_name, child_a is not None)
-        else:
-            yield diff_path(
-                a=child_a,
-                b=child_b,
-                name=str(readable_name),
-                mime=mime,
-                min_ratio=min_ratio,
-                min_ratio_row=min_ratio_row,
-                max_cost=max_cost,
-                max_cost_row=max_cost_row,
-                align_col_data=align_col_data,
-                shallow=shallow,
-                table_drop_cols=table_drop_cols,
-                table_sort=table_sort,
-            )
-        if cherry_pick is not None:
-            break
+    source = iter_match(a, b, rules=rules, transform=transform, sort=sort, cherry_pick=cherry_pick)
+    _processor = starpartial(
+            diff_path,
+            mime=mime,
+            min_ratio=min_ratio,
+            min_ratio_row=min_ratio_row,
+            max_cost=max_cost,
+            max_cost_row=max_cost_row,
+            align_col_data=align_col_data,
+            shallow=shallow,
+            table_drop_cols=table_drop_cols,
+            table_sort=table_sort,
+    )
+    if pool is None:
+        yield from map(_processor, source)
+    else:
+        with Pool(processes=pool) as _pool:
+            if sort:
+                yield from _pool.map(_processor, source)
+            else:
+                yield from _pool.imap_unordered(_processor, source)
 
 
 def process_print(
@@ -139,6 +140,7 @@ def process_print(
         output_table_collapse_columns: bool = False,
         output_file=None,
         output_term_width: Optional[int] = None,
+        pool: Optional[int] = None,
 ) -> bool:
     """
     Process anc compare to folders. Yields all diffs processed, even if they are equal.
@@ -194,6 +196,8 @@ def process_print(
         The output file.
     output_term_width
         The width of the terminal.
+    pool
+        Process diffs in parallel with the specified number of processes.
 
     Returns
     -------
@@ -236,7 +240,7 @@ def process_print(
             a=a, b=b, includes=includes, rename=rename, cherry_pick=cherry_pick,
             min_ratio=min_ratio, min_ratio_row=min_ratio_row,
             max_cost=max_cost, max_cost_row=max_cost_row, align_col_data=align_col_data, shallow=shallow, mime=mime,
-            table_drop_cols=table_drop_cols, table_sort=table_sort, sort=sort,
+            table_drop_cols=table_drop_cols, table_sort=table_sort, sort=sort, pool=pool,
     ):
         any_diff |= not i.is_eq()
         printer.print_diff(i)
@@ -279,6 +283,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     consumption_group.add_argument("--rename", nargs=2, action="append", metavar="PATTERN REPLACE", help="rename files using re.sub")
     consumption_group.add_argument("--sort", action="store_true", help="sort diffs by file name")
     consumption_group.add_argument("--cherry-pick", help="cherry-picks one file to diff")
+    consumption_group.add_argument("--pool", type=int, metavar="NPROCS", help="compute diffs in parallel with the specified number of processes")
 
     algorithm_group = parser.add_argument_group("algorithm settings")
     algorithm_group.add_argument("--min-ratio", type=float, default=MIN_RATIO, metavar="[0..1]", help="the minimal required similarity ratio value. Setting this to a higher value will make the algorithm stop earlier")
@@ -343,6 +348,7 @@ def run(args=None) -> bool:
             output_table_collapse_columns=args.table_collapse,
             output_file=f,
             output_term_width=args.width,
+            pool=args.pool,
         )
 
 

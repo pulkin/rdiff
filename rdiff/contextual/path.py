@@ -401,8 +401,8 @@ if pandas:
 
 
 def diff_path(
-        a: Path,
-        b: Path,
+        a: Optional[Path],
+        b: Optional[Path],
         name: str,
         mime: Optional[str] = None,
         min_ratio: float = MIN_RATIO,
@@ -455,6 +455,10 @@ def diff_path(
     -------
     The diff.
     """
+    if a is None and b is None:
+        raise ValueError("either a or b have to be non-None")
+    if a is None or b is None:
+        return DeltaDiff(name, a is not None)
     if filecmp.cmp(a, b, shallow=False):
         return PathDiff(name, eq=True, message="files are binary equal")
     if shallow:

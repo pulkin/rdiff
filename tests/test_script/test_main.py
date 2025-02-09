@@ -28,6 +28,16 @@ def test_git(tmp_path, test_diff_renders, args, name):
     sync_contents(cases / f"git/diff-{name}", text, test_diff_renders)
     assert code is True
 
+    # test pool
+    code, text = process2text([str(a), str(b), "--pool", "2", *args])
+    sync_contents(cases / f"git/diff-{name}", text, True)
+    assert code is True
+
+    # test pool not ordered
+    code, text = process2text([str(a), str(b), "--pool", "2", *args], sort=False)
+    sync_contents(cases / f"git/diff-{name}", text, True, eq=lambda i, j: set(i) == set(j))
+    assert code is True
+
 
 @pytest.mark.parametrize("args, name", [
     ([], "default.txt"),

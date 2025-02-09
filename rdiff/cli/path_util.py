@@ -171,6 +171,7 @@ def iter_match(
         transform: Optional[Callable[[str], str]] = None,
         rules: Sequence[MatchRule] = (accept_all,),
         sort: bool = False,
+        cherry_pick: Optional[str] = None,
 ) -> Iterator[tuple[Optional[Path], Optional[Path], str]]:
     """
     Iterates two path trees and matches the nodes.
@@ -186,6 +187,8 @@ def iter_match(
         The rules to use when iterating the path trees.
     sort
         If True, sorts files.
+    cherry_pick
+        Once set, will only consider one file matching this argument.
 
     Yields
     ------
@@ -219,12 +222,26 @@ def iter_match(
     b_contents = _collect(b, "b")
 
     for key, a_path in a_contents.items():
+        if cherry_pick is not None:
+            try:
+                next(re.finditer(cherry_pick, key))
+            except StopIteration:
+                continue
         try:
             b_path = b_contents.pop(key)
         except KeyError:
             yield a_path, None, key
         else:
             yield a_path, b_path, key
+        if cherry_pick is not None:
+            return
 
     for key, b_path in b_contents.items():
+        if cherry_pick is not None:
+            try:
+                next(re.finditer(cherry_pick, key))
+            except StopIteration:
+                continue
         yield None, b_path, key
+        if cherry_pick is not None:
+            return

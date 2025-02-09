@@ -2,6 +2,7 @@ from io import StringIO
 from subprocess import Popen, check_output
 import tarfile
 from tempfile import NamedTemporaryFile
+from operator import eq
 
 from rdiff.cli.processor import process_print
 from rdiff.cli.processor import run
@@ -13,9 +14,11 @@ def diff2text(a, b, **kwargs):
     return buffer.getvalue()
 
 
-def process2text(args):
+def process2text(args, sort=True):
+    if sort:
+        args = [*args, "--sort"]
     with NamedTemporaryFile("w+") as f:
-        exit_code = run(args + ["--output", f.name, "--sort", "--width", "160"])
+        exit_code = run([*args, "--output", f.name, "--width", "160"])
         f.seek(0)
         return exit_code, f.read()
 
@@ -30,9 +33,9 @@ def git_self_extract(commit, dst):
             f_tar.extractall(dst)
 
 
-def sync_contents(path, content, check):
+def sync_contents(path, content, check, eq=eq):
     with open(path, "r" if check else "w") as f:
         if check:
-            assert content == f.read()
+            assert eq(content, f.read())
         else:
             f.write(content)
