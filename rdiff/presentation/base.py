@@ -6,6 +6,8 @@ from typing import Union, Any, Optional
 from collections.abc import Sequence, Callable, Iterator
 from itertools import groupby
 import re
+from html import escape as html_escape
+from textwrap import dedent
 
 from .string_tools import align, visible_len
 from ..contextual.base import AnyDiff
@@ -128,7 +130,7 @@ class Table:
         join
             A string for joining cells.
         widths
-            Row widths to use. Defaults to ``self.get_full_widths()``.
+            Row widths to use.
         elli
             Ellipsis.
 
@@ -136,16 +138,19 @@ class Table:
         -------
         A sequence of table rows.
         """
-        if widths is None:
-            widths = self.get_full_widths()
-
         for i in self.data:
             if isinstance(i, tuple):
-                yield join.join(align(s, n, elli=elli) for s, n in zip(i, widths))
+                if widths is None:
+                    yield join.join(i)
+                else:
+                    yield join.join(align(s, n, elli=elli) for s, n in zip(i, widths))
             elif isinstance(i, TableBreak):
                 yield str(i)
             elif isinstance(i, TableHline):
-                yield join.join((i * (w // len(i) + 1))[:w] for w in widths)
+                if widths is None:
+                    yield i
+                else:
+                    yield join.join((i * (w // len(i) + 1))[:w] for w in widths)
             else:
                 raise ValueError(f"unknown row type: {type(i)}")
 
@@ -167,6 +172,9 @@ class TextFormats:
     block_spacer: str = "---\n"
     chunk_add: str = "+++%s+++"
     chunk_rm: str = "---%s---"
+
+    hello: str = ""
+    goodbye: str = ""
 
     @staticmethod
     def escape(s: str) -> str:
@@ -194,6 +202,9 @@ class MarkdownTextFormats(TextFormats):
     block_spacer: str = "---\n"
     chunk_add: str = "+++%s+++"
     chunk_rm: str = "---%s---"
+
+    hello: str = ""
+    goodbye: str = ""
 
     @staticmethod
     def escape(s: str) -> str:
@@ -231,9 +242,62 @@ class TermTextFormats(TextFormats):
     chunk_add: str = tf_green
     chunk_rm: str = (tf_on_red % tf_black)[:-4]
 
+    hello: str = ""
+    goodbye: str = ""
+
+
+@dataclass
+class HTMLTextFormats(TextFormats):
+    header: str = "<h4>%s</h4>"
+    textwrap_start: str = "<pre>"
+    textwrap_end: str = "</pre>"
+    del_entry: str = "<h4>DEL %s</h4>"
+    new_entry: str = f"<h4>NEW %s</h4>"
+    mime_entry: str = "<h4>MIME %s</h4>"
+    same_entry: str = "<h4>same %s</h4>"
+    skip_equal: str = "(%d lines match)"
+    line_ctx: str = "  %s"
+    line_add: str = "<span class=\"diff-add\">&gt; %s</span>"
+    line_rm: str = "<span class=\"diff-rm\">&lt; %s</span>"
+    line_aligned: str = "<span class=\"diff-highlight\">≈ %s</span>"
+    block_spacer: str = ""
+    chunk_add: str = "<span class=\"diff-add\">%s</span>"
+    chunk_rm: str = "<span class=\"diff-rm\">%s</span>"
+
+    hello: str = dedent("""
+    <!DOCTYPE html><html><head>
+    <meta charset=\"UTF-8\">
+    <link rel="stylesheet" href="https://unpkg.com/mvp.css"> 
+    <style>
+      .diff-rm {
+        color: #B8405E;
+      }
+      .diff-add {
+        color: #2EB086;
+      }
+      .diff-highlight {
+        background-color: #EEE6CE;
+        display: block;
+      }
+      .diff-context {
+        color: grey;
+      }
+    </style>
+    </head><body>""")
+    goodbye: str = "</body></html>"
+
+    @staticmethod
+    def escape(s: str) -> str:
+        return html_escape(s)
+
 
 @dataclass
 class TableFormats:
+    align: bool = True
+
+    table_head: str = ""
+    table_tail: str = ""
+
     skip_equal: str = "(%d row(s) match)"
 
     column_plain: str = "%s"
@@ -241,12 +305,15 @@ class TableFormats:
     column_rm: str = "-%s"
     column_both: str = "---%s>>>%s+++"
 
+    ix_row_header: str = ""
+    ix_row_none: str = ""
     ix_row_context_one: str = "%d"
     ix_row_context_both: str = "%dA%dB"
     ix_row_same: str = "%d"
     ix_row_a: str = "%dA"
     ix_row_b: str = "%dB"
 
+    data_row_none: str = ""
     data_row_context: str = "%s"
     data_row_same: str = "%s"
     data_row_a: str = "---%s---"
@@ -262,6 +329,11 @@ class TableFormats:
 
 @dataclass
 class TermTableFormats(TableFormats):
+    align: bool = True
+
+    table_head: str = ""
+    table_tail: str = ""
+
     skip_equal: str = tf_grey % "(%d row(s) match)"
 
     column_plain: str = "%s"
@@ -269,12 +341,15 @@ class TermTableFormats(TableFormats):
     column_rm: str = tf_red
     column_both: str = f"{tf_red}{tf_green}"
 
+    ix_row_header: str = ""
+    ix_row_none: str = ""
     ix_row_context_one: str = tf_grey % "%d"
     ix_row_context_both: str = tf_grey % "%dA%dB"
     ix_row_same: str = "%d"
     ix_row_a: str = tf_red % "%d"
     ix_row_b: str = tf_green % "%d"
 
+    data_row_none: str = ""
     data_row_context: str = tf_grey
     data_row_same: str = "%s"
     data_row_a: str = tf_red
@@ -290,6 +365,11 @@ class TermTableFormats(TableFormats):
 
 @dataclass
 class MarkdownTableFormats(TableFormats):
+    align: bool = True
+
+    table_head: str = ""
+    table_tail: str = ""
+
     skip_equal: str = "(%d row(s) match)"
 
     column_plain: str = "%s"
@@ -297,12 +377,15 @@ class MarkdownTableFormats(TableFormats):
     column_rm: str = "~~%s~~"
     column_both: str = "~~%s~~*%s*"
 
+    ix_row_header: str = ""
+    ix_row_none: str = ""
     ix_row_context_one: str = "%d"
     ix_row_context_both: str = "%dA%dB"
     ix_row_same: str = "%d"
     ix_row_a: str = "~~%d~~"
     ix_row_b: str = "*%d*"
 
+    data_row_none: str = ""
     data_row_context: str = "%s"
     data_row_same: str = "%s"
     data_row_a: str = "~~%s~~"
@@ -313,6 +396,42 @@ class MarkdownTableFormats(TableFormats):
     row_tail: str = " |"
 
     hline: str = "-"
+    elli: str = "…"
+
+
+@dataclass
+class HTMLTableFormats(TableFormats):
+    align: bool = False
+
+    table_head: str = "<table>"
+    table_tail: str = "</table>"
+
+    skip_equal: str = "<td colspan=\"100%%\" class=\"diff-context\">(%d row(s) match)</td>"
+
+    column_plain: str = "<th>%s</th>"
+    column_add: str = "<th class=\"diff-add\">%s</th>"
+    column_rm: str = "<th class=\"diff-rm\">%s</th>"
+    column_both: str = "<th><span class=\"diff-rm\">%s</span><span class=\"diff-add\">%s</span></th>"
+
+    ix_row_header: str = "<td class=\"diff-context\">A</td><td class=\"diff-context\">B</td>"
+    ix_row_none: str = "<td></td><td></td>"
+    ix_row_context_one: str = "<td class=\"diff-context\">%d</td><td></td>"
+    ix_row_context_both: str = "<td class=\"diff-context\">%d</td><td class=\"diff-context\">%d</td>"
+    ix_row_same: str = "<td>%d</td><td></td>"
+    ix_row_a: str = "<td class=\"diff-rm\">%d</td><td></td>"
+    ix_row_b: str = "<td></td><td class=\"diff-add\">%d</td>"
+
+    data_row_none: str = "<td></td>"
+    data_row_context: str = "<td class=\"diff-context\">%s</td>"
+    data_row_same: str = "<td>%s</td>"
+    data_row_a: str = "<td class=\"diff-rm\">%s</td>"
+    data_row_b: str = "<td class=\"diff-add\">%s</td>"
+
+    row_head: str = "<tr>"
+    row_spacer: str = ""
+    row_tail: str = "</tr>"
+
+    hline: str = ""
     elli: str = "…"
 
 
@@ -340,6 +459,12 @@ class AbstractTextPrinter:
                 self.width = os.get_terminal_size(self.printer.fileno()).columns
             except (AttributeError, ValueError, OSError):
                 self.width = 80
+
+    def print_hello(self):
+        pass
+
+    def print_goodbye(self):
+        pass
 
     def print_diff(self, diff: AnyDiff):
         """
@@ -414,6 +539,12 @@ class TextPrinter(AbstractTextPrinter):
     text_format
         Text formats.
     """
+
+    def print_hello(self):
+        self.printer.write(self.text_formats.hello)
+
+    def print_goodbye(self):
+        self.printer.write(self.text_formats.goodbye)
 
     def print_equal(self, diff: AnyDiff):
         """
@@ -573,6 +704,7 @@ class TextPrinter(AbstractTextPrinter):
             The diff to print.
         """
         self.print_header(diff)
+        self.printer.write(self.table_formats.table_head)
 
         # hide columns (optionally)
         if self.table_collapse_columns:
@@ -588,7 +720,7 @@ class TextPrinter(AbstractTextPrinter):
 
         # print column names
         if diff.columns is not None:
-            row = [""]
+            row = [self.table_formats.ix_row_header]
             for col_a, col_b in zip(diff.columns.a, diff.columns.b):
                 if col_a == col_b:
                     col = self.table_formats.column_plain % (col_a,)
@@ -626,30 +758,36 @@ class TextPrinter(AbstractTextPrinter):
                 else:  # inline diff
                     row_a = []
                     row_b = []
+                    any_row_b = False
                     if i.ix_a != i.ix_b:
                         row_a.append(self.table_formats.ix_row_a % (i.ix_a,))
                         row_b.append(self.table_formats.ix_row_b % (i.ix_b,))
+                        any_row_b = True
                     else:
                         row_a.append(self.table_formats.ix_row_same % (i.ix_a,))
-                        row_b.append("")
+                        row_b.append(self.table_formats.ix_row_none)
                     for a, b, eq in zip(i.a, i.b, i.diff):
                         if eq:
                             row_a.append(self.table_formats.data_row_same % (a,))
-                            row_b.append("")
+                            row_b.append(self.table_formats.data_row_none)
                         else:
                             if a:
                                 row_a.append(self.table_formats.data_row_a % (a,))
-                                row_b.append(self.table_formats.data_row_b % (b,) if b else "")
+                                if b:
+                                    row_b.append(self.table_formats.data_row_b % (b,))
+                                    any_row_b = True
+                                else:
+                                    row_b.append(self.table_formats.data_row_none)
                             else:
-                                row_a.append(self.table_formats.data_row_b % (b,) if b else "")
-                                row_b.append("")
+                                row_a.append(self.table_formats.data_row_b % (b,) if b else self.table_formats.data_row_none)
+                                row_b.append(self.table_formats.data_row_none)
                     table.append_row(row_a)
-                    if any(row_b):
+                    if any_row_b:
                         table.append_row(row_b)
 
         widths = None
         # trim table width
-        if self.width:
+        if self.width and self.table_formats.align:
             min_width = 1
             widths = table.get_full_widths(min_width)
             head_len = visible_len(self.table_formats.row_head)
@@ -669,8 +807,9 @@ class TextPrinter(AbstractTextPrinter):
             widths = [widths[0], *(j - i + min_width for i, j in zip(cs[:-1], cs[1:]))]
 
         for row in table.compute(self.table_formats.row_spacer, widths=widths, elli=self.table_formats.elli):
-            assert visible_len(self.table_formats.row_head + row + self.table_formats.row_tail) <= self.width
             self.printer.write(self.table_formats.row_head + row + self.table_formats.row_tail + "\n")
+
+        self.printer.write(self.table_formats.table_tail)
 
 
 @dataclass

@@ -1,0 +1,75 @@
+
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="https://unpkg.com/mvp.css"> 
+<style>
+  .diff-rm {
+    color: #B8405E;
+  }
+  .diff-add {
+    color: #2EB086;
+  }
+  .diff-highlight {
+    background-color: #EEE6CE;
+    display: block;
+  }
+  .diff-context {
+    color: grey;
+  }
+</style>
+</head><body><h4>comparing tests/test_presentation/cases/co2_emissions/diff.csv.md</h4>
+<pre><span class="diff-rm">&lt; comparing a.csv/b.csv
+</span><span class="diff-add">&gt; comparing .
+</span>  |     | Country     | -Region | Date       | Kilotons of Co2 | -Metric Tons Per Capita |
+  | --- | ----------- | ------- | ---------- | --------------- | ----------------------- |
+(39 lines match)
+</pre><h4>comparing tests/test_presentation/cases/co2_emissions/diff.csv.txt</h4>
+<pre><span class="diff-rm">&lt; comparing a.csv/b.csv
+</span><span class="diff-add">&gt; comparing .
+</span>      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+  --- ----------- ------- ---------- --------------- -----------------------
+(39 lines match)
+</pre><h4>comparing tests/test_presentation/cases/co2_emissions/diff.excel.txt</h4>
+<pre><span class="diff-rm">&lt; comparing a.excel/b.excel/Sheet1
+</span><span class="diff-add">&gt; comparing ./Sheet1
+</span>      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+  --- ----------- ------- ---------- --------------- -----------------------
+(39 lines match)
+</pre><h4>comparing tests/test_presentation/cases/co2_emissions/diff.feather.txt</h4>
+<pre><span class="diff-rm">&lt; comparing a.feather/b.feather
+</span><span class="diff-add">&gt; comparing .
+</span>      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+  --- ----------- ------- ---------- --------------- -----------------------
+(39 lines match)
+</pre><h4>comparing tests/test_presentation/cases/co2_emissions/diff.parquet.txt</h4>
+<pre><span class="diff-rm">&lt; comparing a.parquet/b.parquet
+</span><span class="diff-add">&gt; comparing .
+</span>      Country     -Region Date       Kilotons of Co2 -Metric Tons Per Capita
+  --- ----------- ------- ---------- --------------- -----------------------
+(39 lines match)
+</pre><h4>comparing tests/test_presentation/cases/readme/diff.txt</h4>
+<pre><span class="diff-rm">&lt; comparing a.txt/b.txt
+</span><span class="diff-add">&gt; comparing .
+</span>  (27 lines match)
+      from rdiff.sequence import diff
+(77 lines match)
+</pre><h4>comparing tests/test_presentation/util.py</h4>
+<pre>  from io import StringIO
+  
+<span class="diff-rm">&lt; from rdiff.contextual.path import diff_path
+</span><span class="diff-add">&gt; from rdiff.cli.processor import process_iter
+</span>  from rdiff.presentation.base import TextPrinter
+  
+(2 lines match)
+      if printer_kwargs is None:
+          printer_kwargs = {}
+<span class="diff-rm">&lt;     diff = diff_path(a, b, f&quot;{a.name}/{b.name}&quot;, **kwargs)
+</span>  
+      buffer = StringIO()
+      printer = TextPrinter(printer=buffer, **printer_kwargs)
+<span class="diff-add">&gt;     for i in process_iter(a, b, **kwargs):
+</span><span class="diff-highlight">≈     <span class="diff-add">    </span>printer.print_diff(<span class="diff-rm">d</span>i<span class="diff-rm">ff</span>)
+</span>  
+      return buffer.getvalue()
+</pre><h4>NEW rdiff/cli/processor.py</h4>
+</body></html>

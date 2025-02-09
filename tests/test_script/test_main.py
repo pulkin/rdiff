@@ -14,6 +14,7 @@ cases = Path(__file__).parent / "cases"
     (["--format", "color"], "color.txt"),
     (["--format", "md"], "markdown.md"),
     (["--format", "summary"], "summary.txt"),
+    (["--format", "html"], "page.html"),
     (["--exclude", "tests/", "--format", "summary"], "exclude-1.txt"),
     (["--exclude", "tests/test_presentation/cases/co2_emissions/", "--format", "summary"], "exclude-2.txt"),
     (["--reverse", "--format", "summary"], "reverse.txt"),
@@ -62,6 +63,7 @@ def test_readme(test_diff_renders, args, name):
     (["--format", "md"], "markdown.md"),
     (["--format", "summary"], "summary.txt"),
     (["--table-collapse"], "collapse.txt"),
+    (["--format", "html"], "page.html"),
 ])
 def test_co2_emissions(test_diff_renders, b, args, name):
     code, text = process2text([

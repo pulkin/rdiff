@@ -12,7 +12,7 @@ from ..contextual.base import AnyDiff
 from ..contextual.path import diff_path, DeltaDiff
 from ..myers import MAX_COST, MIN_RATIO
 from ..presentation.base import (TextPrinter, SummaryTextPrinter, MarkdownTextFormats, MarkdownTableFormats,
-                                 TermTextFormats, TermTableFormats)
+                                 TermTextFormats, TermTableFormats, HTMLTextFormats, HTMLTableFormats)
 
 
 def process_iter(
@@ -223,9 +223,13 @@ def process_print(
     elif output_format == "color":
         printer_kwargs["text_formats"] = TermTextFormats
         printer_kwargs["table_formats"] = TermTableFormats
+    elif output_format == "html":
+        printer_kwargs["text_formats"] = HTMLTextFormats
+        printer_kwargs["table_formats"] = HTMLTableFormats
     else:
         raise ValueError(f"unknown output format: {output_format}")
     printer = printer_class(**printer_kwargs)
+    printer.print_hello()
     any_diff = False
 
     for i in process_iter(
@@ -236,6 +240,7 @@ def process_print(
     ):
         any_diff |= not i.is_eq()
         printer.print_diff(i)
+    printer.print_goodbye()
     return any_diff
 
 
@@ -289,7 +294,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     misc_group.add_argument("--table-sort", nargs="*", metavar="COL1, COL2, ...", help="sort tables by the columns specified")
 
     print_group = parser.add_argument_group("printing")
-    print_group.add_argument("--format", choices=["plain", "md", "summary", "color"], default="default", help="output print format")
+    print_group.add_argument("--format", choices=["plain", "md", "summary", "color", "html"], default="default", help="output print format")
     print_group.add_argument("-v", "--verbose", action="count", default=0, help="verbosity")
     print_group.add_argument("--context-size", type=int, default=2, metavar="INT", help="the number of lines/rows to surround diffs")
     print_group.add_argument("--table-collapse", action="store_true", help="hide table columns without diffs")
