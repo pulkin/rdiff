@@ -113,7 +113,10 @@ def test_co2_emissions_2(test_diff_renders, b, args, name):
     (["--mime", "text/plain"], "mime.txt"),
     (["--context-size", "0"], "context-size-0.txt"),
     (["--table-sort"], "table-sort.txt"),
-    (["--table-sort", "Kilotons of Co2"], "table-sort-1.txt")
+    (["--table-sort", "Kilotons of Co2"], "table-sort-1.txt"),
+    (["--width", "5"], "short-5.txt"),
+    (["--width", "15"], "short-15.txt"),
+    (["--width", "25"], "short-25.txt"),
 ])
 def test_co2_emissions_3(test_diff_renders, b, args, name):
     code, text = process2text([

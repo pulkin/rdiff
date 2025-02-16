@@ -18,7 +18,7 @@ def process2text(args, sort=True):
     if sort:
         args = [*args, "--sort"]
     with NamedTemporaryFile("w+") as f:
-        exit_code = run([*args, "--output", f.name, "--width", "160"])
+        exit_code = run(["--output", f.name, "--width", "160", *args])
         f.seek(0)
         return exit_code, f.read()
 
