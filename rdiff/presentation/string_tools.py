@@ -81,6 +81,9 @@ def align(s: str, n: int, elli: str = "…", fill: str = " ") -> str:
     The resulting string of the desired length.
     """
     n_elli = n - visible_len(elli)
+    if n_elli < 0:
+        raise ValueError(f"ellipsis is too long")
+
     pos = 0
 
     for chunk, is_p in iter_escape(s):
@@ -100,7 +103,5 @@ def align(s: str, n: int, elli: str = "…", fill: str = " ") -> str:
 
     if n >= 0:  # len(s) >= n
         return s + (fill * (n // len(fill) + 1))[:n]  # justify
-    elif pos == 0:  # len(s) <= len(elli)
-        raise ValueError(f"ellipsis is too long")
     else:
         return s[:pos] + elli  # append ellipsis
