@@ -203,12 +203,15 @@ def process_print(
     -------
     True if any meaningful diff encountered and False otherwise.
     """
-    if output_format is None or output_format == "default":
-        output_format = "plain"
-    if output_format == "summary" and cherry_pick:
-        output_format = "plain"  # fall back
     if output_file is None:
         output_file = stdout
+    if output_format is None or output_format == "default":
+        if hasattr(output_file, 'isatty') and output_file.isatty():
+            output_format = "color"
+        else:
+            output_format = "plain"
+    if output_format == "summary" and cherry_pick:
+        output_format = "plain"  # fall back
     printer_kwargs = {
         "printer": output_file,
         "verbosity": output_verbosity,
