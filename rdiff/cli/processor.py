@@ -34,6 +34,7 @@ def process_iter(
         table_sort: Optional[Sequence[str]] = None,
         sort: bool = False,
         pool: Optional[int] = None,
+        fmt_progress: Optional[str] = None,
 ) -> Iterator[AnyDiff]:
     """
     Process anc compare to folders. Yields all diffs processed, even if they are equal.
@@ -79,6 +80,8 @@ def process_iter(
         If True, sorts files.
     pool
         Process diffs in parallel with the specified number of processes.
+    fmt_progress
+        A formatting string to report progress.
 
     Yields
     ------
@@ -96,6 +99,8 @@ def process_iter(
             return result
 
     source = iter_match(a, b, rules=rules, transform=transform, sort=sort, cherry_pick=cherry_pick)
+    if fmt_progress is not None:
+        source = list(source)
     _processor = starpartial(
             diff_path,
             mime=mime,
@@ -108,14 +113,26 @@ def process_iter(
             table_drop_cols=table_drop_cols,
             table_sort=table_sort,
     )
-    if pool is None:
-        yield from map(_processor, source)
+    if pool is not None:
+        ctx = Pool(processes=pool)
     else:
-        with Pool(processes=pool) as _pool:
+        ctx = nullcontext()
+    with ctx as _pool:
+        if pool is not None:
             if sort:
-                yield from _pool.map(_processor, source)
+                iterator = _pool.map(_processor, source)
             else:
-                yield from _pool.imap_unordered(_processor, source)
+                iterator = _pool.imap_unordered(_processor, source)
+        else:
+            iterator = map(_processor, source)
+        if fmt_progress is not None:
+            n = len(source)
+            print(fmt_progress.format(i=0, n=n), end="", flush=True)
+            for i, out in enumerate(iterator, start=1):
+                print(fmt_progress.format(i=i, n=n), end="", flush=True)
+                yield out
+        else:
+            yield from iterator
 
 
 def process_print(
@@ -141,6 +158,7 @@ def process_print(
         output_file=None,
         output_term_width: Optional[int] = None,
         pool: Optional[int] = None,
+        progress: bool = False,
 ) -> bool:
     """
     Process anc compare to folders. Yields all diffs processed, even if they are equal.
@@ -198,6 +216,8 @@ def process_print(
         The width of the terminal.
     pool
         Process diffs in parallel with the specified number of processes.
+    progress
+        If True, prints progress using built-in print function.
 
     Returns
     -------
@@ -237,17 +257,27 @@ def process_print(
         raise ValueError(f"unknown output format: {output_format}")
     printer = printer_class(**printer_kwargs)
     printer.print_hello()
+    fmt_progress = None
+    newline = False
+    if progress:
+        if output_file is stdout:
+            fmt_progress = "processed {i}/{n}\n"
+        else:
+            fmt_progress = "\033[1K\rprocessed {i}/{n}"
+            newline = True
     any_diff = False
 
     for i in process_iter(
             a=a, b=b, includes=includes, rename=rename, cherry_pick=cherry_pick,
             min_ratio=min_ratio, min_ratio_row=min_ratio_row,
             max_cost=max_cost, max_cost_row=max_cost_row, align_col_data=align_col_data, shallow=shallow, mime=mime,
-            table_drop_cols=table_drop_cols, table_sort=table_sort, sort=sort, pool=pool,
+            table_drop_cols=table_drop_cols, table_sort=table_sort, sort=sort, pool=pool, fmt_progress=fmt_progress,
     ):
         any_diff |= not i.is_eq()
         printer.print_diff(i)
     printer.print_goodbye()
+    if newline:
+        print("", flush=True)
     return any_diff
 
 
@@ -308,6 +338,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     print_group.add_argument("--table-collapse", action="store_true", help="hide table columns without diffs")
     print_group.add_argument("--width", type=int, metavar="INT", help="terminal width")
     print_group.add_argument("--output", type=str, metavar="FILE", help="output to file")
+    print_group.add_argument("--progress", action="store_true", help="report progress")
 
     result = parser.parse_args(args)
 
@@ -352,6 +383,7 @@ def run(args=None) -> bool:
             output_file=f,
             output_term_width=args.width,
             pool=args.pool,
+            progress=args.progress,
         )
 
 
