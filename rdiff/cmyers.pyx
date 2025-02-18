@@ -33,20 +33,65 @@ cdef double compare_array_8(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssi
     return (<char*>a)[i] == (<char*>b)[j]
 
 
+cdef double compare_array_8_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+    cdef:
+        Py_ssize_t t
+        Py_ssize_t r = 0
+    for t in range(n):
+        r += (<char*>a)[i * n + t] == (<char*>b)[j * n + t]
+    return r / n
+
+
 cdef double compare_array_16(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<short*>a)[i] == (<short*>b)[j]
+
+
+cdef double compare_array_16_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+    cdef:
+        Py_ssize_t t
+        Py_ssize_t r = 0
+    for t in range(n):
+        r += (<short*>a)[i * n + t] == (<short*>b)[j * n + t]
+    return r / n
 
 
 cdef double compare_array_32(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<int*>a)[i] == (<int*>b)[j]
 
 
+cdef double compare_array_32_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+    cdef:
+        Py_ssize_t t
+        Py_ssize_t r = 0
+    for t in range(n):
+        r += (<int*>a)[i * n + t] == (<int*>b)[j * n + t]
+    return r / n
+
+
 cdef double compare_array_64(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<long*>a)[i] == (<long*>b)[j]
 
 
+cdef double compare_array_64_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+    cdef:
+        Py_ssize_t t
+        Py_ssize_t r = 0
+    for t in range(n):
+        r += (<long*>a)[i * n + t] == (<long*>b)[j * n + t]
+    return r / n
+
+
 cdef double compare_array_128(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
     return (<long long*>a)[i] == (<long long*>b)[j]
+
+
+cdef double compare_array_128_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+    cdef:
+        Py_ssize_t t
+        Py_ssize_t r = 0
+    for t in range(n):
+        r += (<long long*>a)[i * n + t] == (<long long*>b)[j * n + t]
+    return r / n
 
 
 cdef double compare_array_var(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
@@ -64,7 +109,7 @@ cdef double compare_object(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssiz
     return (<object>a)[i] == (<object>b)[j]
 
 
-cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, int no_python=0):
+cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, int ext_no_python=0, int ext_2d_kernel=0):
     """
     Figures out the compare protocol from the argument.
 
@@ -74,9 +119,11 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
         The size of objects being compared.
     compare
         A callable or a tuple of entities to compare.
-    no_python
+    ext_no_python
         If set to True, will disallow python protocols
         (``__eq__`` and call) but raise instead.
+    ext_2d_kernel
+        If set to True, will allow 2D numpy array kernel.
 
     Returns
     -------
@@ -129,15 +176,40 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
                     result.b = <void*> address_b
                     return result
 
-
             # to keep numpy dependence optional we figure out the
             # array pointer manually
             if numpy_avail and isinstance(a, numpy.ndarray) and isinstance(b, numpy.ndarray):
-                assert a.ndim == b.ndim == 1
+                assert a.ndim == b.ndim, "arrays have different dimension counts"
                 a_data = a.data
                 b_data = b.data
-                if a.dtype == b.dtype and a_data.contiguous and b_data.contiguous:
-                    item_size = a_data.itemsize
+                item_size = a_data.itemsize
+
+                address_a = a.ctypes.data
+                address_b = b.ctypes.data
+                result.a = <void*> address_a
+                result.b = <void*> address_b
+
+                if ext_2d_kernel and a.ndim == 2:
+                    assert a.dtype == b.dtype, "2D extension: arrays have differt dtypes"
+                    assert a_data.contiguous, "2D extension: array a is not contagious"
+                    assert b_data.contiguous, "2D extension: array b is not contagious"
+                    assert a_data.shape[1] == b_data.shape[1], "2D extension: arrays a and b have different shape[1]"
+                    result.n = a_data.shape[1]
+                    if item_size == 16:
+                        result.kernel = &compare_array_128_ext_2d
+                    elif item_size == 8:
+                        result.kernel = &compare_array_64_ext_2d
+                    elif item_size == 4:
+                        result.kernel = &compare_array_32_ext_2d
+                    elif item_size == 2:
+                        result.kernel = &compare_array_16_ext_2d
+                    elif item_size == 1:
+                        result.kernel = &compare_array_8_ext_2d
+                    else:
+                        raise ValueError("2D extension: unsupported item size")
+                    return result
+
+                if a.ndim == 1 and a.dtype == b.dtype and a_data.contiguous and b_data.contiguous:
                     if item_size == 16:
                         result.kernel = &compare_array_128
                     elif item_size == 8:
@@ -149,23 +221,18 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
                     elif item_size == 1:
                         result.kernel = &compare_array_8
                     else:
-                        result.kernel = & compare_array_var
+                        result.kernel = &compare_array_var
                         result.n = item_size
-
-                    address_a = a.ctypes.data
-                    address_b = b.ctypes.data
-                    result.a = <void*> address_a
-                    result.b = <void*> address_b
                     return result
 
-            if no_python:
+            if ext_no_python:
                 raise ValueError("failed to pick a suitable protocol")
             result.kernel = &compare_object
             result.a = <void*>a
             result.b = <void*>b
             return result
 
-    if no_python:
+    if ext_no_python:
         raise ValueError("failed to pick a suitable protocol")
     result.kernel = &compare_call
     result.a = <PyObject*>compare
@@ -499,7 +566,8 @@ def search_graph_recursive(
     char eq_only=0,
     Py_ssize_t i=0,
     Py_ssize_t j=0,
-    int no_python=0,
+    int ext_no_python=0,
+    int ext_2d_kernel=0,
 ) -> int:
     """See the description of the pure-python implementation."""
     cdef:
@@ -519,7 +587,7 @@ def search_graph_recursive(
         return _search_graph_recursive(
             n=n,
             m=m,
-            similarity_ratio_getter=_get_protocol(n, m, similarity_ratio_getter, no_python),
+            similarity_ratio_getter=_get_protocol(n, m, similarity_ratio_getter, ext_no_python, ext_2d_kernel),
             accept=accept,
             max_cost=max_cost,
             max_calls=max_calls,

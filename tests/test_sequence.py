@@ -284,28 +284,54 @@ def test_big_np(monkeypatch, benchmark, max_depth):
 
 def test_strictly_no_python_0():
     with pytest.raises(ValueError, match="failed to pick a suitable protocol"):
-        diff([0, 1, 2], [0, 1, 2], no_python=True)
+        diff([0, 1, 2], [0, 1, 2], ext_no_python=True)
 
 
 def test_strictly_no_python_1():
-    diff("abc", "abc", no_python=True)
+    diff("abc", "abc", ext_no_python=True)
 
 
 def test_strictly_no_python_2():
-    diff(b"abc", b"abc", no_python=True)
+    diff(b"abc", b"abc", ext_no_python=True)
 
 
 def test_strictly_no_python_3():
-    diff(array("b", b"abc"), array("b", b"abc"), no_python=True)
+    diff(array("b", b"abc"), array("b", b"abc"), ext_no_python=True)
 
 
 @pytest.mark.parametrize("dtype", [np.int8, np.int16, np.int32, np.int64, np.float16, np.float32,
                                    np.float64, np.float128, np.object_, np.bool_, np.str_, np.bytes_])
 def test_strictly_no_python_4(dtype):
     a = np.arange(3).astype(dtype)
-    diff(a, a, no_python=True)
+    diff(a, a, ext_no_python=True)
 
 
 def test_bug_0():
     a, b = 'comparing a.csv/b.csvX', 'comparing .X'
     assert diff(a, b, eq_only=True, min_ratio=0.75).ratio < 0.75
+
+
+@pytest.mark.parametrize("kernel", ["py", "c"])
+def test_numpy_ext_2d(monkeypatch, kernel):
+    a = np.array([
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        [10, 11, 12],
+        [13, 14, 15],
+        [16, 17, 18],
+    ])
+    b = a.copy()
+    b[1, 1] = 9
+    b[3] += 100
+
+    monkeypatch.setattr(Chunk, "__eq__", np_chunk_eq)
+
+    assert diff(a, b, ext_no_python=kernel == "c", ext_2d_kernel=True, accept=0.5, kernel=kernel) == Diff(
+        ratio=5./6,
+        diffs=[
+            Chunk(a[:3], b[:3], eq=True),
+            Chunk(a[3:4], b[3:4], eq=False),
+            Chunk(a[4:], b[4:], eq=True),
+        ]
+    )

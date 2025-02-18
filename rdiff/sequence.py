@@ -38,7 +38,8 @@ def diff(
         rtn_diff: Union[bool, array] = True,
         dig=None,
         strict: bool = True,
-        no_python: bool = False,
+        ext_no_python: bool = False,
+        ext_2d_kernel: bool = False,
 ) -> Diff:
     """
     Computes a diff between sequences.
@@ -92,9 +93,12 @@ def diff(
     strict
         If True, ensures that the returned diff either satisfies both
         min_ratio and max_cost or otherwise has a zero ratio.
-    no_python
+    ext_no_python
         If True will disallow slow python-based comparison protocols
         (c kernel only).
+    ext_2d_kernel
+        If True, will enable fast kernels computing ratios for 2D
+        numpy inputs with matching trailing dimension.
 
     Returns
     -------
@@ -140,7 +144,8 @@ def diff(
         eq_only=eq_only,
         max_calls=max_calls,
         out=codes,
-        no_python=no_python,
+        ext_no_python=ext_no_python,
+        ext_2d_kernel=ext_2d_kernel,
     )
 
     if strict and cost > max_cost:

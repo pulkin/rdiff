@@ -4,7 +4,10 @@ A Myers diff algorithm, adapted from http://blog.robertelder.org/diff-algorithm/
 import warnings
 from array import array
 from typing import Callable
-from itertools import groupby
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 
 MAX_COST = 0xFFFFFFFF  # a reasonably high maximal diff cost
@@ -21,7 +24,8 @@ def search_graph_recursive(
         max_cost: int = MAX_COST,
         max_calls: int = MAX_CALLS,
         eq_only: bool = False,
-        no_python: bool = False,
+        ext_no_python: bool = False,
+        ext_2d_kernel: bool = False,
         i: int = 0,
         j: int = 0,
 ) -> int:
@@ -76,9 +80,12 @@ def search_graph_recursive(
         Note that without specifying max_cost explicitly
         setting eq_only=True will return almost instantly as
         the default value of max_cost is very large.
-    no_python
+    ext_no_python
         If True will disallow slow python-based comparison protocols
         (c kernel only).
+    ext_2d_kernel
+        If True, will enable fast kernels computing ratios for 2D
+        numpy inputs with matching trailing dimension.
     i, j
         Offsets for calling similarity_ratio_getter and
         writing the edit script.
@@ -88,7 +95,7 @@ def search_graph_recursive(
     The diff cost: the number of deletions + the number
     of additions.
     """
-    if no_python:
+    if ext_no_python:
         raise ValueError("cannot set no_python in py kernel")
     if eq_only and out is not None:
         warnings.warn("the 'out' argument is ignored for eq_only=True")
@@ -96,8 +103,15 @@ def search_graph_recursive(
     if isinstance(similarity_ratio_getter, tuple):
         _a, _b = similarity_ratio_getter
 
-        def similarity_ratio_getter(_i: int, _j: int) -> float:
-            return _a[_i] == _b[_j]
+        if ext_2d_kernel and np is not None and isinstance(_a, np.ndarray) and isinstance(_b, np.ndarray) and _a.ndim == 2 and _b.ndim == 2:
+            assert _a.shape[1] == _b.shape[1], "2D extension: arrays a and b have different shape[1]"
+
+            def similarity_ratio_getter(_i: int, _j: int, _n: int = _a.shape[1]) -> float:
+                return sum(_a[_i] == _b[_j]) / _n
+
+        else:
+            def similarity_ratio_getter(_i: int, _j: int) -> float:
+                return _a[_i] == _b[_j]
 
     n_calls = 2  # takes into account additional calls in the two loops below
     max_cost = min(max_cost, n + m)
