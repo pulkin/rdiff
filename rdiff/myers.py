@@ -3,7 +3,9 @@ A Myers diff algorithm, adapted from http://blog.robertelder.org/diff-algorithm/
 """
 import warnings
 from array import array
-from typing import Callable
+from typing import Callable, Optional
+from collections.abc import Sequence
+
 try:
     import numpy as np
 except ImportError:
@@ -26,6 +28,7 @@ def search_graph_recursive(
         eq_only: bool = False,
         ext_no_python: bool = False,
         ext_2d_kernel: bool = False,
+        ext_2d_kernel_weights: Optional[Sequence[float]]=None,
         i: int = 0,
         j: int = 0,
 ) -> int:
@@ -86,6 +89,8 @@ def search_graph_recursive(
     ext_2d_kernel
         If True, will enable fast kernels computing ratios for 2D
         numpy inputs with matching trailing dimension.
+    ext_2d_kernel_weights
+        Optional weights for the above.
     i, j
         Offsets for calling similarity_ratio_getter and
         writing the edit script.
@@ -105,9 +110,14 @@ def search_graph_recursive(
 
         if ext_2d_kernel and np is not None and isinstance(_a, np.ndarray) and isinstance(_b, np.ndarray) and _a.ndim == 2 and _b.ndim == 2:
             assert _a.shape[1] == _b.shape[1], "2D extension: arrays a and b have different shape[1]"
+            if ext_2d_kernel_weights is not None:
+                ext_2d_kernel_weights = np.ascontiguousarray(ext_2d_kernel_weights, dtype=float)
+            else:
+                ext_2d_kernel_weights = np.ones(_a.shape[1])
+            assert ext_2d_kernel_weights.shape == (_a.shape[1],), "2D extensions: weights do not match the trailing dimension of a and b"
 
-            def similarity_ratio_getter(_i: int, _j: int, _n: int = _a.shape[1]) -> float:
-                return sum(_a[_i] == _b[_j]) / _n
+            def similarity_ratio_getter(_i: int, _j: int, _n: int = _a.shape[1], _weights=ext_2d_kernel_weights) -> float:
+                return ((_a[_i] == _b[_j]) * _weights).sum() / _n
 
         else:
             def similarity_ratio_getter(_i: int, _j: int) -> float:

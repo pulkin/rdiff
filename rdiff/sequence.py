@@ -40,6 +40,7 @@ def diff(
         strict: bool = True,
         ext_no_python: bool = False,
         ext_2d_kernel: bool = False,
+        ext_2d_kernel_weights: Optional[Sequence[float]] = None,
 ) -> Diff:
     """
     Computes a diff between sequences.
@@ -99,6 +100,15 @@ def diff(
     ext_2d_kernel
         If True, will enable fast kernels computing ratios for 2D
         numpy inputs with matching trailing dimension.
+    ext_2d_kernel_weights
+        Optionally, for the above option, you can specify an array
+        of weights with the length equal to the trailing dimension of a and b.
+        Weights will be used to compute the equality ratio.
+        Using ext_2d_kernel and ext_2d_kernel_weights  is roughly equivalent to
+        providing the following function as an ``eq`` argument:
+
+        def eq(i, j):
+            return ((a[i] == b[j]) * weights).sum() / len(weights)
 
     Returns
     -------
@@ -146,6 +156,7 @@ def diff(
         out=codes,
         ext_no_python=ext_no_python,
         ext_2d_kernel=ext_2d_kernel,
+        ext_2d_kernel_weights=ext_2d_kernel_weights,
     )
 
     if strict and cost > max_cost:

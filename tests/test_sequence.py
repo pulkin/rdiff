@@ -335,3 +335,34 @@ def test_numpy_ext_2d(monkeypatch, kernel):
             Chunk(a[4:], b[4:], eq=True),
         ]
     )
+
+
+@pytest.mark.parametrize("kernel", ["py", "c"])
+def test_numpy_ext_2d_weights(monkeypatch, kernel):
+    a = np.array([
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        [10, 11, 12],
+        [13, 14, 15],
+        [16, 17, 18],
+    ])
+    b = a.copy()
+    b[1, 1] = 9
+    b[3] += 100
+
+    weights = [.5, 2, .5]
+
+    monkeypatch.setattr(Chunk, "__eq__", np_chunk_eq)
+
+    assert diff(a, b, ext_no_python=kernel == "c", ext_2d_kernel=True, ext_2d_kernel_weights=weights, accept=0.5,
+                min_ratio=0, kernel=kernel) == Diff(
+        ratio=2./3,
+        diffs=[
+            Chunk(a[:1], b[:1], eq=True),
+            Chunk(a[1:2], b[1:2], eq=False),
+            Chunk(a[2:3], b[2:3], eq=True),
+            Chunk(a[3:4], b[3:4], eq=False),
+            Chunk(a[4:], b[4:], eq=True),
+        ]
+    )

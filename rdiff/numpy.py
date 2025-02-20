@@ -465,31 +465,29 @@ def diff_aligned_2d(
             a_, b_ = a, b
         # compute a mask telling which columns can be compared
         # and which ones have to be ignored
-        mask = np.empty(len(col_diff_sig), dtype=int)
+        mask = np.empty(len(col_diff_sig), dtype=float)
         offset = 0
         for chunk in col_diff_sig.parts:
             delta = len(chunk)
-            mask[offset:offset + delta] = chunk.eq * 2
+            mask[offset:offset + delta] = chunk.eq + 1
             offset += delta
 
-        _max_cost = mask.sum() + (mask == 0).sum()
-
-        def _eq(_i, _j, _a=a_, _b=b_, _mask=mask, _m=_max_cost):
-            # a quick comparison for aligned columns
-            return ((_a[_i] == _b[_j]) * _mask).sum() / _m
-
+        _max_cost = mask.sum()
         min_ratio_row = max(min_ratio_row, (_max_cost - max_cost_row) / _max_cost)
+        mask *= len(mask) / _max_cost
 
         # crunch row differences without using shallow algorithm
         raw_diff = sequence_diff(
-            a=a,
-            b=b,
-            eq=_eq,
+            a=a_,
+            b=b_,
             accept=min_ratio_row,
             min_ratio=min_ratio_here,
             max_cost=max_cost_here,
             max_calls=max_calls_here,
             kernel=kernel,
+            ext_2d_kernel=True,
+            ext_2d_kernel_weights=mask,
+            ext_no_python=True,
         )
         row_diff_sig = raw_diff.signature
 

@@ -1,4 +1,5 @@
 # cython: language_level=3
+import numpy as np
 from cpython.ref cimport PyObject
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 import array
@@ -13,88 +14,89 @@ else:
     numpy_avail = True
 
 
-ctypedef double (*compare_type)(void*, void*, Py_ssize_t, Py_ssize_t, Py_ssize_t)
+ctypedef double (*compare_type)(void*, void*, Py_ssize_t, Py_ssize_t, Py_ssize_t, void*)
 cdef struct compare_protocol:
     compare_type kernel
     void* a
     void* b
     Py_ssize_t n
+    void* extra
 
 
-cdef double compare_call(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_call(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     return (<object>a)(i, j)
 
 
-cdef double compare_str(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_str(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     return (<unicode>a)[i] == (<unicode>b)[j]
 
 
-cdef double compare_array_8(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_array_8(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     return (<char*>a)[i] == (<char*>b)[j]
 
 
-cdef double compare_array_8_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_array_8_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     cdef:
         Py_ssize_t t
-        Py_ssize_t r = 0
+        double r = 0
     for t in range(n):
-        r += (<char*>a)[i * n + t] == (<char*>b)[j * n + t]
+        r += ((<char*>a)[i * n + t] == (<char*>b)[j * n + t]) * (1 if extra == cython.NULL else (<double*>extra)[t])
     return r / n
 
 
-cdef double compare_array_16(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_array_16(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     return (<short*>a)[i] == (<short*>b)[j]
 
 
-cdef double compare_array_16_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_array_16_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     cdef:
         Py_ssize_t t
-        Py_ssize_t r = 0
+        double r = 0
     for t in range(n):
-        r += (<short*>a)[i * n + t] == (<short*>b)[j * n + t]
+        r += ((<short*>a)[i * n + t] == (<short*>b)[j * n + t]) * (1 if extra == cython.NULL else (<double*>extra)[t])
     return r / n
 
 
-cdef double compare_array_32(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_array_32(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     return (<int*>a)[i] == (<int*>b)[j]
 
 
-cdef double compare_array_32_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_array_32_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     cdef:
         Py_ssize_t t
-        Py_ssize_t r = 0
+        double r = 0
     for t in range(n):
-        r += (<int*>a)[i * n + t] == (<int*>b)[j * n + t]
+        r += ((<int*>a)[i * n + t] == (<int*>b)[j * n + t]) * (1 if extra == cython.NULL else (<double*>extra)[t])
     return r / n
 
 
-cdef double compare_array_64(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_array_64(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     return (<long*>a)[i] == (<long*>b)[j]
 
 
-cdef double compare_array_64_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_array_64_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     cdef:
         Py_ssize_t t
-        Py_ssize_t r = 0
+        double r = 0
     for t in range(n):
-        r += (<long*>a)[i * n + t] == (<long*>b)[j * n + t]
+        r += ((<long*>a)[i * n + t] == (<long*>b)[j * n + t]) * (1. if extra == cython.NULL else (<double*>extra)[t])
     return r / n
 
 
-cdef double compare_array_128(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_array_128(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     return (<long long*>a)[i] == (<long long*>b)[j]
 
 
-cdef double compare_array_128_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_array_128_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     cdef:
         Py_ssize_t t
-        Py_ssize_t r = 0
+        double r = 0
     for t in range(n):
-        r += (<long long*>a)[i * n + t] == (<long long*>b)[j * n + t]
+        r += ((<long long*>a)[i * n + t] == (<long long*>b)[j * n + t]) * (1 if extra == cython.NULL else (<double*>extra)[t])
     return r / n
 
 
-cdef double compare_array_var(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_array_var(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     cdef:
         Py_ssize_t t
     a += i * n
@@ -105,11 +107,11 @@ cdef double compare_array_var(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_s
     return 1
 
 
-cdef double compare_object(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n):
+cdef double compare_object(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
     return (<object>a)[i] == (<object>b)[j]
 
 
-cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, int ext_no_python=0, int ext_2d_kernel=0):
+cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, int ext_no_python=0, int ext_2d_kernel=0, ext_2d_kernel_weights=None):
     """
     Figures out the compare protocol from the argument.
 
@@ -124,6 +126,8 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
         (``__eq__`` and call) but raise instead.
     ext_2d_kernel
         If set to True, will allow 2D numpy array kernel.
+    ext_2d_kernel_weights
+        Optional weights for the previous.
 
     Returns
     -------
@@ -135,6 +139,7 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
         long address_a, address_b
         int item_size
     result.kernel = cython.NULL
+    result.extra = cython.NULL
     result.n = 0
 
     if isinstance(compare, tuple):
@@ -194,7 +199,15 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
                     assert a_data.contiguous, "2D extension: array a is not contagious"
                     assert b_data.contiguous, "2D extension: array b is not contagious"
                     assert a_data.shape[1] == b_data.shape[1], "2D extension: arrays a and b have different shape[1]"
+                    if ext_2d_kernel_weights is not None:
+                        assert ext_2d_kernel_weights.dtype == np.float64, "2D extension: weights are not float64"
+                        weights_data = ext_2d_kernel_weights.data
+                        assert weights_data.shape == (a_data.shape[1],), "2D extension: wrong shape of weights"
+                        assert weights_data.contiguous, "2D extension: weights are not contiguous"
+                        address_a = ext_2d_kernel_weights.ctypes.data
+                        result.extra = <void*> address_a
                     result.n = a_data.shape[1]
+
                     if item_size == 16:
                         result.kernel = &compare_array_128_ext_2d
                     elif item_size == 8:
@@ -243,8 +256,8 @@ def _test_get_protocol_obj():
     _keep_this_ref = ([0, 2], [1, 0])
     cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
     assert cmp.kernel == &compare_object
-    assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0)
-    assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0)
+    assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0, cmp.extra)
+    assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0, cmp.extra)
 
 
 def _test_get_protocol_call():
@@ -252,16 +265,16 @@ def _test_get_protocol_call():
         return i == 0 and j == 1
     cdef compare_protocol cmp = _get_protocol(2, 2, f)
     assert cmp.kernel == &compare_call
-    assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0)
-    assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0)
+    assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0, cmp.extra)
+    assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0, cmp.extra)
 
 
 def _test_get_protocol_str():
     _keep_this_ref = ("ac", "ba")
     cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
     assert cmp.kernel == &compare_str
-    assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0)
-    assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0)
+    assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0, cmp.extra)
+    assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0, cmp.extra)
 
 
 def _test_get_protocol_array():
@@ -281,8 +294,8 @@ def _test_get_protocol_array():
         elif size == 1:
             assert cmp.kernel == &compare_array_8
 
-        assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0)
-        assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0)
+        assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0, cmp.extra)
+        assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0, cmp.extra)
 
 
 def _test_get_protocol_numpy():
@@ -302,8 +315,8 @@ def _test_get_protocol_numpy():
         elif size == 1:
             assert cmp.kernel == &compare_array_8
 
-        assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0)
-        assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0)
+        assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0, cmp.extra)
+        assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0, cmp.extra)
 
 
 cdef inline Py_ssize_t labs(long i) noexcept:
@@ -346,6 +359,7 @@ cdef Py_ssize_t _search_graph_recursive(
             i,
             j,
             similarity_ratio_getter.n,
+            similarity_ratio_getter.extra,
     ) >= accept:
         n_calls += 1
         ix = i + j
@@ -363,6 +377,7 @@ cdef Py_ssize_t _search_graph_recursive(
             i + n - 1,
             j + m - 1,
             similarity_ratio_getter.n,
+            similarity_ratio_getter.extra,
     ) >= accept:
         n_calls += 1
         ix = i + j + n + m - 2
@@ -446,6 +461,7 @@ cdef Py_ssize_t _search_graph_recursive(
                         x + i,
                         y + j,
                         similarity_ratio_getter.n,
+                        similarity_ratio_getter.extra,
                 ) < accept:
                     break
                 progress += 2 * reverse_as_sign
@@ -568,6 +584,7 @@ def search_graph_recursive(
     Py_ssize_t j=0,
     int ext_no_python=0,
     int ext_2d_kernel=0,
+    ext_2d_kernel_weights=None,
 ) -> int:
     """See the description of the pure-python implementation."""
     cdef:
@@ -583,11 +600,14 @@ def search_graph_recursive(
         if eq_only:
             warn("the 'out' argument is ignored for eq_only=True")
 
+    if ext_2d_kernel_weights is not None:
+        ext_2d_kernel_weights = np.ascontiguousarray(ext_2d_kernel_weights, dtype=np.float64)
+
     try:
         return _search_graph_recursive(
             n=n,
             m=m,
-            similarity_ratio_getter=_get_protocol(n, m, similarity_ratio_getter, ext_no_python, ext_2d_kernel),
+            similarity_ratio_getter=_get_protocol(n, m, similarity_ratio_getter, ext_no_python, ext_2d_kernel, ext_2d_kernel_weights),
             accept=accept,
             max_cost=max_cost,
             max_calls=max_calls,
