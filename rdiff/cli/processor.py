@@ -1,7 +1,7 @@
 import argparse
 from collections import namedtuple
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from collections.abc import Iterator, Sequence
 import re
 from sys import stdout
@@ -35,6 +35,7 @@ def process_iter(
         sort: bool = False,
         pool: Optional[int] = None,
         fmt_progress: Optional[str] = None,
+        grouped_options: Optional[list[tuple[str, Any]]] = None,
 ) -> Iterator[AnyDiff]:
     """
     Process anc compare to folders. Yields all diffs processed, even if they are equal.
@@ -82,6 +83,8 @@ def process_iter(
         Process diffs in parallel with the specified number of processes.
     fmt_progress
         A formatting string to report progress.
+    grouped_options
+        Conditional overrides for some of the above options.
 
     Yields
     ------
@@ -112,6 +115,7 @@ def process_iter(
             shallow=shallow,
             table_drop_cols=table_drop_cols,
             table_sort=table_sort,
+            grouped_options=grouped_options,
     )
     if pool is not None:
         ctx = Pool(processes=pool)
@@ -159,6 +163,7 @@ def process_print(
         output_term_width: Optional[int] = None,
         pool: Optional[int] = None,
         progress: bool = False,
+        grouped_options: Optional[list[tuple[str, Any]]] = None,
 ) -> bool:
     """
     Process anc compare to folders. Yields all diffs processed, even if they are equal.
@@ -218,6 +223,8 @@ def process_print(
         Process diffs in parallel with the specified number of processes.
     progress
         If True, prints progress using built-in print function.
+    grouped_options
+        Conditional overrides for some of the above options.
 
     Returns
     -------
@@ -272,6 +279,7 @@ def process_print(
             min_ratio=min_ratio, min_ratio_row=min_ratio_row,
             max_cost=max_cost, max_cost_row=max_cost_row, align_col_data=align_col_data, shallow=shallow, mime=mime,
             table_drop_cols=table_drop_cols, table_sort=table_sort, sort=sort, pool=pool, fmt_progress=fmt_progress,
+            grouped_options=grouped_options,
     ):
         any_diff |= not i.is_eq()
         printer.print_diff(i)
@@ -318,18 +326,22 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     consumption_group.add_argument("--cherry-pick", help="cherry-picks one file to diff")
     consumption_group.add_argument("--pool", type=int, metavar="NPROCS", help="compute diffs in parallel with the specified number of processes")
 
+    control_group = parser.add_argument_group("grouping")
+    control_group.add_argument("--group", action=RepeatingOrderedAction, bucket_name="grouped_options", metavar="PATTERN", help="makes other (supported) arguments following this one to apply only to files matching PATTERN")
+
     algorithm_group = parser.add_argument_group("algorithm settings")
-    algorithm_group.add_argument("--min-ratio", type=float, default=MIN_RATIO, metavar="[0..1]", help="the minimal required similarity ratio value. Setting this to a higher value will make the algorithm stop earlier")
-    algorithm_group.add_argument("--min-ratio-row", type=float, default=MIN_RATIO, metavar="[0..1]", help="the minimal required similarity ratio value for individual lines/rows. Setting this to a higher value will make the algorithm stop earlier")
-    algorithm_group.add_argument("--max-cost", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost. Setting this to a lower value will make the algorithm stop earlier")
-    algorithm_group.add_argument("--max-cost-row", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost for individual lines/rows. Setting this to a lower value will make the algorithm stop earlier")
-    algorithm_group.add_argument("--align-col-data", action="store_true", help="align table columns by comparing their data instead of column names. May slow down comparison significantly")
-    algorithm_group.add_argument("--shallow", action="store_true", help="disables diff comparison and simply prints mismatching files")
+    supports_groups = {"action": RepeatingOrderedAction, "bucket_name": "grouped_options"}
+    algorithm_group.add_argument("--min-ratio", type=float, default=MIN_RATIO, metavar="[0..1]", help="the minimal required similarity ratio value. Setting this to a higher value will make the algorithm stop earlier", **supports_groups)
+    algorithm_group.add_argument("--min-ratio-row", type=float, default=MIN_RATIO, metavar="[0..1]", help="the minimal required similarity ratio value for individual lines/rows. Setting this to a higher value will make the algorithm stop earlier", **supports_groups)
+    algorithm_group.add_argument("--max-cost", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost. Setting this to a lower value will make the algorithm stop earlier", **supports_groups)
+    algorithm_group.add_argument("--max-cost-row", type=int, default=MAX_COST, metavar="INT", help="the maximal diff cost for individual lines/rows. Setting this to a lower value will make the algorithm stop earlier", **supports_groups)
+    algorithm_group.add_argument("--align-col-data", action="store_true", help="align table columns by comparing their data instead of column names. May slow down comparison significantly")  # TODO support groups
+    algorithm_group.add_argument("--shallow", action="store_true", help="disables diff comparison and simply prints mismatching files")  # TODO support groups
 
     misc_group = parser.add_argument_group("misc settings")
-    misc_group.add_argument("--mime", metavar="MIME", help="enforce the MIME")
-    misc_group.add_argument("--table-drop-cols", nargs="+", metavar="COL1, COL2, ...", help="drop the specified columns from parsed tables")
-    misc_group.add_argument("--table-sort", nargs="*", metavar="COL1, COL2, ...", help="sort tables by the columns specified")
+    misc_group.add_argument("--mime", metavar="MIME", help="enforce the MIME", **supports_groups)
+    misc_group.add_argument("--table-drop-cols", nargs="+", metavar="COL1, COL2, ...", help="drop the specified columns from parsed tables", **supports_groups)
+    misc_group.add_argument("--table-sort", nargs="*", metavar="COL1, COL2, ...", help="sort tables by the columns specified", **supports_groups)
 
     print_group = parser.add_argument_group("printing")
     print_group.add_argument("--format", choices=["plain", "md", "summary", "color", "html"], default="default", help="output print format")
@@ -350,6 +362,9 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     ]
     del result.include
     del result.exclude
+    del result.group
+    if "grouped_options" not in result:
+        result.grouped_options = None
 
     if result.reverse:
         result.a, result.b = result.b, result.a
@@ -366,15 +381,8 @@ def run(args=None) -> bool:
             includes=args.includes,
             rename=args.rename,
             cherry_pick=args.cherry_pick,
-            min_ratio=args.min_ratio,
-            min_ratio_row=args.min_ratio_row,
-            max_cost=args.max_cost,
-            max_cost_row=args.max_cost_row,
             align_col_data=args.align_col_data,
             shallow=args.shallow,
-            mime=args.mime,
-            table_drop_cols=args.table_drop_cols,
-            table_sort=args.table_sort,
             sort=args.sort,
             output_format=args.format,
             output_verbosity=args.verbose,
@@ -384,6 +392,7 @@ def run(args=None) -> bool:
             output_term_width=args.width,
             pool=args.pool,
             progress=args.progress,
+            grouped_options=args.grouped_options,
         )
 
 

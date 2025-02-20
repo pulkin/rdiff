@@ -1,8 +1,10 @@
+import re
 from pathlib import Path
-from typing import Callable, TypeVar, Optional, Sequence
+from typing import Any, Callable, TypeVar, Optional, Sequence
 from dataclasses import dataclass
 import filecmp
 from functools import partial
+import fnmatch
 
 import pandas as pd
 import numpy as np
@@ -413,6 +415,7 @@ def diff_path(
         shallow: bool = False,
         table_drop_cols: Optional[Sequence[str]] = None,
         table_sort: Optional[Sequence[str]] = None,
+        grouped_options: Optional[list[tuple[str, Any]]] = None,
 ) -> AnyDiff:
     """
     Computes a diff between two files based on their (common) MIME.
@@ -450,11 +453,22 @@ def diff_path(
         Table columns to drop when comparing tables.
     table_sort
         Sorts tables by the columns specified.
+    grouped_options
+        Conditional overrides for some of the above options.
 
     Returns
     -------
     The diff.
     """
+    def _iter_grouped():
+        if grouped_options is not None:
+            _applies = True
+            for _k, _v in grouped_options:
+                if _k == "group":
+                    _applies = bool(re.fullmatch(_v, name))
+                elif _applies:
+                    yield _k, _v
+
     if a is None and b is None:
         raise ValueError("either a or b have to be non-None")
     if a is None or b is None:
@@ -463,6 +477,9 @@ def diff_path(
         return PathDiff(name, eq=True, message="files are binary equal")
     if shallow:
         return PathDiff(name, eq=False, message="files are not equal (shallow comparison)")
+    for k, v in _iter_grouped():
+        if k == "mime":
+            mime = v
     if mime is None and magic is not None:
         a_mime = magic_guess_custom.from_file(str(a))
         b_mime = magic_guess_custom.from_file(str(b))
@@ -475,10 +492,17 @@ def diff_path(
         kernel = mime_dispatch[mime]
     except KeyError:
         return PathDiff(name, eq=False, message=f"unknown common MIME: {mime}")
-    kwargs = {}
+    kwargs = {
+        "min_ratio": min_ratio,
+        "min_ratio_row": min_ratio_row,
+        "max_cost": max_cost,
+        "max_cost_row": max_cost_row,
+    }
     if kernel in (diff_pd_csv, diff_pd_feather, diff_pd_parquet, diff_pd_excel):
         kwargs["table_drop_cols"] = table_drop_cols
         kwargs["table_sort"] = table_sort
         kwargs["align_col_data"] = align_col_data
-    return kernel(a, b, name, min_ratio=min_ratio, min_ratio_row=min_ratio_row, max_cost=max_cost,
-                  max_cost_row=max_cost_row, **kwargs)
+    for k, v in _iter_grouped():
+        if k in kwargs:
+            kwargs[k] = v
+    return kernel(a, b, name, **kwargs)
