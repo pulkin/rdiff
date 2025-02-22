@@ -132,7 +132,6 @@ TODO
 ----
 
 - [ ] semi-sorted arrays
-- [ ] fine-tuned parameters
 - [ ] ETA/progress reporting
 - [ ] URI/S3 support
 
