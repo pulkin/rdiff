@@ -1,7 +1,8 @@
-from dataclasses import dataclass
-from collections.abc import Sequence
+from dataclasses import dataclass, field
+from collections.abc import Mapping, Sequence
+from numbers import Number
 
-from .base import AnyDiff
+from .base import AnyDiff, profile
 from ..sequence import MAX_COST, MIN_RATIO, diff_nested
 from ..chunk import Diff
 
@@ -9,6 +10,7 @@ from ..chunk import Diff
 @dataclass
 class TextDiff(AnyDiff):
     data: Diff
+    stats: Mapping[str, Number] = field(default_factory=dict, compare=False)
     """
     A text diff.
 
@@ -18,12 +20,15 @@ class TextDiff(AnyDiff):
         A name this diff belongs to.
     data
         Diff data.
+    stats
+        Stats associated with this diff.
     """
 
     def is_eq(self) -> bool:
         return all(i.eq is True for i in self.data.diffs)
 
 
+@profile("text comparison")
 def diff(
         a: Sequence[str],
         b: Sequence[str],

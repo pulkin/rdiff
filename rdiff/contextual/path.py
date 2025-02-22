@@ -1,15 +1,17 @@
 import re
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Callable, TypeVar, Optional, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import filecmp
 from functools import partial
-import fnmatch
+from collections.abc import Mapping
+from numbers import Number
 
 import pandas as pd
 import numpy as np
 
-from .base import AnyDiff
+from .base import AnyDiff, profile, add_stats
 from .text import TextDiff, diff as _diff_text
 from .table import TableDiff, diff as _diff_table, Columns
 from ..numpy import align_inflate
@@ -38,6 +40,7 @@ mime_dispatch: dict[str, DiffKernel] = {}
 class PathDiff(AnyDiff):
     eq: bool
     message: Optional[str] = None
+    stats: Mapping[str, Number] = field(default_factory=dict, compare=False)
     """
     A diff indicating that two paths are exact same or different.
 
@@ -49,6 +52,8 @@ class PathDiff(AnyDiff):
         True if paths are the same and False otherwise.
     message
         Whatever message to share.
+    stats
+        Stats associated with this diff.
     """
 
     def is_eq(self) -> bool:
@@ -59,6 +64,7 @@ class PathDiff(AnyDiff):
 class MIMEDiff(AnyDiff):
     mime_a: str
     mime_b: str
+    stats: Mapping[str, Number] = field(default_factory=dict, compare=False)
     """
     A diff indicating that two paths have different MIMEs.
 
@@ -69,6 +75,8 @@ class MIMEDiff(AnyDiff):
     mime_a
     mime_b
         The two MIME types.
+    stats
+        Stats associated with this diff.
     """
 
     def is_eq(self) -> bool:
@@ -78,6 +86,7 @@ class MIMEDiff(AnyDiff):
 @dataclass
 class DeltaDiff(AnyDiff):
     exist_a: bool
+    stats: Mapping[str, Number] = field(default_factory=dict, compare=False)
     """
     A diff indicating that one of the paths does not exist.
 
@@ -87,6 +96,8 @@ class DeltaDiff(AnyDiff):
         A name this diff belongs to.
     exist_a
         A flag indicating that a path exists in a.
+    stats
+        Stats associated with this diff.
     """
 
     @property
@@ -100,6 +111,7 @@ class DeltaDiff(AnyDiff):
 @dataclass
 class CompositeDiff(AnyDiff):
     items: list[AnyDiff]
+    stats: Mapping[str, Number] = field(default_factory=dict, compare=False)
     """
     A diff with multiple parts.
 
@@ -109,6 +121,8 @@ class CompositeDiff(AnyDiff):
         A name this diff belongs to.
     items
         Diff parts.
+    stats
+        Stats associated with this diff.
     """
 
     def is_eq(self) -> bool:
@@ -132,6 +146,7 @@ def mime_kernel(*args: str) -> Callable[[T], T]:
 
 
 @mime_kernel("text/plain")
+@profile("text fetch")
 def diff_text(
         a: Path,
         b: Path,
@@ -176,6 +191,7 @@ def diff_text(
                           max_cost=max_cost, max_cost_row=max_cost_row)
 
 
+@profile("pandas preprocessing")
 def diff_pd(
         a,
         b,
@@ -243,6 +259,7 @@ def diff_pd(
 
 
 if pandas:
+    @profile("pandas parsing")
     def diff_pd_simple(
             reader: Callable[[Path], pd.DataFrame],
             a: Path,
@@ -314,6 +331,7 @@ if pandas:
     diff_pd_parquet = mime_kernel("application/vnd.apache.parquet")(partial(diff_pd_simple, pd.read_parquet))
 
 
+    @profile("pandas parsing")
     def diff_pd_dict(
             reader: Callable[[Path], dict[str, pd.DataFrame]],
             a: Path,
@@ -381,9 +399,11 @@ if pandas:
             result.append(DeltaDiff(fmt % (name, i), True))
         for i in set(b) - set(a):
             result.append(DeltaDiff(fmt % (name, i), False))
+
+        stats = defaultdict(float)
         for i in set(a) & set(b):
             result.append(
-                diff_pd(
+                d := diff_pd(
                     a=a[i],
                     b=b[i],
                     name=fmt % (name, i),
@@ -396,12 +416,14 @@ if pandas:
                     table_sort=table_sort,
                 )
             )
-        return CompositeDiff(name, result)
+            add_stats(d.stats, stats)
+        return CompositeDiff(name, result, stats=stats)
 
 
     diff_pd_excel = mime_kernel("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel")(partial(diff_pd_dict, partial(pd.read_excel, dtype=str, keep_default_na=False, na_filter=False, sheet_name=None)))
 
 
+@profile("misc")
 def diff_path(
         a: Optional[Path],
         b: Optional[Path],

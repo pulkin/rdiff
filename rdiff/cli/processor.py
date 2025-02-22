@@ -1,5 +1,5 @@
 import argparse
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from pathlib import Path
 from typing import Any, Optional
 from collections.abc import Iterator, Sequence
@@ -7,10 +7,11 @@ import re
 from sys import stdout
 from multiprocessing import Pool
 from contextlib import nullcontext
+import time
 
 from .path_util import accept_all, glob_rule, iter_match
 from .func_util import starpartial
-from ..contextual.base import AnyDiff
+from ..contextual.base import AnyDiff, add_stats
 from ..contextual.path import diff_path
 from ..myers import MAX_COST, MIN_RATIO
 from ..presentation.base import (TextPrinter, SummaryTextPrinter, MarkdownTextFormats, MarkdownTableFormats,
@@ -162,7 +163,9 @@ def process_print(
         output_file=None,
         output_term_width: Optional[int] = None,
         pool: Optional[int] = None,
-        progress: bool = False,
+        print_progress: bool = False,
+        print_stats: bool = False,
+        print_stats_start_time: Optional[float] = None,
         grouped_options: Optional[list[tuple[str, Any]]] = None,
 ) -> bool:
     """
@@ -221,8 +224,13 @@ def process_print(
         The width of the terminal.
     pool
         Process diffs in parallel with the specified number of processes.
-    progress
+    print_progress
         If True, prints progress using built-in print function.
+    print_stats
+        If True, prints stats after processing is over.
+    print_stats_start_time
+        Time origin. Useful for cases when import times need to be included
+        into stats.
     grouped_options
         Conditional overrides for some of the above options.
 
@@ -266,12 +274,16 @@ def process_print(
     printer.print_hello()
     fmt_progress = None
     newline = False
-    if progress:
+    if print_progress:
         if output_file is stdout:
             fmt_progress = "processed {i}/{n}\n"
         else:
             fmt_progress = "\033[1K\rprocessed {i}/{n}"
             newline = True
+    stats = None
+    if print_stats:
+        t0 = time.time()
+        stats = defaultdict(float)
     any_diff = False
 
     for i in process_iter(
@@ -283,9 +295,21 @@ def process_print(
     ):
         any_diff |= not i.is_eq()
         printer.print_diff(i)
+        if stats is not None:
+            add_stats(i.stats, stats)
     printer.print_goodbye()
     if newline:
         print("", flush=True)
+    if stats:
+        t = time.time()
+        print(f"Diff complete in {t - (print_stats_start_time if print_stats_start_time is not None else t0):.1f}s")
+        if print_stats_start_time is not None:
+            print(f"  method run time {t - t0:.1f}s")
+        if stats:
+            print(f"  profiling:")
+            for k, v in sorted(stats.items(), key=lambda x: -x[1]):
+                if not k.startswith("_"):
+                    print(f"    {k}: {v:.1f}")
     return any_diff
 
 
@@ -351,6 +375,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     print_group.add_argument("--width", type=int, metavar="INT", help="terminal width")
     print_group.add_argument("--output", type=str, metavar="FILE", help="output to file")
     print_group.add_argument("--progress", action="store_true", help="report progress")
+    print_group.add_argument("--stats", action="store_true", help="report stats after the diff is done")
 
     result = parser.parse_args(args)
 
@@ -391,7 +416,8 @@ def run(args=None) -> bool:
             output_file=f,
             output_term_width=args.width,
             pool=args.pool,
-            progress=args.progress,
+            print_progress=args.progress,
+            print_stats=args.stats,
             grouped_options=args.grouped_options,
         )
 

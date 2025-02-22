@@ -1,11 +1,13 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Union, Optional
+from collections.abc import Mapping
+from numbers import Number
 
 import numpy as np
 from numpy.random.mtrand import Sequence
 
 from ..chunk import Signature
-from .base import AnyDiff
+from .base import AnyDiff, profile
 from ..sequence import diff as diff_sequence, MAX_COST, MIN_RATIO
 from ..numpy import diff_aligned_2d, NumpyDiff, align_inflate
 
@@ -37,6 +39,7 @@ class Columns:
 class TableDiff(AnyDiff):
     data: NumpyDiff
     columns: Optional[Columns] = None
+    stats: Mapping[str, Number] = field(default_factory=dict, compare=False)
     """
     A diff between tables.
 
@@ -48,12 +51,14 @@ class TableDiff(AnyDiff):
         Diff data.
     columns
         Optional column names.
+    stats
+        Stats associated with this diff.
     """
-
     def is_eq(self) -> bool:
         return bool(self.data.eq.all()) and (self.columns is None or self.columns.is_eq())
 
 
+@profile("2D comparison")
 def diff(
         a,
         b,
