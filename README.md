@@ -132,7 +132,6 @@ TODO
 ----
 
 - [ ] semi-sorted arrays
-- [ ] ETA/progress reporting
 - [ ] URI/S3 support
 
 License
