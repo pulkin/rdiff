@@ -271,6 +271,7 @@ class HTMLTextFormats(TextFormats):
     <style>
       .diff-rm {
         color: #B8405E;
+        text-decoration: underline;
       }
       .diff-add {
         color: #2EB086;
