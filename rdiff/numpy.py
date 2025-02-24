@@ -103,8 +103,10 @@ def common_diff_sig(n: int, m: int, diffs: Sequence[Diff]) -> Signature:
     The signature as a tuple of tuples with chunk lengths and their
     equality statuses (equal/not equal).
     """
+    if n == 0 and m == 0:
+        return Signature(parts=tuple())
     if n == 0 or m == 0:
-        return Signature(parts=[ChunkSignature(size_a=n, size_b=m, eq=False)])
+        return Signature(parts=(ChunkSignature(size_a=n, size_b=m, eq=False),))
 
     # prepare search space
     space = np.zeros((n, m), dtype=int)
@@ -314,6 +316,8 @@ class NumpyDiff(NamedTuple):
             n = sig.size_a + sig.size_b
             total += n
             eq += n * sig.eq
+        if eq == 0 and total == 0:
+            return 1.
         return eq / total
 
     @property

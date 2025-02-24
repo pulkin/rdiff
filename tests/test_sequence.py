@@ -366,3 +366,10 @@ def test_numpy_ext_2d_weights(monkeypatch, kernel):
             Chunk(a[4:], b[4:], eq=True),
         ]
     )
+
+
+def test_empty_nested_0():
+    assert diff_nested([[]], [[]]) == Diff(
+        ratio=1.0,
+        diffs=[Chunk(data_a=[[]], data_b=[[]], eq=True)],
+    )

@@ -124,3 +124,19 @@ def test_co2_emissions_3(test_diff_renders, b, args, name):
     ])
     sync_contents(cases / f"co2_emissions/diff-{b}-{name}", text, test_diff_renders)
     assert code is True
+
+
+@pytest.mark.parametrize("args, name", [
+    ([], "default.txt"),
+    (["--format", "color"], "color.txt"),
+    (["--format", "md"], "markdown.md"),
+    (["--format", "summary"], "summary.txt"),
+    (["--table-collapse"], "collapse.txt"),
+    (["--format", "html"], "page.html"),
+])
+def test_co2_emissions_4(test_diff_renders, args, name):
+    code, text = process2text([
+        str(cases / "co2_emissions/b-empty.csv"), str(cases / f"co2_emissions/b-empty-rm-col.csv"), "--mime", "text/csv", *args
+    ])
+    sync_contents(cases / f"co2_emissions/diff-empty-{name}", text, test_diff_renders)
+    assert code is True

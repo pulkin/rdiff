@@ -1,0 +1,2 @@
+[47m[30mcomparing .[0m
+  Country [31mRegion[0m Date Kilotons of Co2 Metric Tons Per Capita

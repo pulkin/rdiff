@@ -56,6 +56,8 @@ class Signature:
 
     @classmethod
     def aligned(cls, n: int) -> "Signature":
+        if n == 0:
+            return cls(tuple())
         return cls((ChunkSignature.aligned(n),))
 
 

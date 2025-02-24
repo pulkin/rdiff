@@ -320,3 +320,50 @@ def test_to_plain(monkeypatch, a, a1):
             Chunk(data_a=a[8:8], data_b=a1[8:10], eq=False),
         ]
     )
+
+
+@pytest.mark.parametrize("sig", [None, Signature.aligned(0)])
+def test_empty_col_0(monkeypatch, sig):
+    monkeypatch.setattr(NumpyDiff, "__eq__", np_raw_diff_eq)
+
+    e = np.empty(shape=(42, 0))
+
+    assert diff_aligned_2d(e, e, 0, col_diff_sig=sig) == NumpyDiff(
+        a=e,
+        b=e,
+        eq=e.astype(bool),
+        row_diff_sig=Signature.aligned(42),
+        col_diff_sig=Signature.aligned(0),
+    )
+
+
+@pytest.mark.parametrize("sig", [None, Signature.aligned(0)])
+def test_empty_col_0(monkeypatch, sig):
+    monkeypatch.setattr(NumpyDiff, "__eq__", np_raw_diff_eq)
+
+    e1 = np.empty(shape=(40, 0))
+    e2 = np.empty(shape=(42, 0))
+
+    assert diff_aligned_2d(e1, e2, 0, col_diff_sig=sig) == NumpyDiff(
+        a=e2,
+        b=e2,
+        eq=e2.astype(bool),
+        row_diff_sig=Signature((ChunkSignature(40, 40, True), ChunkSignature(0, 2, False),)),
+        col_diff_sig=Signature.aligned(0),
+    )
+
+
+@pytest.mark.parametrize("sig", [None, Signature((ChunkSignature(10, 0, False),))])
+def test_empty_col_2(monkeypatch, a, sig):
+    monkeypatch.setattr(NumpyDiff, "__eq__", np_raw_diff_eq)
+
+    e = a[:, :0]
+    a_ = np.concat([a, np.zeros_like(a)], axis=0)
+
+    assert diff_aligned_2d(a, e, 0, col_diff_sig=sig) == NumpyDiff(
+        a=a_,
+        b=np.zeros_like(a_),
+        eq=np.zeros_like(a_, dtype=bool),
+        row_diff_sig=Signature((ChunkSignature(10, 10, False),)),
+        col_diff_sig=Signature((ChunkSignature(10, 0, False),)),
+    )

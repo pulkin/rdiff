@@ -7,6 +7,7 @@ import filecmp
 from functools import partial
 from collections.abc import Mapping
 from numbers import Number
+from warnings import warn
 
 import pandas as pd
 import numpy as np
@@ -326,7 +327,7 @@ if pandas:
         )
 
 
-    diff_pd_csv = mime_kernel("text/csv")(partial(diff_pd_simple, partial(pd.read_csv, dtype=str, keep_default_na=False, na_filter=False, encoding_errors="replace")))
+    diff_pd_csv = mime_kernel("text/csv", "application/csv")(partial(diff_pd_simple, partial(pd.read_csv, dtype=str, keep_default_na=False, na_filter=False, encoding_errors="replace")))
     diff_pd_feather = mime_kernel("application/vnd.apache.arrow.file")(partial(diff_pd_simple, pd.read_feather))
     diff_pd_parquet = mime_kernel("application/vnd.apache.parquet")(partial(diff_pd_simple, pd.read_parquet))
 
@@ -502,12 +503,15 @@ def diff_path(
     for k, v in _iter_grouped():
         if k == "mime":
             mime = v
-    if mime is None and magic is not None:
-        a_mime = magic_guess_custom.from_file(str(a))
-        b_mime = magic_guess_custom.from_file(str(b))
-        if a_mime != b_mime:
-            return MIMEDiff(name, a_mime, b_mime)
-        mime = a_mime
+    if mime is None:
+        if magic is not None:
+            a_mime = magic_guess_custom.from_file(str(a))
+            b_mime = magic_guess_custom.from_file(str(b))
+            if a_mime != b_mime:
+                return MIMEDiff(name, a_mime, b_mime)
+            mime = a_mime
+        else:
+            warn("mime not specified: either specify it or install python-magic for a detailed diff")
     if mime is None:
         return PathDiff(name, eq=False, message=f"failed to determine MIME; tried libmagic: {magic is not None}")
     try:
