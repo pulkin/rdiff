@@ -21,6 +21,14 @@ Features
 Install
 -------
 
+Consider installing recommended dependencies
+
+```python
+pip install numpy pandas pyarrow openpyxl python-magic
+```
+
+Install the git version
+
 ```commandline
 pip install git+https://github.com/pulkin/rdiff.git
 ```
