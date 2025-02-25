@@ -13,6 +13,3 @@ build-backend = "setuptools.build_meta"
 
 [project.scripts]
 rdiff = "rdiff.cli.processor:run"
-
-[tool.setuptools.package-data]
-rdiff = ["magic"]

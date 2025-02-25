@@ -13,4 +13,5 @@ setuptools.setup(
         ],
         annotate=True,
     ),
+    include_package_data=True,
 )
