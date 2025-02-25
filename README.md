@@ -22,7 +22,7 @@ Install
 -------
 
 ```commandline
-pip install git+git://github.com/pulkin/rdiff.git
+pip install git+https://github.com/pulkin/rdiff.git
 ```
 
 Examples
