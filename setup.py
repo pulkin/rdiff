@@ -2,7 +2,7 @@ import setuptools
 from Cython.Build import cythonize
 
 setuptools.setup(
-    packages=["rdiff"],
+    packages=setuptools.find_namespace_packages(),
     ext_modules=cythonize(
         [
             setuptools.Extension(
