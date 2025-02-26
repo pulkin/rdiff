@@ -336,6 +336,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
             bucket = getattr(namespace, self.bucket_name, [])
             bucket.append((self.dest, values))
             setattr(namespace, self.bucket_name, bucket)
+    include_options_type = namedtuple("include", ("value", "what"))
 
     parser = argparse.ArgumentParser()
     parser.add_argument("a", type=Path, metavar="FILE", help="the A version of the file tree or a single file")
@@ -343,8 +344,8 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     parser.add_argument("--reverse", action="store_true", help="swap A and B")
 
     consumption_group = parser.add_argument_group("path consumption options")
-    consumption_group.add_argument("--include", action=RepeatingOrderedAction, bucket_name="includes", metavar="PATTERN", help="paths to include")
-    consumption_group.add_argument("--exclude", action=RepeatingOrderedAction, bucket_name="includes", metavar="PATTERN", help="paths to exclude")
+    consumption_group.add_argument("--include", action="append", dest="includes", metavar="PATTERN", help="paths to include", type=lambda x: include_options_type(True, x))
+    consumption_group.add_argument("--exclude", action="append", dest="includes", metavar="PATTERN", help="paths to exclude", type=lambda x: include_options_type(False, x))
     consumption_group.add_argument("--rename", nargs=2, action="append", metavar="PATTERN REPLACE", help="rename files using re.sub")
     consumption_group.add_argument("--sort", action="store_true", help="sort diffs by file name")
     consumption_group.add_argument("--cherry-pick", help="cherry-picks one file to diff")
@@ -379,14 +380,6 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
 
     result = parser.parse_args(args)
 
-    include_options_type = namedtuple("include", ("value", "what"))
-    rules = getattr(result, "includes", [])
-    result.includes = [
-        include_options_type({"include": True, "exclude": False}[action], what)
-        for action, what in rules
-    ]
-    del result.include
-    del result.exclude
     del result.group
     if "grouped_options" not in result:
         result.grouped_options = None
@@ -403,7 +396,7 @@ def run(args=None) -> bool:
     with open(args.output, "w") if args.output else nullcontext() as f:
         return process_print(
             a=args.a, b=args.b,
-            includes=args.includes,
+            includes=args.includes or tuple(),
             rename=args.rename,
             cherry_pick=args.cherry_pick,
             align_col_data=args.align_col_data,
