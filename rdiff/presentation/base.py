@@ -162,7 +162,7 @@ class TextFormats:
     textwrap_end: str = ""
     del_entry: str = "DEL %s"
     new_entry: str = "NEW %s"
-    mime_entry: str = "MIME %s"
+    mime_entry: str = "MIME %s %s ≠ %s"
     same_entry: str = "same %s"
     skip_equal: str = "(%d lines match)"
     line_ctx: str = "  %s"
@@ -192,7 +192,7 @@ class MarkdownTextFormats(TextFormats):
     textwrap_end: str = "~~~\n"
     del_entry: str = "DEL %s\n"
     new_entry: str = "NEW %s\n"
-    mime_entry: str = "MIME %s\n"
+    mime_entry: str = "MIME %s %s ≠ %s\n"
     same_entry: str = "same %s\n"
     skip_equal: str = "(%d lines match)"
     line_ctx: str = "  %s"
@@ -231,7 +231,7 @@ class TermTextFormats(TextFormats):
     textwrap_end: str = ""
     del_entry: str = f"{tf_red % 'DEL'} %s"
     new_entry: str = f"{tf_green % 'NEW'} %s"
-    mime_entry: str = "MIME %s"
+    mime_entry: str = "MIME %s %s ≠ %s"
     same_entry: str = "same %s"
     skip_equal: str = tf_grey % "(%d lines match)"
     line_ctx: str = tf_grey % "  %s"
@@ -253,7 +253,7 @@ class HTMLTextFormats(TextFormats):
     textwrap_end: str = "</pre>"
     del_entry: str = "<h4>DEL %s</h4>"
     new_entry: str = f"<h4>NEW %s</h4>"
-    mime_entry: str = "<h4>MIME %s</h4>"
+    mime_entry: str = "<h4>MIME %s %s ≠ %s</h4>"
     same_entry: str = "<h4>same %s</h4>"
     skip_equal: str = "(%d lines match)"
     line_ctx: str = "  %s"
@@ -284,8 +284,8 @@ class HTMLTextFormats(TextFormats):
         color: grey;
       }
     </style>
-    </head><body>""")
-    goodbye: str = "</body></html>"
+    </head><body>\n""")
+    goodbye: str = "</body></html>\n"
 
     @staticmethod
     def escape(s: str) -> str:
@@ -632,7 +632,7 @@ class TextPrinter(AbstractTextPrinter):
         diff
             The diff to print.
         """
-        self.printer.write(self.text_formats.mime_entry % f"{diff.name} {diff.mime_a} ≠ {diff.mime_b}")
+        self.printer.write(f"{self.text_formats.mime_entry % (diff.name, diff.mime_a, diff.mime_b)}\n")
 
     def print_text(self, diff: TextDiff):
         """
