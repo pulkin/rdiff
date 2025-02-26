@@ -146,7 +146,7 @@ def mime_kernel(*args: str) -> Callable[[T], T]:
     return _decorate
 
 
-@mime_kernel("text/plain")
+@mime_kernel("text/plain", "text")
 @profile("text fetch")
 def diff_text(
         a: Path,
@@ -327,7 +327,7 @@ if pandas:
         )
 
 
-    diff_pd_csv = mime_kernel("text/csv", "application/csv")(partial(diff_pd_simple, partial(pd.read_csv, dtype=str, keep_default_na=False, na_filter=False, encoding_errors="replace")))
+    diff_pd_csv = mime_kernel("text/csv", "application/csv", "csv")(partial(diff_pd_simple, partial(pd.read_csv, dtype=str, keep_default_na=False, na_filter=False, encoding_errors="replace")))
     diff_pd_feather = mime_kernel("application/vnd.apache.arrow.file")(partial(diff_pd_simple, pd.read_feather))
     diff_pd_parquet = mime_kernel("application/vnd.apache.parquet")(partial(diff_pd_simple, pd.read_parquet))
 
@@ -421,7 +421,7 @@ if pandas:
         return CompositeDiff(name, result, stats=stats)
 
 
-    diff_pd_excel = mime_kernel("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel")(partial(diff_pd_dict, partial(pd.read_excel, dtype=str, keep_default_na=False, na_filter=False, sheet_name=None)))
+    diff_pd_excel = mime_kernel("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel", "excel")(partial(diff_pd_dict, partial(pd.read_excel, dtype=str, keep_default_na=False, na_filter=False, sheet_name=None)))
 
 
 @profile("misc")
