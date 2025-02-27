@@ -1,7 +1,7 @@
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Callable, TypeVar, Optional, Sequence
+from typing import Any, Callable, TypeVar, Optional, Sequence, NamedTuple
 from dataclasses import dataclass, field
 import filecmp
 from functools import partial
@@ -422,6 +422,11 @@ if pandas:
 
 
     diff_pd_excel = mime_kernel("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel", "excel")(partial(diff_pd_dict, partial(pd.read_excel, dtype=str, keep_default_na=False, na_filter=False, sheet_name=None)))
+
+
+class GroupedValue(NamedTuple):
+    group: Optional[str]
+    value: Any
 
 
 class VariableOption(list):

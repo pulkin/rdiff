@@ -1,7 +1,7 @@
 import argparse
 from collections import namedtuple, defaultdict
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 from collections.abc import Iterator, Sequence
 import re
 from sys import stdout
@@ -12,7 +12,7 @@ import time
 from .path_util import accept_all, glob_rule, iter_match
 from .func_util import starpartial
 from ..contextual.base import AnyDiff, add_stats
-from ..contextual.path import diff_path, VariableOption
+from ..contextual.path import diff_path, VariableOption, GroupedValue
 from ..myers import MAX_COST, MIN_RATIO
 from ..presentation.base import (TextPrinter, SummaryTextPrinter, MarkdownTextFormats, MarkdownTableFormats,
                                  TermTextFormats, TermTableFormats, HTMLTextFormats, HTMLTableFormats)
@@ -319,7 +319,6 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     A namespace with arguments.
     """
     include_options_type = namedtuple("include", ("decision", "value"))
-    grouped_value_type = namedtuple("grouped", ("group", "value"))
 
     current_group = None
 
@@ -330,11 +329,11 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
 
     def with_group(t):
         def _wrapped(x):
-            return grouped_value_type(current_group, t(x))
+            return GroupedValue(current_group, t(x))
         return _wrapped
 
     def default(x):
-        return [grouped_value_type(None, x)]
+        return [GroupedValue(None, x)]
 
     parser = argparse.ArgumentParser()
     parser.add_argument("a", type=Path, metavar="FILE", help="the A version of the file tree or a single file")
@@ -379,7 +378,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
 
     del result.group
     for k, v in result.__dict__.items():
-        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], grouped_value_type):
+        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], GroupedValue):
             setattr(result, k, VariableOption(v))
 
     if result.reverse:
