@@ -424,6 +424,19 @@ if pandas:
     diff_pd_excel = mime_kernel("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel", "excel")(partial(diff_pd_dict, partial(pd.read_excel, dtype=str, keep_default_na=False, na_filter=False, sheet_name=None)))
 
 
+class VariableOption(list):
+    def get_value(self, key):
+        for pattern, value in self[::-1]:
+            if pattern is None or bool(re.fullmatch(pattern, key)):
+                return value
+
+    def __repr__(self):
+        return f"{type(self).__name__}({super().__repr__()})"
+
+    def __str__(self):
+        return f"{type(self).__name__}({super().__str__()})"
+
+
 @profile("misc")
 def diff_path(
         a: Optional[Path],
@@ -438,7 +451,6 @@ def diff_path(
         shallow: bool = False,
         table_drop_cols: Optional[Sequence[str]] = None,
         table_sort: Optional[Sequence[str]] = None,
-        grouped_options: Optional[list[tuple[str, Any]]] = None,
 ) -> AnyDiff:
     """
     Computes a diff between two files based on their (common) MIME.
@@ -476,21 +488,25 @@ def diff_path(
         Table columns to drop when comparing tables.
     table_sort
         Sorts tables by the columns specified.
-    grouped_options
-        Conditional overrides for some of the above options.
 
     Returns
     -------
     The diff.
     """
-    def _iter_grouped():
-        if grouped_options is not None:
-            _applies = True
-            for _k, _v in grouped_options:
-                if _k == "group":
-                    _applies = bool(re.fullmatch(_v, name))
-                elif _applies:
-                    yield _k, _v
+    def _get_variable_option_val(x):
+        if isinstance(x, VariableOption):
+            return x.get_value(name)
+        return x
+
+    mime = _get_variable_option_val(mime)
+    min_ratio = _get_variable_option_val(min_ratio)
+    min_ratio_row = _get_variable_option_val(min_ratio_row)
+    max_cost = _get_variable_option_val(max_cost)
+    max_cost_row = _get_variable_option_val(max_cost_row)
+    align_col_data = _get_variable_option_val(align_col_data)
+    shallow = _get_variable_option_val(shallow)
+    table_drop_cols = _get_variable_option_val(table_drop_cols)
+    table_sort = _get_variable_option_val(table_sort)
 
     if a is None and b is None:
         raise ValueError("either a or b have to be non-None")
@@ -500,9 +516,6 @@ def diff_path(
         return PathDiff(name, eq=True, message="files are binary equal")
     if shallow:
         return PathDiff(name, eq=False, message="files are not equal (shallow comparison)")
-    for k, v in _iter_grouped():
-        if k == "mime":
-            mime = v
     if mime is None:
         if magic is not None:
             a_mime = magic_guess_custom.from_file(str(a))
@@ -528,7 +541,4 @@ def diff_path(
         kwargs["table_drop_cols"] = table_drop_cols
         kwargs["table_sort"] = table_sort
         kwargs["align_col_data"] = align_col_data
-    for k, v in _iter_grouped():
-        if k in kwargs:
-            kwargs[k] = v
     return kernel(a, b, name, **kwargs)
