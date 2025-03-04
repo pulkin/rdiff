@@ -1,12 +1,12 @@
 comparing .
-  Country     Region -Date            +dd-mm-yyyy      Kilotons of Co2 Metric Tons Per Capita
+    Country   Region      -Date         +dd-mm-yyyy    Kilotons of Co2 Metric Tons Per Capita
 - ----------- ------ ---------------- ---------------- --------------- ----------------------
-0 Afghanistan Asia   ---01-01-2011--- +++01-01-2011+++ 8930            0.31                  
-1 Afghanistan Asia   ---01-01-2012--- +++01-01-2012+++ 8080            0.27                  
-2 Afghanistan Asia   ---01-01-2010--- +++01-01-2010+++ 7110            0.25                  
-3 Afghanistan Asia   ---01-01-2019--- +++01-01-2019+++ 6080            0.16                  
-4 Afghanistan Asia   ---01-01-2018--- +++01-01-2018+++ 6070            0.17                  
-5 Afghanistan Asia   ---01-01-2013--- +++01-01-2013+++ 5990            0.19                  
-6 Afghanistan Asia   ---01-01-2015--- +++01-01-2015+++ 5950            0.18                  
-7 Afghanistan Asia   ---01-01-2016--- +++01-01-2016+++ 5300            0.15                  
-8 Afghanistan Asia   ---01-01-2014--- +++01-01-2014+++ 4880            0.15                  
+0 Afghanistan   Asia ---01-01-2011--- +++01-01-2011+++            8930                   0.31
+1 Afghanistan   Asia ---01-01-2012--- +++01-01-2012+++            8080                   0.27
+2 Afghanistan   Asia ---01-01-2010--- +++01-01-2010+++            7110                   0.25
+3 Afghanistan   Asia ---01-01-2019--- +++01-01-2019+++            6080                   0.16
+4 Afghanistan   Asia ---01-01-2018--- +++01-01-2018+++            6070                   0.17
+5 Afghanistan   Asia ---01-01-2013--- +++01-01-2013+++            5990                   0.19
+6 Afghanistan   Asia ---01-01-2015--- +++01-01-2015+++            5950                   0.18
+7 Afghanistan   Asia ---01-01-2016--- +++01-01-2016+++            5300                   0.15
+8 Afghanistan   Asia ---01-01-2014--- +++01-01-2014+++            4880                   0.15

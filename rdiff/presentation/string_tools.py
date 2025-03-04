@@ -60,7 +60,7 @@ def visible_len(s: str) -> int:
     return sum(len(sub) * is_p for sub, is_p in iter_escape(s))
 
 
-def align(s: str, n: int, elli: str = "…", fill: str = " ") -> str:
+def align(s: str, n: int, elli: str = "…", fill: str = " ", justify="left") -> str:
     """
     Aligns a string towards a specific length. Truncates if the string is longer
     than the provided number and justifies it if the string is shorter.
@@ -75,6 +75,8 @@ def align(s: str, n: int, elli: str = "…", fill: str = " ") -> str:
         Suffix to add when truncating the string.
     fill
         A character to use for justifying.
+    justify
+        Text justify.
 
     Returns
     -------
@@ -102,6 +104,15 @@ def align(s: str, n: int, elli: str = "…", fill: str = " ") -> str:
                 pos += _l
 
     if n >= 0:  # len(s) >= n
-        return s + (fill * (n // len(fill) + 1))[:n]  # justify
+        filler = (fill * (n // len(fill) + 1))[:n]  # justify
+        if justify == "left":
+            return s + filler
+        elif justify == "right":
+            return filler + s
+        elif justify == "center":
+            n = len(filler) // 2
+            return filler[:n] + s + filler[n:]
+        else:
+            raise ValueError(f"unknown {justify=}")
     else:
         return s[:pos] + elli  # append ellipsis

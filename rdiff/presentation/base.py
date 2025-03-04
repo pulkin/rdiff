@@ -138,12 +138,14 @@ class Table:
         -------
         A sequence of table rows.
         """
+        justify = "center"
         for i in self.data:
             if isinstance(i, tuple):
                 if widths is None:
                     yield join.join(i)
                 else:
-                    yield join.join(align(s, n, elli=elli) for s, n in zip(i, widths))
+                    yield join.join(align(s, n, elli=elli, justify=justify) for s, n in zip(i, widths))
+                    justify = "right"
             elif isinstance(i, TableBreak):
                 yield str(i)
             elif isinstance(i, TableHline):

@@ -1,7 +1,7 @@
 comparing .
-  Country     Region Date       Kilotons of Co2 Metric Tons Per Capita
+    Country   Region    Date    Kilotons of Co2 Metric Tons Per Capita
 - ----------- ------ ---------- --------------- ----------------------
 (5 row(s) match)
-5 Afghanistan Asia   01-01-2013 ---5990---      0.19                  
-                                +++6000+++                            
+5 Afghanistan   Asia 01-01-2013      ---5990---                   0.19
+                                     +++6000+++                       
 (3 row(s) match)
