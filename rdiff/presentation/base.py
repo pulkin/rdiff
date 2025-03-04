@@ -270,11 +270,14 @@ class HTMLTextFormats(TextFormats):
     <link rel="stylesheet" href="https://unpkg.com/mvp.css"> 
     <style>
       .diff-rm {
-        color: #B8405E;
-        text-decoration: underline;
+        background-color: #B8405E;
+        color: #F4E1E6;
+        font-weight: bold;
       }
       .diff-add {
-        color: #2EB086;
+        background-color: #2EB086;
+        color: #CEF2E7;
+        font-weight: bold;
       }
       .diff-highlight {
         background-color: #EEE6CE;
@@ -282,6 +285,12 @@ class HTMLTextFormats(TextFormats):
       }
       .diff-context {
         color: grey;
+      }
+      body {
+        font-family: monospace;
+      }
+      table td {
+        text-align: right;
       }
     </style>
     </head><body>\n""")
