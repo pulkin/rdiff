@@ -294,6 +294,12 @@ class HTMLTextFormats(TextFormats):
       table td {
         text-align: right;
       }
+      table td, table th, table tr {
+        padding: 0.2rem 0.8rem;
+      }
+      table tr td:nth-child(2) {
+        border-right: 1px dashed grey;
+      }
     </style>
     </head><body>\n""")
     goodbye: str = "</body></html>\n"
