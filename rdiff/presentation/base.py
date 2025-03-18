@@ -159,21 +159,21 @@ class Table:
 
 @dataclass
 class TextFormats:
-    header: str = "%s"
+    header: str = "{header}"
     textwrap_start: str = ""
     textwrap_end: str = ""
-    del_entry: str = "DEL %s"
-    new_entry: str = "NEW %s"
-    mime_entry: str = "MIME %s %s ≠ %s"
-    same_entry: str = "same %s"
-    skip_equal: str = "(%d lines match)"
-    line_ctx: str = "  %s"
-    line_add: str = "> %s"
-    line_rm: str = "< %s"
-    line_aligned: str = "≈ %s"
+    del_entry: str = "DEL {path_key}"
+    new_entry: str = "NEW {path_key}"
+    mime_entry: str = "MIME {path_key} {path_a} ≠ {path_b}"
+    same_entry: str = "same {path_key}"
+    skip_equal: str = "({n} lines match)"
+    line_ctx: str = "  {line}"
+    line_add: str = "> {line}"
+    line_rm: str = "< {line}"
+    line_aligned: str = "≈ {line}"
     block_spacer: str = "---\n"
-    chunk_add: str = "+++%s+++"
-    chunk_rm: str = "---%s---"
+    chunk_add: str = "+++{chunk}+++"
+    chunk_rm: str = "---{chunk}---"
 
     hello: str = ""
     goodbye: str = ""
@@ -189,21 +189,21 @@ class TextFormats:
 
 @dataclass
 class MarkdownTextFormats(TextFormats):
-    header: str = "%s\n"
+    header: str = "{header}\n"
     textwrap_start: str = "~~~text\n"
     textwrap_end: str = "~~~\n"
-    del_entry: str = "DEL %s\n"
-    new_entry: str = "NEW %s\n"
-    mime_entry: str = "MIME %s %s ≠ %s\n"
-    same_entry: str = "same %s\n"
-    skip_equal: str = "(%d lines match)"
-    line_ctx: str = "  %s"
-    line_add: str = "> %s"
-    line_rm: str = "< %s"
-    line_aligned: str = "≈ %s"
+    del_entry: str = "DEL {path_key}\n"
+    new_entry: str = "NEW {path_key}\n"
+    mime_entry: str = "MIME {path_key} {path_a} ≠ {path_b}\n"
+    same_entry: str = "same {path_key}\n"
+    skip_equal: str = "({n} lines match)"
+    line_ctx: str = "  {line}"
+    line_add: str = "> {line}"
+    line_rm: str = "< {line}"
+    line_aligned: str = "≈ {line}"
     block_spacer: str = "---\n"
-    chunk_add: str = "+++%s+++"
-    chunk_rm: str = "---%s---"
+    chunk_add: str = "+++{chunk}+++"
+    chunk_rm: str = "---{chunk}---"
 
     hello: str = ""
     goodbye: str = ""
@@ -228,21 +228,21 @@ tf_on_white = _tformat % 107
 
 @dataclass
 class TermTextFormats(TextFormats):
-    header: str = (tf_on_light_grey % tf_black)[:-4]
+    header: str = (tf_on_light_grey % tf_black)[:-4] % "{header}"
     textwrap_start: str = ""
     textwrap_end: str = ""
-    del_entry: str = f"{tf_red % 'DEL'} %s"
-    new_entry: str = f"{tf_green % 'NEW'} %s"
-    mime_entry: str = "MIME %s %s ≠ %s"
-    same_entry: str = "same %s"
-    skip_equal: str = tf_grey % "(%d lines match)"
-    line_ctx: str = tf_grey % "  %s"
-    line_add: str = tf_green % "> %s"
-    line_rm: str = tf_red % "< %s"
-    line_aligned: str = "≈ %s"
+    del_entry: str = f"{tf_red % 'DEL'} {{path_key}}"
+    new_entry: str = f"{tf_green % 'NEW'} {{path_key}}"
+    mime_entry: str = "MIME {path_key} {path_a} ≠ {path_b}"
+    same_entry: str = "same {path_key}"
+    skip_equal: str = tf_grey % "({n} lines match)"
+    line_ctx: str = tf_grey % "  {line}"
+    line_add: str = tf_green % "> {line}"
+    line_rm: str = tf_red % "< {line}"
+    line_aligned: str = "≈ {line}"
     block_spacer: str = ""
-    chunk_add: str = tf_green
-    chunk_rm: str = (tf_on_red % tf_black)[:-4]
+    chunk_add: str = tf_green % "{chunk}"
+    chunk_rm: str = (tf_on_red % tf_black)[:-4] % "{chunk}"
 
     hello: str = ""
     goodbye: str = ""
@@ -250,21 +250,21 @@ class TermTextFormats(TextFormats):
 
 @dataclass
 class HTMLTextFormats(TextFormats):
-    header: str = "<h4>%s</h4>"
+    header: str = "<h4>{header}</h4>"
     textwrap_start: str = "<pre>"
     textwrap_end: str = "</pre>"
-    del_entry: str = "<h4>DEL %s</h4>"
-    new_entry: str = f"<h4>NEW %s</h4>"
-    mime_entry: str = "<h4>MIME %s %s ≠ %s</h4>"
-    same_entry: str = "<h4>same %s</h4>"
-    skip_equal: str = "(%d lines match)"
-    line_ctx: str = "  %s"
-    line_add: str = "<span class=\"diff-add\">&gt; %s</span>"
-    line_rm: str = "<span class=\"diff-rm\">&lt; %s</span>"
-    line_aligned: str = "<span class=\"diff-highlight\">≈ %s</span>"
+    del_entry: str = "<h4>DEL {path_key}</h4>"
+    new_entry: str = "<h4>NEW {path_key}</h4>"
+    mime_entry: str = "<h4>MIME {path_key} {path_a} ≠ {path_b}</h4>"
+    same_entry: str = "<h4>same {path_key}</h4>"
+    skip_equal: str = "({n} lines match)"
+    line_ctx: str = "  {line}"
+    line_add: str = "<span class=\"diff-add\">&gt; {line}</span>"
+    line_rm: str = "<span class=\"diff-rm\">&lt; {line}</span>"
+    line_aligned: str = "<span class=\"diff-highlight\">≈ {line}</span>"
     block_spacer: str = ""
-    chunk_add: str = "<span class=\"diff-add\">%s</span>"
-    chunk_rm: str = "<span class=\"diff-rm\">%s</span>"
+    chunk_add: str = "<span class=\"diff-add\">{chunk}</span>"
+    chunk_rm: str = "<span class=\"diff-rm\">{chunk}</span>"
 
     hello: str = dedent("""
     <!DOCTYPE html><html><head>
@@ -310,26 +310,26 @@ class TableFormats:
     table_head: str = ""
     table_tail: str = ""
 
-    skip_equal: str = "(%d row(s) match)"
+    skip_equal: str = "({n} row(s) match)"
 
-    column_plain: str = "%s"
-    column_add: str = "+%s"
-    column_rm: str = "-%s"
-    column_both: str = "---%s>>>%s+++"
+    column_plain: str = "{column}"
+    column_add: str = "+{column}"
+    column_rm: str = "-{column}"
+    column_both: str = "---{column_a}>>>{column_b}+++"
 
     ix_row_header: str = ""
     ix_row_none: str = ""
-    ix_row_context_one: str = "%d"
-    ix_row_context_both: str = "%dA%dB"
-    ix_row_same: str = "%d"
-    ix_row_a: str = "%dA"
-    ix_row_b: str = "%dB"
+    ix_row_context_one: str = "{i}"
+    ix_row_context_both: str = "{i_a}A{i_b}B"
+    ix_row_same: str = "{i}"
+    ix_row_a: str = "{i}A"
+    ix_row_b: str = "{i}B"
 
     data_row_none: str = ""
-    data_row_context: str = "%s"
-    data_row_same: str = "%s"
-    data_row_a: str = "---%s---"
-    data_row_b: str = "+++%s+++"
+    data_row_context: str = "{chunk}"
+    data_row_same: str = "{chunk}"
+    data_row_a: str = "---{chunk}---"
+    data_row_b: str = "+++{chunk}+++"
 
     row_head: str = ""
     row_spacer: str = " "
@@ -346,26 +346,26 @@ class TermTableFormats(TableFormats):
     table_head: str = ""
     table_tail: str = ""
 
-    skip_equal: str = tf_grey % "(%d row(s) match)"
+    skip_equal: str = tf_grey % "({n} row(s) match)"
 
-    column_plain: str = "%s"
-    column_add: str = tf_green
-    column_rm: str = tf_red
-    column_both: str = f"{tf_red}{tf_green}"
+    column_plain: str = "{column}"
+    column_add: str = tf_green % "{column}"
+    column_rm: str = tf_red % "{column}"
+    column_both: str = f"{tf_red % '{column_a}'}{tf_green % '{column_b}'}"
 
     ix_row_header: str = ""
     ix_row_none: str = ""
-    ix_row_context_one: str = tf_grey % "%d"
-    ix_row_context_both: str = tf_grey % "%dA%dB"
-    ix_row_same: str = "%d"
-    ix_row_a: str = tf_red % "%d"
-    ix_row_b: str = tf_green % "%d"
+    ix_row_context_one: str = tf_grey % "{i}"
+    ix_row_context_both: str = tf_grey % "{i_a}A{i_b}B"
+    ix_row_same: str = "{i}"
+    ix_row_a: str = tf_red % "{i}"
+    ix_row_b: str = tf_green % "{i}"
 
     data_row_none: str = ""
-    data_row_context: str = tf_grey
-    data_row_same: str = "%s"
-    data_row_a: str = tf_red
-    data_row_b: str = tf_green
+    data_row_context: str = tf_grey % "{chunk}"
+    data_row_same: str = "{chunk}"
+    data_row_a: str = tf_red % "{chunk}"
+    data_row_b: str = tf_green % "{chunk}"
 
     row_head: str = ""
     row_spacer: str = " "
@@ -382,26 +382,26 @@ class MarkdownTableFormats(TableFormats):
     table_head: str = ""
     table_tail: str = ""
 
-    skip_equal: str = "(%d row(s) match)"
+    skip_equal: str = "({n} row(s) match)"
 
-    column_plain: str = "%s"
-    column_add: str = "*%s*"
-    column_rm: str = "~~%s~~"
-    column_both: str = "~~%s~~*%s*"
+    column_plain: str = "{column}"
+    column_add: str = "*{column}*"
+    column_rm: str = "~~{column}~~"
+    column_both: str = "~~{column_a}~~*{column_b}*"
 
     ix_row_header: str = ""
     ix_row_none: str = ""
-    ix_row_context_one: str = "%d"
-    ix_row_context_both: str = "%dA%dB"
-    ix_row_same: str = "%d"
-    ix_row_a: str = "~~%d~~"
-    ix_row_b: str = "*%d*"
+    ix_row_context_one: str = "{i}"
+    ix_row_context_both: str = "{i_a}A{i_b}B"
+    ix_row_same: str = "{i}"
+    ix_row_a: str = "~~{i}~~"
+    ix_row_b: str = "*{i}*"
 
     data_row_none: str = ""
-    data_row_context: str = "%s"
-    data_row_same: str = "%s"
-    data_row_a: str = "~~%s~~"
-    data_row_b: str = "*%s*"
+    data_row_context: str = "{chunk}"
+    data_row_same: str = "{chunk}"
+    data_row_a: str = "~~{chunk}~~"
+    data_row_b: str = "*{chunk}*"
 
     row_head: str = "| "
     row_spacer: str = " | "
@@ -418,26 +418,26 @@ class HTMLTableFormats(TableFormats):
     table_head: str = "<table>"
     table_tail: str = "</table>"
 
-    skip_equal: str = "<td colspan=\"100%%\" class=\"diff-context\">(%d row(s) match)</td>"
+    skip_equal: str = "<td colspan=\"100%\" class=\"diff-context\">({n} row(s) match)</td>"
 
-    column_plain: str = "<th>%s</th>"
-    column_add: str = "<th class=\"diff-add\">%s</th>"
-    column_rm: str = "<th class=\"diff-rm\">%s</th>"
-    column_both: str = "<th><span class=\"diff-rm\">%s</span><span class=\"diff-add\">%s</span></th>"
+    column_plain: str = "<th>{column}</th>"
+    column_add: str = "<th class=\"diff-add\">{column}</th>"
+    column_rm: str = "<th class=\"diff-rm\">{column}</th>"
+    column_both: str = "<th><span class=\"diff-rm\">{column_a}</span><span class=\"diff-add\">{column_b}</span></th>"
 
     ix_row_header: str = "<td class=\"diff-context\">A</td><td class=\"diff-context\">B</td>"
     ix_row_none: str = "<td></td><td></td>"
-    ix_row_context_one: str = "<td class=\"diff-context\">%d</td><td></td>"
-    ix_row_context_both: str = "<td class=\"diff-context\">%d</td><td class=\"diff-context\">%d</td>"
-    ix_row_same: str = "<td>%d</td><td></td>"
-    ix_row_a: str = "<td class=\"diff-rm\">%d</td><td></td>"
-    ix_row_b: str = "<td></td><td class=\"diff-add\">%d</td>"
+    ix_row_context_one: str = "<td class=\"diff-context\">{i}</td><td></td>"
+    ix_row_context_both: str = "<td class=\"diff-context\">{i_a}</td><td class=\"diff-context\">{i_b}</td>"
+    ix_row_same: str = "<td>{i}</td><td></td>"
+    ix_row_a: str = "<td class=\"diff-rm\">{i}</td><td></td>"
+    ix_row_b: str = "<td></td><td class=\"diff-add\">{i}</td>"
 
     data_row_none: str = "<td></td>"
-    data_row_context: str = "<td class=\"diff-context\">%s</td>"
-    data_row_same: str = "<td>%s</td>"
-    data_row_a: str = "<td class=\"diff-rm\">%s</td>"
-    data_row_b: str = "<td class=\"diff-add\">%s</td>"
+    data_row_context: str = "<td class=\"diff-context\">{chunk}</td>"
+    data_row_same: str = "<td>{chunk}</td>"
+    data_row_a: str = "<td class=\"diff-rm\">{chunk}</td>"
+    data_row_b: str = "<td class=\"diff-add\">{chunk}</td>"
 
     row_head: str = "<tr>"
     row_spacer: str = ""
@@ -571,7 +571,7 @@ class TextPrinter(AbstractTextPrinter):
         add = ""
         if self.verbosity >= 1 and isinstance(diff, PathDiff) and diff.message is not None:
             add = f" ({diff.message})"
-        p(self.text_formats.same_entry % f"{diff.name} -- {diff.__class__.__name__}{add}\n")
+        p(self.text_formats.same_entry.format(path_key=f"{diff.name} -- {diff.__class__.__name__}{add}\n"))
 
     def print_header(self, diff: AnyDiff):
         """
@@ -585,7 +585,7 @@ class TextPrinter(AbstractTextPrinter):
         p = self.printer.write
         v = self.verbosity
 
-        p(self.text_formats.header % f"comparing {diff.name}")
+        p(self.text_formats.header.format(header=f"comparing {diff.name}"))
         if v >= 1:
             if isinstance(diff, (TableDiff, TextDiff)):
                 p(f" (ratio={diff.data.ratio:.4f})")
@@ -632,7 +632,7 @@ class TextPrinter(AbstractTextPrinter):
             The diff to print.
         """
         fmt = self.text_formats.del_entry if diff.exist_a else self.text_formats.new_entry
-        self.printer.write(f"{fmt % diff.name}\n")
+        self.printer.write(f"{fmt.format(path_key=diff.name)}\n")
 
     def print_mime(self, diff: MIMEDiff):
         """
@@ -643,7 +643,7 @@ class TextPrinter(AbstractTextPrinter):
         diff
             The diff to print.
         """
-        self.printer.write(f"{self.text_formats.mime_entry % (diff.name, diff.mime_a, diff.mime_b)}\n")
+        self.printer.write(f"{self.text_formats.mime_entry.format(path_key=diff.name, path_a=diff.mime_a, path_b=diff.mime_b)}\n")
 
     def print_text(self, diff: TextDiff):
         """
@@ -669,7 +669,7 @@ class TextPrinter(AbstractTextPrinter):
         for is_skip, group in groupby(diff.data.iter_important(context_size=self.context_size), lambda i: isinstance(i, int)):
             if is_skip:
                 for i in group:
-                    p(self.text_formats.skip_equal % (i,) + "\n")
+                    p(self.text_formats.skip_equal.format(n=i) + "\n")
                     separator = False
             else:
                 for key, group_2 in groupby(group, lambda i: (i.a is not None, i.b is not None, i.diff is not None)):
@@ -679,13 +679,13 @@ class TextPrinter(AbstractTextPrinter):
                     fmt = formats[key]
                     for i in group_2:
                         if i.a is None and i.b is not None:  # addition
-                            p(fmt % (e(i.b),))
+                            p(fmt.format(line=e(i.b)))
 
                         elif i.b is None and i.a is not None:  # removal
-                            p(fmt % (e(i.a),))
+                            p(fmt.format(line=e(i.a)))
 
                         elif i.diff is None:  # context
-                            p(fmt % (e(i.a),))
+                            p(fmt.format(line=e(i.a)))
 
                         else:  # inline diff
                             assert i.diff is not None
@@ -694,7 +694,7 @@ class TextPrinter(AbstractTextPrinter):
                                 if c.eq
                                 else
                                 "".join(
-                                    _fmt % (e(_i),)
+                                    _fmt.format(chunk=e(_i))
                                     for _fmt, _i in [
                                         (self.text_formats.chunk_rm, c.data_a),
                                         (self.text_formats.chunk_add, c.data_b),
@@ -703,7 +703,7 @@ class TextPrinter(AbstractTextPrinter):
                                 )
                                 for c in i.diff.diffs
                             )
-                            p(fmt % (line,))
+                            p(fmt.format(line=line))
         p(self.text_formats.textwrap_end)
 
     def print_table(self, diff: TableDiff):
@@ -735,13 +735,13 @@ class TextPrinter(AbstractTextPrinter):
             row = [self.table_formats.ix_row_header]
             for col_a, col_b in zip(diff.columns.a, diff.columns.b):
                 if col_a == col_b:
-                    col = self.table_formats.column_plain % (col_a,)
+                    col = self.table_formats.column_plain.format(column=col_a)
                 elif not col_a:
-                    col = self.table_formats.column_add % (col_b,)
+                    col = self.table_formats.column_add.format(column=col_b)
                 elif not col_b:
-                    col = self.table_formats.column_rm % (col_a,)
+                    col = self.table_formats.column_rm.format(column=col_a)
                 else:
-                    col = self.table_formats.column_both % (col_a, col_b)
+                    col = self.table_formats.column_both.format(column_a=col_a, column_b=col_b)
                 row.append(col)
             table.append_row(row)
 
@@ -751,47 +751,47 @@ class TextPrinter(AbstractTextPrinter):
         # print table data
         for i in diff.data.to_plain().iter_important(context_size=self.context_size):
             if isinstance(i, int):
-                table.append_break(self.table_formats.skip_equal % (i,))
+                table.append_break(self.table_formats.skip_equal.format(n=i))
             elif isinstance(i, Item):
 
                 if i.a is None:  # addition
-                    table.append_row([self.table_formats.ix_row_b % (i.ix_b,), *(self.table_formats.data_row_b % s for s in i.b)])
+                    table.append_row([self.table_formats.ix_row_b.format(i=i.ix_b), *(self.table_formats.data_row_b.format(chunk=s) for s in i.b)])
 
                 elif i.b is None:  # removal
-                    table.append_row([self.table_formats.ix_row_a % (i.ix_a,), *(self.table_formats.data_row_a % s for s in i.a)])
+                    table.append_row([self.table_formats.ix_row_a.format(i=i.ix_a), *(self.table_formats.data_row_a.format(chunk=s) for s in i.a)])
 
                 elif i.diff is None:  # context
                     if i.ix_a == i.ix_b:
-                        code = self.table_formats.ix_row_context_one % (i.ix_a,)
+                        code = self.table_formats.ix_row_context_one.format(i=i.ix_a)
                     else:
-                        code = self.table_formats.ix_row_context_both % (i.ix_a, i.ix_b)
-                    table.append_row([code, *(self.table_formats.data_row_context % s for s in i.a)])
+                        code = self.table_formats.ix_row_context_both.format(i_a=i.ix_a, i_b=i.ix_b)
+                    table.append_row([code, *(self.table_formats.data_row_context.format(chunk=s) for s in i.a)])
 
                 else:  # inline diff
                     row_a = []
                     row_b = []
                     any_row_b = False
                     if i.ix_a != i.ix_b:
-                        row_a.append(self.table_formats.ix_row_a % (i.ix_a,))
-                        row_b.append(self.table_formats.ix_row_b % (i.ix_b,))
+                        row_a.append(self.table_formats.ix_row_a.format(i=i.ix_a))
+                        row_b.append(self.table_formats.ix_row_b.format(i=i.ix_b))
                         any_row_b = True
                     else:
-                        row_a.append(self.table_formats.ix_row_same % (i.ix_a,))
+                        row_a.append(self.table_formats.ix_row_same.format(i=i.ix_a))
                         row_b.append(self.table_formats.ix_row_none)
                     for a, b, eq in zip(i.a, i.b, i.diff):
                         if eq:
-                            row_a.append(self.table_formats.data_row_same % (a,))
+                            row_a.append(self.table_formats.data_row_same.format(chunk=a))
                             row_b.append(self.table_formats.data_row_none)
                         else:
                             if a:
-                                row_a.append(self.table_formats.data_row_a % (a,))
+                                row_a.append(self.table_formats.data_row_a.format(chunk=a))
                                 if b:
-                                    row_b.append(self.table_formats.data_row_b % (b,))
+                                    row_b.append(self.table_formats.data_row_b.format(chunk=b))
                                     any_row_b = True
                                 else:
                                     row_b.append(self.table_formats.data_row_none)
                             else:
-                                row_a.append(self.table_formats.data_row_b % (b,) if b else self.table_formats.data_row_none)
+                                row_a.append(self.table_formats.data_row_b.format(chunk=b) if b else self.table_formats.data_row_none)
                                 row_b.append(self.table_formats.data_row_none)
                     table.append_row(row_a)
                     if any_row_b:
