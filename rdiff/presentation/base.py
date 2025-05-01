@@ -738,16 +738,17 @@ class TextPrinter(AbstractTextPrinter):
 
         # print column names
         if diff.columns is not None:
-            row = [self.table_formats.ix_row_header]
+            row = [self.table_formats.ix_row_header.format(col_ix=0)]
             for col_a, col_b in zip(diff.columns.a, diff.columns.b):
+                col_ix = len(row)
                 if col_a == col_b:
-                    col = self.table_formats.column_plain.format(column=col_a)
+                    col = self.table_formats.column_plain.format(column=col_a, col_ix=col_ix)
                 elif not col_a:
-                    col = self.table_formats.column_add.format(column=col_b)
+                    col = self.table_formats.column_add.format(column=col_b, col_ix=col_ix)
                 elif not col_b:
-                    col = self.table_formats.column_rm.format(column=col_a)
+                    col = self.table_formats.column_rm.format(column=col_a, col_ix=col_ix)
                 else:
-                    col = self.table_formats.column_both.format(column_a=col_a, column_b=col_b)
+                    col = self.table_formats.column_both.format(column_a=col_a, column_b=col_b, col_ix_a=col_ix, col_ix_b=col_ix + 1)
                 row.append(col)
             table.append_row(row)
 
@@ -778,27 +779,27 @@ class TextPrinter(AbstractTextPrinter):
                     row_b = []
                     any_row_b = False
                     if i.ix_a != i.ix_b:
-                        row_a.append(self.table_formats.ix_row_a.format(i=i.ix_a))
-                        row_b.append(self.table_formats.ix_row_b.format(i=i.ix_b))
+                        row_a.append(self.table_formats.ix_row_a.format(i=i.ix_a, col_ix=len(row_a)))
+                        row_b.append(self.table_formats.ix_row_b.format(i=i.ix_b, col_ix=len(row_b)))
                         any_row_b = True
                     else:
-                        row_a.append(self.table_formats.ix_row_same.format(i=i.ix_a))
-                        row_b.append(self.table_formats.ix_row_none)
+                        row_a.append(self.table_formats.ix_row_same.format(i=i.ix_a, col_ix=len(row_a)))
+                        row_b.append(self.table_formats.ix_row_none.format(col_ix=len(row_b)))
                     for a, b, eq in zip(i.a, i.b, i.diff):
                         if eq:
-                            row_a.append(self.table_formats.data_row_same.format(chunk=a))
-                            row_b.append(self.table_formats.data_row_none)
+                            row_a.append(self.table_formats.data_row_same.format(chunk=a, col_ix=len(row_a)))
+                            row_b.append(self.table_formats.data_row_none.format(col_ix=len(row_b)))
                         else:
                             if a:
-                                row_a.append(self.table_formats.data_row_a.format(chunk=a))
+                                row_a.append(self.table_formats.data_row_a.format(chunk=a, col_ix=len(row_a)))
                                 if b:
-                                    row_b.append(self.table_formats.data_row_b.format(chunk=b))
+                                    row_b.append(self.table_formats.data_row_b.format(chunk=b, col_ix=len(row_b)))
                                     any_row_b = True
                                 else:
-                                    row_b.append(self.table_formats.data_row_none)
+                                    row_b.append(self.table_formats.data_row_none.format(col_ix=len(row_b)))
                             else:
-                                row_a.append(self.table_formats.data_row_b.format(chunk=b) if b else self.table_formats.data_row_none)
-                                row_b.append(self.table_formats.data_row_none)
+                                row_a.append(self.table_formats.data_row_b.format(chunk=b, col_ix=len(row_a)) if b else self.table_formats.data_row_none.format(col_ix=len(row_a)))
+                                row_b.append(self.table_formats.data_row_none.format(col_ix=len(row_b)))
                     table.append_row(row_a)
                     if any_row_b:
                         table.append_row(row_b)
