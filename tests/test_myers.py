@@ -5,7 +5,7 @@ import warnings
 import pytest
 
 from rdiff.myers import search_graph_recursive
-from rdiff.cmyers import search_graph_recursive as csearch_graph_recursive
+from rdiff.cython.cmyers import search_graph_recursive as csearch_graph_recursive
 from rdiff.sequence import canonize
 
 

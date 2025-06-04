@@ -1,7 +1,7 @@
 # cython: language_level=3
 from cpython.ref cimport PyObject
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
-from compare cimport (
+from .compare cimport (
     compare_protocol,
     compare_call, compare_str, compare_object,
     compare_array_8, compare_array_8_ext_2d,

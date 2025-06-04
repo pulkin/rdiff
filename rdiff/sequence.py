@@ -6,7 +6,7 @@ from warnings import warn
 
 from .chunk import Diff, Chunk
 from .myers import search_graph_recursive as pymyers, MAX_COST, MAX_CALLS, MIN_RATIO
-from .cmyers import search_graph_recursive as cmyers
+from .cython.cmyers import search_graph_recursive as cmyers
 
 _nested_containers = (list, tuple)
 

@@ -1,17 +1,30 @@
-import setuptools
+from setuptools import setup, Extension
 from Cython.Build import cythonize
 
-setuptools.setup(
-    packages=setuptools.find_namespace_packages(),
+extensions = [
+    Extension(
+        name="rdiff.cython.compare",
+        sources=["rdiff/cython/compare.pyx"],
+        include_dirs=["rdiff/cython"],  # Allow cimport to find .pxd files
+    ),
+    Extension(
+        name="rdiff.cython.cmyers",
+        sources=["rdiff/cython/cmyers.pyx"],
+        include_dirs=["rdiff/cython"],  # Allow cimport to find .pxd files
+    )
+]
+
+setup(
+    name="rdiff",
     ext_modules=cythonize(
-        [
-            setuptools.Extension(
-                "rdiff.cmyers",
-                ["rdiff/cython/cmyers.pyx", "rdiff/cython/compare.pyx"],
-                language="c",
-            )
-        ],
+        extensions,
+        compiler_directives={
+            'language_level': 3,
+        },
+        include_path=["rdiff/cython"],
         annotate=True,
     ),
+    packages=['rdiff', 'rdiff.cython'],
+    zip_safe=False,
     include_package_data=True,
 )
