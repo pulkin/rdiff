@@ -7,7 +7,7 @@ setuptools.setup(
         [
             setuptools.Extension(
                 "*",
-                ["rdiff/cmyers.pyx"],
+                ["rdiff/cmyers.pyx", "rdiff/compare.pyx"],
                 language="c",
             )
         ],

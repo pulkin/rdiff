@@ -1,7 +1,18 @@
 # cython: language_level=3
-import numpy as np
 from cpython.ref cimport PyObject
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
+from compare cimport (
+    compare_protocol,
+    compare_call, compare_str, compare_object,
+    compare_array_8, compare_array_8_ext_2d,
+    compare_array_16, compare_array_16_ext_2d,
+    compare_array_32, compare_array_32_ext_2d,
+    compare_array_64, compare_array_64_ext_2d,
+    compare_array_128, compare_array_128_ext_2d,
+    compare_array_var,
+)
+
+import numpy as np
 import array
 import cython
 from warnings import warn
@@ -12,103 +23,6 @@ except ImportError:
     numpy_avail = False
 else:
     numpy_avail = True
-
-
-ctypedef double (*compare_type)(void*, void*, Py_ssize_t, Py_ssize_t, Py_ssize_t, void*)
-cdef struct compare_protocol:
-    compare_type kernel
-    void* a
-    void* b
-    Py_ssize_t n
-    void* extra
-
-
-cdef double compare_call(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    return (<object>a)(i, j)
-
-
-cdef double compare_str(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    return (<unicode>a)[i] == (<unicode>b)[j]
-
-
-cdef double compare_array_8(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    return (<char*>a)[i] == (<char*>b)[j]
-
-
-cdef double compare_array_8_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    cdef:
-        Py_ssize_t t
-        double r = 0
-    for t in range(n):
-        r += ((<char*>a)[i * n + t] == (<char*>b)[j * n + t]) * (1 if extra == cython.NULL else (<double*>extra)[t])
-    return r / n
-
-
-cdef double compare_array_16(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    return (<short*>a)[i] == (<short*>b)[j]
-
-
-cdef double compare_array_16_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    cdef:
-        Py_ssize_t t
-        double r = 0
-    for t in range(n):
-        r += ((<short*>a)[i * n + t] == (<short*>b)[j * n + t]) * (1 if extra == cython.NULL else (<double*>extra)[t])
-    return r / n
-
-
-cdef double compare_array_32(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    return (<int*>a)[i] == (<int*>b)[j]
-
-
-cdef double compare_array_32_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    cdef:
-        Py_ssize_t t
-        double r = 0
-    for t in range(n):
-        r += ((<int*>a)[i * n + t] == (<int*>b)[j * n + t]) * (1 if extra == cython.NULL else (<double*>extra)[t])
-    return r / n
-
-
-cdef double compare_array_64(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    return (<long*>a)[i] == (<long*>b)[j]
-
-
-cdef double compare_array_64_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    cdef:
-        Py_ssize_t t
-        double r = 0
-    for t in range(n):
-        r += ((<long*>a)[i * n + t] == (<long*>b)[j * n + t]) * (1. if extra == cython.NULL else (<double*>extra)[t])
-    return r / n
-
-
-cdef double compare_array_128(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    return (<long long*>a)[i] == (<long long*>b)[j]
-
-
-cdef double compare_array_128_ext_2d(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    cdef:
-        Py_ssize_t t
-        double r = 0
-    for t in range(n):
-        r += ((<long long*>a)[i * n + t] == (<long long*>b)[j * n + t]) * (1 if extra == cython.NULL else (<double*>extra)[t])
-    return r / n
-
-
-cdef double compare_array_var(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    cdef:
-        Py_ssize_t t
-    a += i * n
-    b += j * n
-    for t in range(n):
-        if (<char*>a)[t] != (<char*>b)[t]:
-            return 0
-    return 1
-
-
-cdef double compare_object(void* a, void* b, Py_ssize_t i, Py_ssize_t j, Py_ssize_t n, void* extra):
-    return (<object>a)[i] == (<object>b)[j]
 
 
 cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, int ext_no_python=0, int ext_2d_kernel=0, ext_2d_kernel_weights=None):
@@ -149,13 +63,13 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
             if type(a) is str:
                 a_unicode = a
                 b_unicode = b
-                result.kernel = &compare_str
+                result.kernel = compare_str
                 result.a = <void*>a_unicode
                 result.b = <void*>b_unicode
                 return result
 
             if type(a) is bytes:
-                result.kernel = &compare_array_8
+                result.kernel = compare_array_8
                 result.a = <char*> a
                 result.b = <char*> b
                 return result
@@ -164,15 +78,15 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
                 if a.itemsize == b.itemsize:
                     item_size = a.itemsize
                     if item_size == 8:
-                        result.kernel = &compare_array_64
+                        result.kernel = compare_array_64
                     elif item_size == 4:
-                        result.kernel = &compare_array_32
+                        result.kernel = compare_array_32
                     elif item_size == 2:
-                        result.kernel = &compare_array_16
+                        result.kernel = compare_array_16
                     elif item_size == 1:
-                        result.kernel = &compare_array_8
+                        result.kernel = compare_array_8
                     else:
-                        result.kernel = &compare_array_var
+                        result.kernel = compare_array_var
                         result.n = item_size
 
                     address_a, _ = a.buffer_info()
@@ -209,45 +123,45 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
                     result.n = a_data.shape[1]
 
                     if item_size == 16:
-                        result.kernel = &compare_array_128_ext_2d
+                        result.kernel = compare_array_128_ext_2d
                     elif item_size == 8:
-                        result.kernel = &compare_array_64_ext_2d
+                        result.kernel = compare_array_64_ext_2d
                     elif item_size == 4:
-                        result.kernel = &compare_array_32_ext_2d
+                        result.kernel = compare_array_32_ext_2d
                     elif item_size == 2:
-                        result.kernel = &compare_array_16_ext_2d
+                        result.kernel = compare_array_16_ext_2d
                     elif item_size == 1:
-                        result.kernel = &compare_array_8_ext_2d
+                        result.kernel = compare_array_8_ext_2d
                     else:
                         raise ValueError("2D extension: unsupported item size")
                     return result
 
                 if a.ndim == 1 and a.dtype == b.dtype and a_data.contiguous and b_data.contiguous:
                     if item_size == 16:
-                        result.kernel = &compare_array_128
+                        result.kernel = compare_array_128
                     elif item_size == 8:
-                        result.kernel = &compare_array_64
+                        result.kernel = compare_array_64
                     elif item_size == 4:
-                        result.kernel = &compare_array_32
+                        result.kernel = compare_array_32
                     elif item_size == 2:
-                        result.kernel = &compare_array_16
+                        result.kernel = compare_array_16
                     elif item_size == 1:
-                        result.kernel = &compare_array_8
+                        result.kernel = compare_array_8
                     else:
-                        result.kernel = &compare_array_var
+                        result.kernel = compare_array_var
                         result.n = item_size
                     return result
 
             if ext_no_python:
                 raise ValueError("failed to pick a suitable protocol")
-            result.kernel = &compare_object
+            result.kernel = compare_object
             result.a = <void*>a
             result.b = <void*>b
             return result
 
     if ext_no_python:
         raise ValueError("failed to pick a suitable protocol")
-    result.kernel = &compare_call
+    result.kernel = compare_call
     result.a = <PyObject*>compare
     return result
 
