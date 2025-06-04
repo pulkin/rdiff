@@ -6,8 +6,8 @@ setuptools.setup(
     ext_modules=cythonize(
         [
             setuptools.Extension(
-                "*",
-                ["rdiff/cmyers.pyx", "rdiff/compare.pyx"],
+                "rdiff.cmyers",
+                ["rdiff/cython/cmyers.pyx", "rdiff/cython/compare.pyx"],
                 language="c",
             )
         ],

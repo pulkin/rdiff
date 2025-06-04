@@ -169,7 +169,7 @@ cdef compare_protocol _get_protocol(Py_ssize_t n, Py_ssize_t m, object compare, 
 def _test_get_protocol_obj():
     _keep_this_ref = ([0, 2], [1, 0])
     cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
-    assert cmp.kernel == &compare_object
+    assert cmp.kernel == compare_object
     assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0, cmp.extra)
     assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0, cmp.extra)
 
@@ -178,7 +178,7 @@ def _test_get_protocol_call():
     def f(i, j):
         return i == 0 and j == 1
     cdef compare_protocol cmp = _get_protocol(2, 2, f)
-    assert cmp.kernel == &compare_call
+    assert cmp.kernel == compare_call
     assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0, cmp.extra)
     assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0, cmp.extra)
 
@@ -186,7 +186,7 @@ def _test_get_protocol_call():
 def _test_get_protocol_str():
     _keep_this_ref = ("ac", "ba")
     cdef compare_protocol cmp = _get_protocol(2, 2, _keep_this_ref)
-    assert cmp.kernel == &compare_str
+    assert cmp.kernel == compare_str
     assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0, cmp.extra)
     assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0, cmp.extra)
 
@@ -200,13 +200,13 @@ def _test_get_protocol_array():
         size = _keep_this_ref[0].itemsize
 
         if size == 8:
-            assert cmp.kernel == &compare_array_64
+            assert cmp.kernel == compare_array_64
         elif size == 4:
-            assert cmp.kernel == &compare_array_32
+            assert cmp.kernel == compare_array_32
         elif size == 2:
-            assert cmp.kernel == &compare_array_16
+            assert cmp.kernel == compare_array_16
         elif size == 1:
-            assert cmp.kernel == &compare_array_8
+            assert cmp.kernel == compare_array_8
 
         assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0, cmp.extra)
         assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0, cmp.extra)
@@ -221,13 +221,13 @@ def _test_get_protocol_numpy():
         size = _keep_this_ref[0].data.itemsize
 
         if size == 8:
-            assert cmp.kernel == &compare_array_64
+            assert cmp.kernel == compare_array_64
         elif size == 4:
-            assert cmp.kernel == &compare_array_32
+            assert cmp.kernel == compare_array_32
         elif size == 2:
-            assert cmp.kernel == &compare_array_16
+            assert cmp.kernel == compare_array_16
         elif size == 1:
-            assert cmp.kernel == &compare_array_8
+            assert cmp.kernel == compare_array_8
 
         assert not cmp.kernel(cmp.a, cmp.b, 0, 0, 0, cmp.extra)
         assert cmp.kernel(cmp.a, cmp.b, 0, 1, 0, cmp.extra)
