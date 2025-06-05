@@ -389,7 +389,7 @@ def diff_nested(
                     _blacklist_b=_blacklist_b,
                 )
 
-            if rtn_diff:
+            if rtn_diff and not isinstance(rtn_diff, array):
                 def _dig(i: int, j: int):
                     _dig_result = diff_nested(
                         a=a[i],

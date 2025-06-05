@@ -3,9 +3,13 @@ from subprocess import Popen, check_output
 import tarfile
 from tempfile import NamedTemporaryFile
 from operator import eq
+from multiprocessing import set_start_method
 
 from rdiff.cli.processor import process_print
 from rdiff.cli.processor import run
+
+
+set_start_method("forkserver")
 
 
 def diff2text(a, b, **kwargs):
@@ -30,7 +34,7 @@ def git_self_extract(commit, dst):
         f.flush()
         f.seek(0)
         with tarfile.open(fileobj=f) as f_tar:
-            f_tar.extractall(dst)
+            f_tar.extractall(dst, filter="data")
 
 
 def sync_contents(path, content, check, eq=eq):
