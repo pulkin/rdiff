@@ -244,9 +244,12 @@ def process_print(
         "printer": output_file,
         "verbosity": output_verbosity,
         "width": output_term_width,
-        "context_size": output_context_size,
-        "table_collapse_columns": output_table_collapse_columns,
     }
+    if output_format != "summary":
+        printer_kwargs.update({
+            "context_size": output_context_size,
+            "table_collapse_columns": output_table_collapse_columns,
+        })
     printer_class = TextPrinter
     if output_format == "plain":
         pass

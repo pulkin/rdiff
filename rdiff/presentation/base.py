@@ -866,7 +866,7 @@ class TextSummaryFormats:
 
 
 @dataclass
-class SummaryTextPrinter(TextPrinter):
+class SummaryTextPrinter(AbstractTextPrinter):
     formats: TextSummaryFormats = field(default_factory=TextSummaryFormats)
     """
     A summary diff printer.
