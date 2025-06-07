@@ -66,7 +66,7 @@ def test_readme(test_diff_renders, args, name):
     assert code is True
 
 
-@pytest.mark.parametrize("b", ["single-edit", "rm-row", "add-row", "add-col", "rm-col", "not-a"])
+@pytest.mark.parametrize("b", ["single-edit", "mosaic-edit", "rm-row", "add-row", "add-col", "rm-col", "not-a"])
 @pytest.mark.parametrize("args, name", [
     ([], "default.txt"),
     (["--format", "color"], "color.txt"),
@@ -77,7 +77,7 @@ def test_readme(test_diff_renders, args, name):
 ])
 def test_co2_emissions(test_diff_renders, b, args, name):
     code, text = process2text([
-        str(cases / "co2_emissions/a.csv"), str(cases / f"co2_emissions/b-{b}.csv"), "--min-ratio-row", "0.8", *args
+        str(cases / "co2_emissions/a.csv"), str(cases / f"co2_emissions/b-{b}.csv"), "--min-ratio-row", "0.6", *args
     ])
     sync_contents(cases / f"co2_emissions/diff-{b}-{name}", text, test_diff_renders)
     assert code is True

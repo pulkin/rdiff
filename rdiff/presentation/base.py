@@ -281,6 +281,16 @@ class HTMLTextFormats(TextFormats):
         color: #CEF2E7;
         font-weight: bold;
       }
+      td.diff-pair-top, td.diff-pair-bottom {
+        border : 0.3em dotted black;
+        box-shadow: 2px 2px 15px -2px grey;
+      }
+      td.diff-pair-top {
+        border-bottom: none;
+      }
+      td.diff-pair-bottom {
+        border-top: none;
+      }
       .diff-highlight {
         background-color: #EEE6CE;
         display: block;
@@ -336,6 +346,8 @@ class TableFormats:
     data_row_same: str = "{chunk}"
     data_row_a: str = "---{chunk}---"
     data_row_b: str = "+++{chunk}+++"
+    data_row_xa: str = data_row_a
+    data_row_xb: str = data_row_b
 
     row_head: str = ""
     row_spacer: str = " "
@@ -372,6 +384,8 @@ class TermTableFormats(TableFormats):
     data_row_same: str = "{chunk}"
     data_row_a: str = tf_red % "{chunk}"
     data_row_b: str = tf_green % "{chunk}"
+    data_row_xa: str = data_row_a
+    data_row_xb: str = data_row_b
 
     row_head: str = ""
     row_spacer: str = " "
@@ -408,6 +422,8 @@ class MarkdownTableFormats(TableFormats):
     data_row_same: str = "{chunk}"
     data_row_a: str = "~~{chunk}~~"
     data_row_b: str = "*{chunk}*"
+    data_row_xa: str = data_row_a
+    data_row_xb: str = data_row_b
 
     row_head: str = "| "
     row_spacer: str = " | "
@@ -444,6 +460,8 @@ class HTMLTableFormats(TableFormats):
     data_row_same: str = "<td>{chunk}</td>"
     data_row_a: str = "<td class=\"diff-rm\">{chunk}</td>"
     data_row_b: str = "<td class=\"diff-add\">{chunk}</td>"
+    data_row_xa: str = "<td class=\"diff-rm diff-pair-top\">{chunk}</td>"
+    data_row_xb: str = "<td class=\"diff-add diff-pair-bottom\">{chunk}</td>"
 
     row_head: str = "<tr>"
     row_spacer: str = ""
@@ -790,15 +808,18 @@ class TextPrinter(AbstractTextPrinter):
                             row_a.append(self.table_formats.data_row_same.format(chunk=a, col_ix=len(row_a)))
                             row_b.append(self.table_formats.data_row_none.format(col_ix=len(row_b)))
                         else:
-                            if a:
-                                row_a.append(self.table_formats.data_row_a.format(chunk=a, col_ix=len(row_a)))
-                                if b:
-                                    row_b.append(self.table_formats.data_row_b.format(chunk=b, col_ix=len(row_b)))
-                                    any_row_b = True
-                                else:
-                                    row_b.append(self.table_formats.data_row_none.format(col_ix=len(row_b)))
+                            print(a, bool(a), b, bool(b))
+                            if bool(a) and bool(b):
+                                row_a.append(self.table_formats.data_row_xa.format(chunk=a, col_ix=len(row_a)))
+                                row_b.append(self.table_formats.data_row_xb.format(chunk=b, col_ix=len(row_b)))
+                                any_row_b = True
                             else:
-                                row_a.append(self.table_formats.data_row_b.format(chunk=b, col_ix=len(row_a)) if b else self.table_formats.data_row_none.format(col_ix=len(row_a)))
+                                if a:
+                                    row_a.append(self.table_formats.data_row_a.format(chunk=a, col_ix=len(row_a)))
+                                elif b:
+                                    row_a.append(self.table_formats.data_row_b.format(chunk=b, col_ix=len(row_a)))
+                                else:
+                                    row_a.append(self.table_formats.data_row_none.format(col_ix=len(row_a)))
                                 row_b.append(self.table_formats.data_row_none.format(col_ix=len(row_b)))
                     table.append_row(row_a)
                     if any_row_b:
