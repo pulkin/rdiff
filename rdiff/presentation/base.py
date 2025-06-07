@@ -14,7 +14,7 @@ from ..contextual.base import AnyDiff
 from ..contextual.table import TableDiff
 from ..contextual.text import TextDiff
 from ..contextual.path import PathDiff, CompositeDiff, DeltaDiff, MIMEDiff
-from ..chunk import Item
+from ..chunk import Item, Diff
 
 
 class TableBreak(str):
@@ -171,6 +171,8 @@ class TextFormats:
     line_add: str = "> {line}"
     line_rm: str = "< {line}"
     line_aligned: str = "≈ {line}"
+    line_aligned_add: str = line_add
+    line_aligned_rm: str = line_rm
     block_spacer: str = "---\n"
     chunk_add: str = "+++{chunk}+++"
     chunk_rm: str = "---{chunk}---"
@@ -201,6 +203,8 @@ class MarkdownTextFormats(TextFormats):
     line_add: str = "> {line}"
     line_rm: str = "< {line}"
     line_aligned: str = "≈ {line}"
+    line_aligned_add: str = line_add
+    line_aligned_rm: str = line_rm
     block_spacer: str = "---\n"
     chunk_add: str = "+++{chunk}+++"
     chunk_rm: str = "---{chunk}---"
@@ -221,6 +225,7 @@ tf_black = _tformat % 30
 tf_red = _tformat % 31
 tf_green = _tformat % 32
 tf_on_red = _tformat % 41
+tf_on_green = _tformat % 42
 tf_on_light_grey = _tformat % 47
 tf_grey = _tformat % 90
 tf_on_white = _tformat % 107
@@ -240,8 +245,10 @@ class TermTextFormats(TextFormats):
     line_add: str = tf_green % "> {line}"
     line_rm: str = tf_red % "< {line}"
     line_aligned: str = "≈ {line}"
+    line_aligned_add: str = "> {line}"
+    line_aligned_rm: str = "< {line}"
     block_spacer: str = ""
-    chunk_add: str = tf_green % "{chunk}"
+    chunk_add: str = (tf_on_green % tf_black)[:-4] % "{chunk}"
     chunk_rm: str = (tf_on_red % tf_black)[:-4] % "{chunk}"
 
     hello: str = ""
@@ -262,6 +269,8 @@ class HTMLTextFormats(TextFormats):
     line_add: str = "<span class=\"diff-add\">&gt; {line}</span>"
     line_rm: str = "<span class=\"diff-rm\">&lt; {line}</span>"
     line_aligned: str = "<span class=\"diff-highlight\">≈ {line}</span>"
+    line_aligned_add: str = line_add
+    line_aligned_rm: str = line_rm
     block_spacer: str = ""
     chunk_add: str = "<span class=\"diff-add\">{chunk}</span>"
     chunk_rm: str = "<span class=\"diff-rm\">{chunk}</span>"
@@ -549,9 +558,23 @@ class AbstractTextPrinter:
         raise NotImplementedError
 
 
+def _format_text_line(diff: Diff, a_fmt: Optional[str], b_fmt: Optional[str]) -> str:
+    line_parts = []
+    for chunk in diff.diffs:
+        if chunk.eq:
+            line_parts.append(chunk.data_a)
+        else:
+            if chunk.data_a and a_fmt is not None:
+                line_parts.append(a_fmt.format(chunk=chunk.data_a))
+            if chunk.data_b and b_fmt is not None:
+                line_parts.append(b_fmt.format(chunk=chunk.data_b))
+    return "".join(line_parts)
+
+
 @dataclass
 class TextPrinter(AbstractTextPrinter):
     context_size: int = 2
+    text_split_aligned: bool = False
     table_collapse_columns: bool = False
     table_formats: TableFormats = field(default_factory=TableFormats)
     text_formats: TextFormats = field(default_factory=TextFormats)
@@ -568,6 +591,8 @@ class TextPrinter(AbstractTextPrinter):
         Total screen width.
     context_size
         The number of non-diff rows to surround diffs with.
+    text_split_aligned
+        If True, splits aligned lines into added and removed lines.
     table_collapse_columns
         If True, collapses table columns that do not contain diffs.
     table_formats
@@ -712,22 +737,18 @@ class TextPrinter(AbstractTextPrinter):
                             p(fmt.format(line=e(i.a)))
 
                         else:  # inline diff
-                            assert i.diff is not None
-                            line = "".join(
-                                c.data_a
-                                if c.eq
-                                else
-                                "".join(
-                                    _fmt.format(chunk=e(_i))
-                                    for _fmt, _i in [
-                                        (self.text_formats.chunk_rm, c.data_a),
-                                        (self.text_formats.chunk_add, c.data_b),
-                                    ]
-                                    if _i
-                                )
-                                for c in i.diff.diffs
-                            )
-                            p(fmt.format(line=line))
+                            if not self.text_split_aligned:
+                                p(fmt.format(line=_format_text_line(
+                                    i.diff,
+                                    self.text_formats.chunk_rm,
+                                    self.text_formats.chunk_add
+                                )))
+                            else:
+                                for fmt_line, fmt_rm, fmt_add in [
+                                    (self.text_formats.line_aligned_rm, self.text_formats.chunk_rm, None),
+                                    (self.text_formats.line_aligned_add, None, self.text_formats.chunk_add),
+                                ]:
+                                    p(fmt_line.format(line=_format_text_line(i.diff, fmt_rm, fmt_add)))
         p(self.text_formats.textwrap_end)
 
     def print_table(self, diff: TableDiff):

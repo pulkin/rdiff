@@ -59,6 +59,7 @@ def test_git_same(tmp_path, test_diff_renders, args, name):
     (["--format", "color"], "color.txt"),
     (["--format", "md"], "markdown.md"),
     (["--format", "summary"], "summary.txt"),
+    (["--format", "color", "--text-line-split"], "line-split.txt"),
 ])
 def test_readme(test_diff_renders, args, name):
     code, text = process2text([str(cases / "readme/a.txt"), str(cases / "readme/b.txt"), *args])

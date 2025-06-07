@@ -155,6 +155,7 @@ def process_print(
         output_format: Optional[str] = None,
         output_verbosity: int = 0,
         output_context_size: int = 2,
+        output_text_line_split: bool = False,
         output_table_collapse_columns: bool = False,
         output_file=None,
         output_term_width: Optional[int] = None,
@@ -211,6 +212,8 @@ def process_print(
         Output verbosity.
     output_context_size
         The number of context lines to wrap diffs with.
+    output_text_line_split
+        If True, splits aligned text lines into "added" and "removed".
     output_table_collapse_columns
         If True, saves horizontal print space by collapsing table columns.
     output_file
@@ -248,6 +251,7 @@ def process_print(
     if output_format != "summary":
         printer_kwargs.update({
             "context_size": output_context_size,
+            "text_split_aligned": output_text_line_split,
             "table_collapse_columns": output_table_collapse_columns,
         })
     printer_class = TextPrinter
@@ -371,6 +375,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     print_group.add_argument("--format", choices=["plain", "md", "summary", "color", "html"], default="default", help="output print format")
     print_group.add_argument("-v", "--verbose", action="count", default=0, help="verbosity")
     print_group.add_argument("--context-size", type=int, default=2, metavar="INT", help="the number of lines/rows to surround diffs")
+    print_group.add_argument("--text-line-split", action="store_true", help="split aligned lines into removed and added")
     print_group.add_argument("--table-collapse", action="store_true", help="hide table columns without diffs")
     print_group.add_argument("--width", type=int, metavar="INT", help="terminal width")
     print_group.add_argument("--output", type=str, metavar="FILE", help="output to file")
@@ -412,6 +417,7 @@ def run(args=None) -> bool:
             output_format=args.format,
             output_verbosity=args.verbose,
             output_context_size=args.context_size,
+            output_text_line_split=args.text_line_split,
             output_table_collapse_columns=args.table_collapse,
             output_file=f,
             output_term_width=args.width,
