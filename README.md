@@ -2,6 +2,8 @@
 
 Rich file comparison with a focus on structured and tabular data
 
+![mosaic-edit](img/diff-mosaic-edit.png)
+
 About
 -----
 
