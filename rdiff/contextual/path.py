@@ -456,6 +456,7 @@ def diff_path(
         shallow: bool = False,
         table_drop_cols: Optional[Sequence[str]] = None,
         table_sort: Optional[Sequence[str]] = None,
+        _replace_dot_name: bool = True,
 ) -> AnyDiff:
     """
     Computes a diff between two files based on their (common) MIME.
@@ -493,11 +494,20 @@ def diff_path(
         Table columns to drop when comparing tables.
     table_sort
         Sorts tables by the columns specified.
+    _replace_dot_name
+        Replaces the name="." with a more readable one.
 
     Returns
     -------
     The diff.
     """
+    if _replace_dot_name and name == ".":
+        if a is not None and b is not None:
+            name = f"{a.name} vs {b.name}"
+        elif a is not None:
+            name = a.name
+        else:
+            name = b.name
     def _get_variable_option_val(x):
         if isinstance(x, VariableOption):
             return x.get_value(name)

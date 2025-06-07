@@ -1,4 +1,4 @@
-[47m[30mcomparing .[0m
+[47m[30mcomparing a.csv vs b-add-col.csv[0m
   [32mIndex[0m   Country   Region    Date    Kilotons of Co2 Metric Tons Per Capita
 0     [32mA[0m Afghanistan   Asia 01-01-2011            8930                   0.31
 1     [32mA[0m Afghanistan   Asia 01-01-2012            8080                   0.27

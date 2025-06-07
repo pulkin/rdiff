@@ -1,4 +1,4 @@
-[47m[30mcomparing .[0m
+[47m[30mcomparing a.csv vs b-mosaic-edit.csv[0m
     Country    Region    Date    Kilotons of Co2 Metric Tons Per Capita
 [90m(2 row(s) match)[0m
 [90m2[0m  [90mAfghanistan[0m   [90mAsia[0m [90m01-01-2010[0m            [90m7110[0m                   [90m0.25[0m

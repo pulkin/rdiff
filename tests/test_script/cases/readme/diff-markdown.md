@@ -1,4 +1,4 @@
-comparing .
+comparing a.txt vs b.txt
 
 ~~~text
 (27 lines match)

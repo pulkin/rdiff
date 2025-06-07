@@ -1,2 +1,2 @@
-MIME . text/csv ≠ text/plain
+MIME a.csv vs b-not-a.csv text/csv ≠ text/plain
 

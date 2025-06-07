@@ -1,4 +1,4 @@
-comparing .
+comparing a.csv vs b-rm-row.csv
 
 |       |     Country     |  Region  |      Date      | Kilotons of Co2 | Metric Tons Per Capita |
 | ----- | --------------- | -------- | -------------- | --------------- | ---------------------- |

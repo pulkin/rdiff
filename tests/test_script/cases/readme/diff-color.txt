@@ -1,4 +1,4 @@
-[47m[30mcomparing .[0m
+[47m[30mcomparing a.txt vs b.txt[0m
 [90m(27 lines match)[0m
 [90m    from rdiff.sequence import diff
 [0m[90m  

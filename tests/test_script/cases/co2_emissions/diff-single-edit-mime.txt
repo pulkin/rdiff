@@ -1,4 +1,4 @@
-comparing .
+comparing a.csv vs b-single-edit.csv
 (4 lines match)
   Afghanistan,Asia,01-01-2019,6080,0.16
   Afghanistan,Asia,01-01-2018,6070,0.17

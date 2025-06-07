@@ -1,4 +1,4 @@
-comparing .
+comparing a.csv vs b-single-edit.csv
   … R… … K… Me…
 - - -- - -- ---
 (3 row(s) match)

@@ -1,4 +1,4 @@
-comparing .
+comparing a.csv vs b-mosaic-edit.csv
        Country          Region    ... Kilotons of Co2 Metric Tons Per Capita
 - ------------------ ------------ --- --------------- ----------------------
 (2 row(s) match)
