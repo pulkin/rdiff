@@ -58,6 +58,8 @@ jobs:
 
     name: Test pypi distribution
     runs-on: ubuntu-latest
+    needs:
+      - publish-to-test
 
     steps:
     - name: Set up Python
@@ -68,7 +70,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
     - name: Install from pip
-      run: pip install richdiff
+      run: pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple richdiff
     - name: Tests checkout
       uses: actions/checkout@v3
       with:
