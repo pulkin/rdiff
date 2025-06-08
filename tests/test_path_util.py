@@ -1,6 +1,6 @@
 import pytest
 
-from rdiff.cli.path_util import iterdir, iter_match, accept_all, accept_folders, reject_all, glob_rule
+from sdiff.cli.path_util import iterdir, iter_match, accept_all, accept_folders, reject_all, glob_rule
 
 
 def test_no_files(tmp_path):

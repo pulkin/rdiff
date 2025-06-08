@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from rdiff.chunk import Diff, Chunk, Signature, ChunkSignature
-from rdiff.numpy import diff, get_row_col_diff, align_inflate, diff_aligned_2d, NumpyDiff
+from sdiff.chunk import Diff, Chunk, Signature, ChunkSignature
+from sdiff.numpy import diff, get_row_col_diff, align_inflate, diff_aligned_2d, NumpyDiff
 
 from .util import np_chunk_eq, np_chunk_eq_aligned, np_raw_diff_eq
 

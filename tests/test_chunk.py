@@ -1,4 +1,4 @@
-from rdiff.chunk import Diff, Chunk, Item
+from sdiff.chunk import Diff, Chunk, Item
 
 
 def test_diff():

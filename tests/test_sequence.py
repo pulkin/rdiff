@@ -2,8 +2,8 @@ import pytest
 import numpy as np
 from array import array
 
-from rdiff.sequence import diff, diff_nested
-from rdiff.chunk import Diff, Chunk
+from sdiff.sequence import diff, diff_nested
+from sdiff.chunk import Diff, Chunk
 
 from .util import np_chunk_eq
 

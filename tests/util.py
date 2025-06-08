@@ -1,5 +1,5 @@
-from rdiff.chunk import Chunk
-from rdiff.numpy import NumpyDiff
+from sdiff.chunk import Chunk
+from sdiff.numpy import NumpyDiff
 
 
 def np_chunk_eq(a: Chunk, b: Chunk) -> bool:

@@ -1,4 +1,4 @@
-from rdiff.cython.cmyers import (
+from sdiff.cython.cmyers import (
     _test_get_protocol_obj, _test_get_protocol_call, _test_get_protocol_str, _test_get_protocol_array,
     _test_get_protocol_numpy
 )

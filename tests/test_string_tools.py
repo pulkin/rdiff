@@ -1,4 +1,4 @@
-from rdiff.presentation.string_tools import visible_len, align, iter_escape
+from sdiff.presentation.string_tools import visible_len, align, iter_escape
 
 import pytest
 

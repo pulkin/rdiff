@@ -88,7 +88,7 @@ def diff(
     max_cost_row
         Constants specifying the maximal allowed complexity
         of the produced diffs, see the description in
-        ``rdiff.sequence.diff``.
+        ``sdiff.sequence.diff``.
     fill
         An object to fill aligned tables with.
     fill_col_names

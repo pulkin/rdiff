@@ -4,9 +4,9 @@ import warnings
 
 import pytest
 
-from rdiff.myers import search_graph_recursive
-from rdiff.cython.cmyers import search_graph_recursive as csearch_graph_recursive
-from rdiff.sequence import canonize
+from sdiff.myers import search_graph_recursive
+from sdiff.cython.cmyers import search_graph_recursive as csearch_graph_recursive
+from sdiff.sequence import canonize
 
 
 def compute_cost(codes):

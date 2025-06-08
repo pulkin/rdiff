@@ -1,5 +1,5 @@
 [project]
-name = 'richdiff'
+name = 'sdiff'
 version = '0.1.5'
 authors = [
     {name = "Artem Pulkin", email = "gpulkin@gmail.com"}
@@ -20,7 +20,7 @@ requires = ["setuptools", "Cython", "numpy"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-rdiff = "rdiff.cli.processor:run"
+sdiff = "sdiff.cli.processor:run"
 
 [project.urls]
-Homepage = "https://github.com/pulkin/rdiff"
+Homepage = "https://github.com/pulkin/sdiff"

@@ -5,8 +5,8 @@ from tempfile import NamedTemporaryFile
 from operator import eq
 from multiprocessing import set_start_method
 
-from rdiff.cli.processor import process_print
-from rdiff.cli.processor import run
+from sdiff.cli.processor import process_print
+from sdiff.cli.processor import run
 
 
 set_start_method("forkserver")
