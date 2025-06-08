@@ -36,7 +36,7 @@ jobs:
       - build
 
     environment:
-      name: pypi
+      name: testpypi
       url: https://test.pypi.org/p/richdiff
 
     permissions:
