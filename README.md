@@ -2,7 +2,7 @@
 
 Rich file comparison with a focus on structured and tabular data
 
-![mosaic-edit](img/diff-mosaic-edit.png)
+![mosaic-edit](https://raw.githubusercontent.com/pulkin/rdiff/master/img/diff-mosaic-edit.png)
 
 About
 -----
@@ -23,13 +23,13 @@ Features
 Install
 -------
 
-Consider installing recommended dependencies
+From pip
 
 ```python
-pip install numpy pandas pyarrow openpyxl python-magic
+pip install richdiff
 ```
 
-Install the git version
+Install the latest git version
 
 ```commandline
 pip install git+https://github.com/pulkin/rdiff.git
@@ -42,7 +42,7 @@ Examples
 
 ```
 > rdiff a.csv b.csv
-comparing .
+comparing a.csv vs b.csv
   Country     Region Date       Kilotons of Co2 Metric Tons Per Capita
 - ----------- ------ ---------- --------------- ----------------------
 (3 row(s) match)
