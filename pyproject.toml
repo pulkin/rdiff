@@ -5,6 +5,7 @@ authors = [
     {name = "Artem Pulkin", email = "gpulkin@gmail.com"}
 ]
 description = "Rich file comparison with a focus on structured and tabular data"
+readme = "README.md"
 license = {text = "BSD-2-Clause"}
 dependencies = [
      "numpy",
