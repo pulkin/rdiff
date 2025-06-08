@@ -28,7 +28,7 @@ Install
 -------
 
 ```python
-pip install richdiff
+pip install sdiff
 ```
 
 Install the latest git version
