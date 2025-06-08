@@ -7,23 +7,25 @@ Rich file comparison with a focus on structured and tabular data
 About
 -----
 
-This a WIP implementation of Myers' algorithm for constructing meaningful diffs beyond text files.
+`rdiff` (`richdiff` on pypi) is a diff tool and a library. You can use it to build diffs and compare strings, sequences,
+arrays, nested sequences, matrices, texts, tables, files, etc. It runs Myers diff algorithm under the hood. Implemented
+in python+Cython.
 
 Features
 --------
 
 `rdiff` is not a drop-in replacement for your diff tool. But it does some things nicely.
 
-- you can use it for text file diffs as usual
-- **rdiff** also supports tables
-- it is pretty fast
-- it exposes low-level python API to compare/align arbitrary sequences
-- **rdiff** can be fine-tuned to include/exclude files, align file names through regexes, set various similarity measures
+- You can use it for text as usual.
+- **rdiff** supports tables
+- pretty fast
+- exposes low-level python API to compare/align arbitrary sequences
+- The CLI **rdiff** tool can be used to compare entire directories while discovering file types on the fly. 
+  It can be fine-tuned to include/exclude files, align file names through regexes, set various similarity measures,
+  provide colored reports in various formats.
 
 Install
 -------
-
-From pip
 
 ```python
 pip install richdiff
