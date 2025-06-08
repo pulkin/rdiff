@@ -20,7 +20,7 @@ jobs:
         fetch-depth: 0
         ref: main
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Update pip
@@ -30,7 +30,7 @@ jobs:
       run: pip install --editable .
     - name: Test
       run: |
-        pip install pytest pytest-benchmark numpy pandas pyarrow openpyxl python-magic
+        pip install pytest pytest-benchmark
         pytest -v --benchmark-disable --test-diff-renders -W ignore::pytest.PytestCollectionWarning
 
   test-install:
@@ -39,7 +39,7 @@ jobs:
 
     steps:
     - name: Set up Python 3.13
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: 3.13
     - name: Update pip
@@ -54,5 +54,5 @@ jobs:
         sparse-checkout: 'tests'
     - name: Test
       run: |
-        pip install pytest pytest-benchmark numpy pandas pyarrow openpyxl python-magic
+        pip install pytest pytest-benchmark
         pytest -v --benchmark-disable --test-diff-renders -W ignore::pytest.PytestCollectionWarning
