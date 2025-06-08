@@ -140,12 +140,6 @@ print(d.b)
  [2 3 6]]
 ```
 
-TODO
-----
-
-- [ ] semi-sorted arrays
-- [ ] URI/S3 support
-
 License
 -------
 
