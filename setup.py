@@ -1,4 +1,4 @@
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_namespace_packages
 from Cython.Build import cythonize
 
 extensions = [
@@ -24,7 +24,7 @@ setup(
         include_path=["sdiff/cython"],
         annotate=True,
     ),
-    packages=["sdiff"],
+    packages=find_namespace_packages("rdiff"),
     zip_safe=False,
     include_package_data=True,
 )
