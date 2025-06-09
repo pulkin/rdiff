@@ -76,69 +76,9 @@ a≈b (ratio=0.7500)
 ··a[4:4]≠b[3:4]: [] ≠ ['eggplant']
 ```
 
-### More examples
+### More examples and documentation
 
-#### Align and correspond nested sequences: strings inside a list inside another list
-
-```python
-from sdiff.sequence import diff_nested
-
-print(diff_nested(
-  [["alice", "bob"], ["charlie", "dan"]],
-  [0, 1, ["friends", "alice2", "bob2"], ["karen", "dan"]],
-  min_ratio=0.5,
-).to_string())
-```
-
-```text
-a≈b (ratio=0.6667)
-··a[0:0]≠b[0:2]: [] ≠ [0, 1]
-··a[0:2]≈b[2:4]: [['alice', 'bob'], ['charlie', 'dan']] ≈ [['friends', 'alice2', 'bob2'], ['karen', 'dan']]
-····a[0]≈b[2] (ratio=0.8000)  # recognizes partially aligned ["alice", "bob"] and ["friends", "alice2", "bob2"]
-(...)
-········a[0][0]≈b[2][1] (ratio=0.9091)  # recognizes similarity between 'alice' and 'alice2'
-··········a[0][0][0:5]=b[2][1][0:5]: 'alice' = 'alice'
-··········a[0][0][5:5]≠b[2][1][5:6]: '' ≠ '2'
-········a[0][1]≈b[2][2] (ratio=0.8571)  # recognizes similarity between 'bob' and 'bob2'
-··········a[0][1][0:3]=b[2][2][0:3]: 'bob' = 'bob'
-··········a[0][1][3:3]≠b[2][2][3:4]: '' ≠ '2'
-(...)
-```
-
-#### Align numpy matrices
-
-Given two 2D arrays, compute aligned rows and columns
-
-```python
-import numpy as np
-from sdiff.numpy import diff_aligned_2d
-
-a = np.array([[0, 1], [2, 3]])
-b = np.array([[0, 1, 4], [7, 8, 9], [2, 3, 6]])
-# a is a "sub-matrix" of b
-
-d = diff_aligned_2d(a, b, -1, min_ratio=0.5)
-```
-
-Inflated versions of the two matrices (`-1` from the above is a fill value)
-
-```python
-print(d.a)
-print(d.b)
-```
-
-```
-[[ 0  1 -1]
- [-1 -1 -1]  < an empty row needs to be added to a to align with b
- [ 2  3 -1]]
-        ^^
-# an empty column needs to be added as well
- 
-# inflated version of b is b itself in this case
-[[0 1 4]
- [7 8 9]
- [2 3 6]]
-```
+Visit [https://sdiff.readthedocs.io/en/latest/](https://sdiff.readthedocs.io/en/latest/)
 
 License
 -------
