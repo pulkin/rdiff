@@ -76,7 +76,7 @@ a≈b (ratio=0.7500)
 ··a[4:4]≠b[3:4]: [] ≠ ['eggplant']
 ```
 
-### More examples and documentation
+## Documentation
 
 Visit [https://sdiff.readthedocs.io/en/latest/](https://sdiff.readthedocs.io/en/latest/)
 
