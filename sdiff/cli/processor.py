@@ -352,7 +352,7 @@ def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
     consumption_group.add_argument("--exclude", action="append", dest="includes", metavar="PATTERN", help="paths to exclude", type=lambda x: include_options_type(False, x))
     consumption_group.add_argument("--rename", nargs=2, action="append", metavar="PATTERN REPLACE", help="rename files using re.sub")
     consumption_group.add_argument("--sort", action="store_true", help="sort diffs by file name")
-    consumption_group.add_argument("--cherry-pick", help="cherry-picks one file to diff")
+    consumption_group.add_argument("--cherry-pick", metavar="NAME", help="cherry-picks one file to diff")
     consumption_group.add_argument("--pool", type=int, metavar="NPROCS", help="compute diffs in parallel with the specified number of processes")
 
     control_group = parser.add_argument_group("grouping")
