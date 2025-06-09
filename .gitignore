@@ -68,7 +68,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+doc/_build/
 
 # PyBuilder
 target/
@@ -125,3 +125,9 @@ dmypy.json
 
 # IDE
 .idea/
+
+# Cython-generated files
+*.c
+
+# Any html in src
+sdiff/**/*.html
