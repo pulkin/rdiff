@@ -24,7 +24,7 @@ setup(
         include_path=["sdiff/cython"],
         annotate=True,
     ),
-    packages=find_namespace_packages(include=["sdiff.*"]),
+    packages=find_namespace_packages(),
     zip_safe=False,
     include_package_data=True,
 )
