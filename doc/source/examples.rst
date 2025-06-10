@@ -47,7 +47,7 @@ to turn the first string into the second one or the reverse.
 Each chunk item is an instance of :py:class:`sdiff.chunk.Chunk` and has these three fields:
 
 - :py:attr:`sdiff.chunk.Chunk.data_a` is a substring from the first string;
-- :py:attr:`sdiff.chunk.Chunk.data_s` is a substring from the second string;
+- :py:attr:`sdiff.chunk.Chunk.data_b` is a substring from the second string;
 - :py:attr:`sdiff.chunk.Chunk.eq` is a bool telling whether the two substrings are equal.
 
 For the above example, there are 5 chunks:
