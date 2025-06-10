@@ -8,7 +8,6 @@ Welcome to sdiff's documentation!
    :caption: Contents:
 
    installation
-   usage
    examples
    api/index
    contributing
