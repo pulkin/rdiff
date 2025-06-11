@@ -8,7 +8,7 @@ comparing a.csv vs b-mosaic-edit.csv
   +++Turkmenistan+++              ...                                       
 5        Afghanistan         Asia ...      ---5990---             ---0.19---
                                   ...      +++6000+++                       
-6        Afghanistan   ---Asia--- ...            5950                   0.18
-                     +++(Asia)+++ ...                                       
+6        Afghanistan   ---Asia--- ...      ---5950---                   0.18
+                     +++(Asia)+++ ...      +++5980+++                       
 7        Afghanistan         Asia ...            5300                   0.15
 8        Afghanistan         Asia ...            4880                   0.15

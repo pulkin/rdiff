@@ -310,6 +310,9 @@ class HTMLTextFormats(TextFormats):
       body {
         font-family: monospace;
       }
+      table {
+        border-collapse: collapse;
+      }
       table td {
         text-align: right;
       }
