@@ -67,14 +67,14 @@
     ```text
 <span class="diff-rm">&lt;   Diff(0.7500):
 </span><span class="diff-add">&gt;   a≈b (ratio=0.7500)
-</span><span class="diff-rm-aligned">&lt;   ··a[]=b[]: ['apples'] = ['apples']
-</span><span class="diff-add-aligned">&gt;   ··a[<span class="diff-add">0:1</span>]=b[<span class="diff-add">0:1</span>]: ['apples'] = ['apples']
-</span><span class="diff-rm-aligned">&lt;   ··a[]≠b[]: ['bananas'] ≠ []
-</span><span class="diff-add-aligned">&gt;   ··a[<span class="diff-add">1:2</span>]≠b[<span class="diff-add">1:1</span>]: ['bananas'] ≠ []
-</span><span class="diff-rm-aligned">&lt;   ··a[]=b[]: ['carrots', 'dill'] = ['carrots', 'dill']
-</span><span class="diff-add-aligned">&gt;   ··a[<span class="diff-add">2:4</span>]=b[<span class="diff-add">1:3</span>]: ['carrots', 'dill'] = ['carrots', 'dill']
-</span><span class="diff-rm-aligned">&lt;   ··a[]≠b[]: [] ≠ ['eggplant']
-</span><span class="diff-add-aligned">&gt;   ··a[<span class="diff-add">4:4</span>]≠b[<span class="diff-add">3:4</span>]: [] ≠ ['eggplant']
+</span><span class="diff-rm-aligned">&lt;   ··a[<span class="diff-rm">]=b[</span>]: ['apples'] = ['apples']
+</span><span class="diff-add-aligned">&gt;   ··a[<span class="diff-add">0:1]=b[0:1</span>]: ['apples'] = ['apples']
+</span><span class="diff-rm-aligned">&lt;   ··a[<span class="diff-rm">]≠b[</span>]: ['bananas'] ≠ []
+</span><span class="diff-add-aligned">&gt;   ··a[<span class="diff-add">1:2]≠b[1:1</span>]: ['bananas'] ≠ []
+</span><span class="diff-rm-aligned">&lt;   ··a[<span class="diff-rm">]=b[</span>]: ['carrots', 'dill'] = ['carrots', 'dill']
+</span><span class="diff-add-aligned">&gt;   ··a[<span class="diff-add">2:4]=b[1:3</span>]: ['carrots', 'dill'] = ['carrots', 'dill']
+</span><span class="diff-rm-aligned">&lt;   ··a[<span class="diff-rm">]≠b[</span>]: [] ≠ ['eggplant']
+</span><span class="diff-add-aligned">&gt;   ··a[<span class="diff-add">4:4]≠b[3:4</span>]: [] ≠ ['eggplant']
 </span>    ```
   
 (2 lines match)
@@ -93,24 +93,24 @@
 </span><span class="diff-add">&gt;   ··a[0:2]=b[0:2]: [0, 1] = [0, 1]
 </span><span class="diff-add">&gt;   ··a[2:3]≈b[2:3]: [[&#x27;alice&#x27;, &#x27;bob&#x27;, &#x27;charlie&#x27;, &#x27;dan&#x27;]] ≈ [[&#x27;alice2&#x27;, &#x27;bob2&#x27;, &#x27;karen&#x27;, &#x27;dan&#x27;]]
 </span><span class="diff-add">&gt;   ····a[2]≈b[2] (ratio=0.7500)
-</span><span class="diff-rm-aligned">&lt;   ··a[]≈b[]<span class="diff-rm">: </span>[0<span class="diff-rm">,</span> <span class="diff-rm">1, </span>['alice', 'bob']<span class="diff-rm">]</span> ≈<span class="diff-rm"> [0, 1,</span> ['alice2', 'bob2'<span class="diff-rm">]</span>]
-</span><span class="diff-add-aligned">&gt;   ··<span class="diff-add">····</span>a[<span class="diff-add">2][0:2</span>]≈b[<span class="diff-add">2</span>][0<span class="diff-add">:2]:</span> ['alice', 'bob'] ≈ ['alice2', 'bob2']
+</span><span class="diff-rm-aligned">&lt; <span class="diff-rm">  ··a[]≈b[]: [0, 1, </span>['alice', 'bob']<span class="diff-rm">] ≈ [0, 1,</span> ['alice2', 'bob2'<span class="diff-rm">]]</span>
+</span><span class="diff-add-aligned">&gt; <span class="diff-add">  ······a[2][0:2]≈b[2][0:2]: </span>['alice', 'bob']<span class="diff-add"> ≈</span> ['alice2', 'bob2'<span class="diff-add">]</span>
 </span><span class="diff-rm">&lt;   ····a=b: 0
 </span><span class="diff-rm">&lt;   ····a=b: 1
 </span><span class="diff-rm">&lt;   ····Diff(1.0000):
 </span><span class="diff-rm">&lt;   ······a[]≈b[]: [&#x27;alice&#x27;, &#x27;bob&#x27;] ≈ [&#x27;alice2&#x27;, &#x27;bob2&#x27;]
 </span><span class="diff-rm">&lt;   ········Diff(0.9091):
 </span><span class="diff-add">&gt;   ········a[2][0]≈b[2][0] (ratio=0.9091)
-</span><span class="diff-rm-aligned">&lt;   ··········a[]=b[]: 'alice' = 'alice'
-</span><span class="diff-add-aligned">&gt;   ··········a[<span class="diff-add">2][0][0:5</span>]=b[<span class="diff-add">2][0][0:5</span>]: 'alice' = 'alice'
-</span><span class="diff-rm-aligned">&lt;   ··········a[]≠b[]: '' ≠ '2'
-</span><span class="diff-add-aligned">&gt;   ··········a[<span class="diff-add">2][0][5:5</span>]≠b[<span class="diff-add">2][0][5:6</span>]: '' ≠ '2'
+</span><span class="diff-rm-aligned">&lt;   ··········a[<span class="diff-rm">]=b[</span>]: 'alice' = 'alice'
+</span><span class="diff-add-aligned">&gt;   ··········a[<span class="diff-add">2][0][0:5]=b[2][0][0:5</span>]: 'alice' = 'alice'
+</span><span class="diff-rm-aligned">&lt;   ··········a[<span class="diff-rm">]≠b[</span>]: '' ≠ '2'
+</span><span class="diff-add-aligned">&gt;   ··········a[<span class="diff-add">2][0][5:5]≠b[2][0][5:6</span>]: '' ≠ '2'
 </span><span class="diff-rm">&lt;   ········Diff(0.8571):
 </span><span class="diff-add">&gt;   ········a[2][1]≈b[2][1] (ratio=0.8571)
-</span><span class="diff-rm-aligned">&lt;   ··········a[]=b[]: 'bob' = 'bob'
-</span><span class="diff-add-aligned">&gt;   ··········a[<span class="diff-add">2][1][0:3</span>]=b[<span class="diff-add">2][1][0:3</span>]: 'bob' = 'bob'
-</span><span class="diff-rm-aligned">&lt;   ··········a[]≠b[]: '' ≠ '2'
-</span><span class="diff-add-aligned">&gt;   ··········a[<span class="diff-add">2][1][3:3</span>]≠b[<span class="diff-add">2][1][3:4</span>]: '' ≠ '2'
+</span><span class="diff-rm-aligned">&lt;   ··········a[<span class="diff-rm">]=b[</span>]: 'bob' = 'bob'
+</span><span class="diff-add-aligned">&gt;   ··········a[<span class="diff-add">2][1][0:3]=b[2][1][0:3</span>]: 'bob' = 'bob'
+</span><span class="diff-rm-aligned">&lt;   ··········a[<span class="diff-rm">]≠b[</span>]: '' ≠ '2'
+</span><span class="diff-add-aligned">&gt;   ··········a[<span class="diff-add">2][1][3:3]≠b[2][1][3:4</span>]: '' ≠ '2'
 </span><span class="diff-add">&gt;   ······a[2][2:3]≠b[2][2:3]: [&#x27;charlie&#x27;] ≠ [&#x27;karen&#x27;]
 </span><span class="diff-add">&gt;   ······a[2][3:4]=b[2][3:4]: [&#x27;dan&#x27;] = [&#x27;dan&#x27;]
 </span>    ```
@@ -118,8 +118,8 @@
 (18 lines match)
   
   - [ ] text diffs
-<span class="diff-rm-aligned">&lt; - [<span class="diff-rm"> </span>] table diffs
-</span><span class="diff-add-aligned">&gt; - [<span class="diff-add">x</span>] table diffs
+<span class="diff-rm-aligned">&lt; <span class="diff-rm">- [ </span>] table diffs
+</span><span class="diff-add-aligned">&gt; <span class="diff-add">- [x</span>] table diffs
 </span>  
   CLI
 (13 lines match)

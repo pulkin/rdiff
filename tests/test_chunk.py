@@ -1,3 +1,5 @@
+import pytest
+
 from sdiff.chunk import Diff, Chunk, Item
 
 
@@ -45,4 +47,74 @@ def test_important():
         Item(a=None, b=[19, 20, 21], ix_a=None, ix_b=3),
         Item(a=[12, 13, 14], b=[12, 13, 14], ix_a=4, ix_b=4),
         1,
+    ]
+
+
+@pytest.fixture
+def chunks():
+    return [
+        Chunk(data_a="012", data_b="012", eq=True),
+        Chunk(data_a="34", data_b="34", eq=True),
+        Chunk(data_a="ab", data_b="c", eq=False),
+        Chunk(data_a="5", data_b="5", eq=True),
+        Chunk(data_a="6", data_b="6", eq=True),
+        Chunk(data_a="d", data_b="ef", eq=False),
+        Chunk(data_a="7890", data_b="7890", eq=True),
+    ]
+
+
+def test_coarse_0(chunks):
+    result = Diff(0.42, chunks).get_coarse(1)
+    assert result.ratio == 0.42
+    assert result.diffs == [
+        Chunk(data_a="01234", data_b="01234", eq=True),
+        Chunk(data_a="ab", data_b="c", eq=False),
+        Chunk(data_a="56", data_b="56", eq=True),
+        Chunk(data_a="d", data_b="ef", eq=False),
+        Chunk(data_a="7890", data_b="7890", eq=True),
+    ]
+
+
+def test_coarse_1(chunks):
+    result = Diff(0.42, chunks).get_coarse(2)
+    assert result.ratio == 0.42
+    assert result.diffs == [
+        Chunk(data_a="01234", data_b="01234", eq=True),
+        Chunk(data_a="ab56d", data_b="c56ef", eq=False),
+        Chunk(data_a="7890", data_b="7890", eq=True),
+    ]
+
+
+def test_coarse_2(chunks):
+    result = Diff(0.42, chunks[1:]).get_coarse(2)
+    assert result.ratio == 0.42
+    assert result.diffs == [
+        Chunk(data_a="34ab56d", data_b="34c56ef", eq=False),
+        Chunk(data_a="7890", data_b="7890", eq=True),
+    ]
+
+
+def test_coarse_3(chunks):
+    result = Diff(0.42, chunks[2:]).get_coarse(2)
+    assert result.ratio == 0.42
+    assert result.diffs == [
+        Chunk(data_a="ab56d", data_b="c56ef", eq=False),
+        Chunk(data_a="7890", data_b="7890", eq=True),
+    ]
+
+
+def test_coarse_4(chunks):
+    result = Diff(0.42, chunks[:-1]).get_coarse(2)
+    assert result.ratio == 0.42
+    assert result.diffs == [
+        Chunk(data_a="01234", data_b="01234", eq=True),
+        Chunk(data_a="ab56d", data_b="c56ef", eq=False),
+    ]
+
+
+def test_coarse_5(chunks):
+    result = Diff(0.42, chunks).get_coarse(100)
+    assert result.ratio == 0.42
+    assert result.diffs == [
+        Chunk(data_a="01234ab56d7890", data_b="01234c56ef7890", eq=False),
     ]

@@ -1,3 +1,4 @@
+import itertools
 from typing import Any, Optional, Union
 from collections.abc import Iterable, Iterator, Sequence
 from functools import reduce, cached_property
@@ -125,6 +126,69 @@ class Chunk:
             size_b=len(self.data_b),
             eq=self.eq is not False,
         )
+
+    def __add__(self, other: "Chunk") -> "Chunk":
+        if not isinstance(other, Chunk):
+            raise TypeError(f"cannot add {type(other)} to Chunk")
+        if not isinstance(self.eq, bool) or not isinstance(other.eq, bool):
+            raise TypeError("cannot add Chunks with nested diffs")
+        return Chunk(
+            data_a=self.data_a + other.data_a,
+            data_b=self.data_b + other.data_b,
+            eq=self.eq and other.eq,
+        )
+
+
+def iter_compressed_chunks(chunks: Iterable[Chunk]) -> Iterator[Chunk]:
+    """
+    Iterates through compressed chunks of differences.
+
+    This method groups consecutive chunks based on equality criteria (`i.eq`)
+    and yields each group as a single reduced chunk.
+
+    Parameters
+    ----------
+    chunks
+        Input chunks.
+
+    Yields
+    ------
+    Each yielded value is a combined group of differences compressed into
+    a single `Chunk` object.
+    """
+    for key, group in itertools.groupby(chunks, key=lambda i: i.eq):
+        yield reduce(add, group)
+
+
+def iter_coarse_chunks(chunks: Iterable[Chunk], consume_size: int) -> Iterable[Chunk]:
+    """
+    Iterates over chunks of differences and merges smaller equal chunks into
+    bigger non-equal ones.
+
+    Parameters
+    ----------
+    chunks
+        Input chunks.
+
+    consume_size : int
+        The threshold size below which equal chunks are merged into non-equal ones.
+
+    Yields
+    ------
+    A generator yielding bigger `Chunk` objects.
+    """
+    buffer = []
+    for chunk in iter_compressed_chunks(chunks):
+        if chunk.eq and len(chunk.data_a) > consume_size:
+            if buffer:
+                yield reduce(add, buffer)
+            buffer = []
+            yield chunk
+        else:
+            buffer.append(chunk)
+
+    if buffer:
+        yield reduce(add, buffer)
 
 
 @dataclass(frozen=True)
@@ -294,6 +358,21 @@ class Diff:
         leftover = sum(i if isinstance(i, int) else 1 for i in context_tail)
         if leftover:
             yield leftover
+
+    def get_coarse(self, consume_size: int) -> "Diff":
+        """
+        Computes a coarse diff by merging smaller equal chunks into non-equal ones.
+
+        Parameters
+        ----------
+        consume_size : int
+         The threshold size below which equal chunks are merged into non-equal ones.
+
+        Returns
+        -------
+        The resulting diff.
+        """
+        return Diff(ratio=self.ratio, diffs=list(iter_coarse_chunks(self.diffs, consume_size)))
 
 
 @dataclass(frozen=True)

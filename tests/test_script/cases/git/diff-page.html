@@ -104,7 +104,7 @@
       buffer = StringIO()
       printer = TextPrinter(printer=buffer, **printer_kwargs)
 <span class="diff-add">&gt;     for i in process_iter(a, b, **kwargs):
-</span><span class="diff-highlight">≈     <span class="diff-add">    </span>printer.print_diff(<span class="diff-rm">d</span>i<span class="diff-rm">ff</span>)
+</span><span class="diff-highlight">≈ <span class="diff-rm">    </span><span class="diff-add">        </span>printer.print_diff(<span class="diff-rm">diff)</span><span class="diff-add">i)</span>
 </span>  
       return buffer.getvalue()
 </pre><h4>NEW rdiff/cli/processor.py</h4>

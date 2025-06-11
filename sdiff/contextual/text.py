@@ -1,10 +1,10 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from collections.abc import Mapping, Sequence
 from numbers import Number
 
 from .base import AnyDiff, profile
 from ..sequence import MAX_COST, MIN_RATIO, diff_nested
-from ..chunk import Diff
+from ..chunk import Diff, Chunk
 
 
 @dataclass
@@ -37,6 +37,7 @@ def diff(
         min_ratio_row: float = MIN_RATIO,
         max_cost: int = MAX_COST,
         max_cost_row: int = MAX_COST,
+        coarse: int = 4,
 ) -> TextDiff:
     """
     Computes a diff between two texts.
@@ -63,6 +64,8 @@ def diff(
         worst-case time complexity scales with this number.
     max_cost_row
         The maximal cost below which two lines of text are aligned.
+    coarse
+        Removes all equal text fragments below the given size.
 
     Returns
     ------
@@ -75,6 +78,33 @@ def diff(
         max_cost=(max_cost, max_cost_row),
         max_depth=2,
     )
+    if coarse:
+        new_diffs = []
+        for i in raw_diff.diffs:
+            if not isinstance(i.eq, bool):
+                new_eq = []
+                for j in i.eq:
+                    if isinstance(j, bool):
+                        new_eq.append(j)
+                    else:
+                        post_last = None
+                        if len(j.diffs) > 0:
+                            last = j.diffs[-1]
+                            if last.eq is True:
+                                a = last.data_a
+                                b = last.data_b
+                                last = replace(last, data_a=a.rstrip("\n"), data_b=b.rstrip("\n"))
+                                if last.data_a != a:
+                                    post_last = Chunk(eq=True, data_a=a[len(last.data_a):], data_b=b[len(last.data_b):])
+                            j = replace(j, diffs=j.diffs[:-1] + [last])
+                        coarse_diff = j.get_coarse(coarse)
+                        if post_last is not None:
+                            coarse_diff = replace(coarse_diff, diffs=coarse_diff.diffs + [post_last])
+                        new_eq.append(coarse_diff)
+                new_diffs.append(replace(i, eq=new_eq))
+            else:
+                new_diffs.append(i)
+        raw_diff = replace(raw_diff, diffs=new_diffs)
     return TextDiff(
         name=name,
         data=raw_diff,
