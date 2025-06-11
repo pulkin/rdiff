@@ -269,8 +269,8 @@ class HTMLTextFormats(TextFormats):
     line_add: str = "<span class=\"diff-add\">&gt; {line}</span>"
     line_rm: str = "<span class=\"diff-rm\">&lt; {line}</span>"
     line_aligned: str = "<span class=\"diff-highlight\">≈ {line}</span>"
-    line_aligned_add: str = line_add
-    line_aligned_rm: str = line_rm
+    line_aligned_add: str = "<span class=\"diff-add-aligned\">&gt; {line}</span>"
+    line_aligned_rm: str = "<span class=\"diff-rm-aligned\">&lt; {line}</span>"
     block_spacer: str = ""
     chunk_add: str = "<span class=\"diff-add\">{chunk}</span>"
     chunk_rm: str = "<span class=\"diff-rm\">{chunk}</span>"
@@ -289,6 +289,12 @@ class HTMLTextFormats(TextFormats):
         background-color: #2EB086;
         color: #CEF2E7;
         font-weight: bold;
+      }
+      .diff-rm-aligned {
+        background-color: #F4E1E6;
+      }
+      .diff-add-aligned {
+        background-color: #CEF2E7;
       }
       td.diff-pair-top, td.diff-pair-bottom {
         border : 0.3em dotted black;
