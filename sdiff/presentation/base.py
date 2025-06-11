@@ -832,7 +832,6 @@ class TextPrinter(AbstractTextPrinter):
                             row_a.append(self.table_formats.data_row_same.format(chunk=a, col_ix=len(row_a)))
                             row_b.append(self.table_formats.data_row_none.format(col_ix=len(row_b)))
                         else:
-                            print(a, bool(a), b, bool(b))
                             if bool(a) and bool(b):
                                 row_a.append(self.table_formats.data_row_xa.format(chunk=a, col_ix=len(row_a)))
                                 row_b.append(self.table_formats.data_row_xb.format(chunk=b, col_ix=len(row_b)))
