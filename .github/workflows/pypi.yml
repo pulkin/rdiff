@@ -87,8 +87,8 @@ jobs:
         sparse-checkout: 'tests'
     - name: Test
       run: |
-        pip install pytest pytest-benchmark
-        pytest -v --benchmark-disable --test-diff-renders -W ignore::pytest.PytestCollectionWarning
+        pip install pytest
+        pytest -v --test-diff-renders -W ignore::pytest.PytestCollectionWarning
 
   publish-to-pypi:
 
@@ -142,5 +142,5 @@ jobs:
         sparse-checkout: 'tests'
     - name: Test
       run: |
-        pip install pytest pytest-benchmark
-        pytest -v --benchmark-disable --test-diff-renders -W ignore::pytest.PytestCollectionWarning
+        pip install pytest
+        pytest -v --test-diff-renders -W ignore::pytest.PytestCollectionWarning

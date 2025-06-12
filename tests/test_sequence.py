@@ -272,14 +272,13 @@ def test_nested_np(monkeypatch, max_depth):
 
 
 @pytest.mark.parametrize("max_depth", [10, 2])
-@pytest.mark.benchmark(group="depth-for-performance")
-def test_big_np(monkeypatch, benchmark, max_depth):
+def test_big_np(monkeypatch, max_depth):
     np.random.seed(0)
     shape = (10, 1000)
     a = np.random.randint(0, 10, size=shape)
     b = np.random.randint(0, 10, size=shape)
 
-    assert benchmark(diff_nested, a, b, min_ratio=0, max_depth=max_depth).ratio > 0
+    assert diff_nested(a, b, min_ratio=0, max_depth=max_depth).ratio > 0
 
 
 def test_strictly_no_python_0():

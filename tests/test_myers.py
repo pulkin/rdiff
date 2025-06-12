@@ -122,9 +122,7 @@ def test_max_calls(driver):
 @pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 @pytest.mark.parametrize("n", [256, 512])
 @pytest.mark.parametrize("rtn_diff", [False, True])
-@pytest.mark.benchmark(group="call")
-def test_benchmark_call_long_short(driver, benchmark, n, rtn_diff):
-    benchmark.group = f"{benchmark.group}-{n}"
+def test_benchmark_call_long_short(driver, n, rtn_diff):
     def compare(i, j):
         seed(j + (i << 16))
         return choice([0, 1])
@@ -133,7 +131,7 @@ def test_benchmark_call_long_short(driver, benchmark, n, rtn_diff):
         result = array.array('b', b'\xFF' * (4 * n))
     else:
         result = None
-    cost = benchmark(driver, 3 * n, n, compare, result)
+    cost = driver(3 * n, n, compare, result)
     if rtn_diff:
         assert compute_cost(result) == cost
     assert cost == 2 * n
@@ -142,9 +140,7 @@ def test_benchmark_call_long_short(driver, benchmark, n, rtn_diff):
 @pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 @pytest.mark.parametrize("n", [256, 512, 1024])
 @pytest.mark.parametrize("rtn_diff", [False, True])
-@pytest.mark.benchmark(group="unicode")
-def test_benchmark_str_long_short(driver, benchmark, n, rtn_diff):
-    benchmark.group = f"{benchmark.group}-{n}"
+def test_benchmark_str_long_short(driver, n, rtn_diff):
     long_seq = ''.join(choice("ac") for _ in range(3 * n))
     short_seq = ''.join(choice("ac") for _ in range(n))
 
@@ -152,7 +148,7 @@ def test_benchmark_str_long_short(driver, benchmark, n, rtn_diff):
         result = array.array('b', b'\xFF' * (len(long_seq) + len(short_seq)))
     else:
         result = None
-    cost = benchmark(driver, len(long_seq), len(short_seq), (long_seq, short_seq), result)
+    cost = driver(len(long_seq), len(short_seq), (long_seq, short_seq), result)
     if rtn_diff:
         assert compute_cost(result) == cost
 
@@ -160,9 +156,7 @@ def test_benchmark_str_long_short(driver, benchmark, n, rtn_diff):
 @pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 @pytest.mark.parametrize("n", [256, 512, 1024])
 @pytest.mark.parametrize("rtn_diff", [False, True])
-@pytest.mark.benchmark(group="array")
-def test_benchmark_array_long_short(driver, benchmark, n, rtn_diff):
-    benchmark.group = f"{benchmark.group}-{n}"
+def test_benchmark_array_long_short(driver, n, rtn_diff):
     long_seq = array.array('q', [randint(0, 1) for _ in range(3 * n)])
     short_seq = array.array('q', [randint(0, 1) for _ in range(n)])
 
@@ -170,7 +164,7 @@ def test_benchmark_array_long_short(driver, benchmark, n, rtn_diff):
         result = array.array('b', b'\xFF' * (len(long_seq) + len(short_seq)))
     else:
         result = None
-    cost = benchmark(driver, len(long_seq), len(short_seq), (long_seq, short_seq), result)
+    cost = driver(len(long_seq), len(short_seq), (long_seq, short_seq), result)
     if rtn_diff:
         assert compute_cost(result) == cost
 
@@ -178,9 +172,7 @@ def test_benchmark_array_long_short(driver, benchmark, n, rtn_diff):
 @pytest.mark.parametrize("driver", [search_graph_recursive, csearch_graph_recursive])
 @pytest.mark.parametrize("n", [256, 512])
 @pytest.mark.parametrize("rtn_diff", [False, True])
-@pytest.mark.benchmark(group="list")
-def test_benchmark_list_long_short(driver, benchmark, n, rtn_diff):
-    benchmark.group = f"{benchmark.group}-{n}"
+def test_benchmark_list_long_short(driver, n, rtn_diff):
     long_seq = [randint(0, 1) for _ in range(3 * n)]
     short_seq = [randint(0, 1) for _ in range(n)]
 
@@ -188,7 +180,7 @@ def test_benchmark_list_long_short(driver, benchmark, n, rtn_diff):
         result = array.array('b', b'\xFF' * (len(long_seq) + len(short_seq)))
     else:
         result = None
-    cost = benchmark(driver, len(long_seq), len(short_seq), (long_seq, short_seq), result)
+    cost = driver(len(long_seq), len(short_seq), (long_seq, short_seq), result)
     if rtn_diff:
         assert compute_cost(result) == cost
     assert cost == 2 * n
