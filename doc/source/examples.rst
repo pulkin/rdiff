@@ -322,6 +322,32 @@ Field ``num_diff.eq`` contains a mask telling which inflated matrix entries are 
 
 For more details on the algorithm and :py:class:`sdiff.numpy.NumpyDiff` objects please refer to API.
 
+Performance considerations
+--------------------------
+
+The core parts of ``sdiff`` are written in Cython and run natively.
+The Myers' algorithm used for computing diffs has ``O(NM)`` complexity scaling where ``N`` is the length of the shorter
+sequence being compared and ``M`` is the number of differences.
+To limit the performance impacts, ``diff`` routines such as :py:func:`sdiff.sequence.diff` can stop early based on the
+following keyword/command line arguments:
+
+- ``min_ratio`` (``--min-ratio``): the lower bound on the produced similarity ratio;
+- ``max_cost`` (``--max-cost``): the maximal number of misaligned elements in the two sequences;
+- ``max_calls``: the maximal number of element comparisons.
+
+There are two implementations of the Myers' algorithm: a reference implementation in python
+:py:func:`sdiff.myers.search_graph_recursive` and a fast cython implementation in
+:py:func:`sdiff.cmyers.search_graph_recursive`. They are largely equivalent.
+The cython implementation uses up to 50x faster code paths for sequences of atomic types such as bytes, strings,
+arrays of numbers, etc.
+
+Comparing nested sequences can be very slow, depending on the sequence depth.
+The above also applies to comparing matrices in :py:func:`sdiff.numpy.diff_aligned_2d`.
+Table comparison in :py:func:`sdiff.contextual.table.diff` by default uses a much faster alignment of columns based on
+column names only. This can be toggled using keyword and command line arguments.
+
+Computing diffs does not have a significant memory footprint, provided that all data compared fits RAM.
+
 CLI Examples
 ============
 
