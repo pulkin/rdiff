@@ -289,10 +289,9 @@ def search_graph_recursive(
     """
     nm = min(n, m) + 1
     n_m = n + m
-    front_forward = array('Q', (0,) * nm)
+    # the progress of the forward front starts at 0
     # the progress of the reverse front starts at n + m
-    front_reverse = array('Q', (n_m,) * nm)
-    fronts = (front_forward, front_reverse)
+    fronts = array('Q', (0,) * nm + (n_m,) * nm)
     dimensions = (n, m)
 
     # we, effectively, iterate over the cost itself
@@ -305,7 +304,7 @@ def search_graph_recursive(
         reverse_as_sign = 1 - 2 * is_reverse_front  # +- 1 depending on the direction
 
         # one of the fronts is updated, another one we "face"
-        front_updated = fronts[is_reverse_front]
+        front_updated_offset = nm * is_reverse_front
 
         # figure out the range of diagonals we are dealing with
         # turn 0 (even): [n]
@@ -343,7 +342,7 @@ def search_graph_recursive(
             ix = _get_diag_index(diag, nm)
 
             # remember the progress coordinates: starting, current
-            progress = progress_start = front_updated[ix]
+            progress = progress_start = fronts[front_updated_offset + ix]
 
             # now, turn (diag, progress) coordinates into (x, y)
             # progress = x + y
@@ -361,13 +360,13 @@ def search_graph_recursive(
                 progress += 2 * reverse_as_sign
                 x += reverse_as_sign
                 y += reverse_as_sign
-            front_updated[ix] = progress
+            fronts[front_updated_offset + ix] = progress
 
             # if front and reverse overlap we are done
             # to figure this out we first check whether we are facing ANY diagonal
             if diag_facing_from <= diag <= diag_facing_to and (diag - diag_facing_from) % 2 == 0:
                 # second, we are checking the progress
-                if front_forward[ix] >= front_reverse[ix]:  # check if the two fronts (start) overlap
+                if fronts[ix] >= fronts[ix + nm]:  # check if the two fronts (start) overlap
                     if out is not None:
                         # write the diagonal
                         for ix in range(progress_start - 2 * is_reverse_front, progress - 2 * is_reverse_front, 2 * reverse_as_sign):
@@ -460,8 +459,8 @@ def search_graph_recursive(
         for diag_ in range(diag_updated_from_, diag_updated_to_ + 2, 2):
 
             # source and destination indexes for the update
-            progress_left = front_updated[_get_diag_index(diag_ - 1, nm)]
-            progress_right = front_updated[_get_diag_index(diag_ + 1, nm)]
+            progress_left = fronts[front_updated_offset + _get_diag_index(diag_ - 1, nm)]
+            progress_right = fronts[front_updated_offset + _get_diag_index(diag_ + 1, nm)]
 
             if diag_ == diag_updated_from - 1:  # possible in cases 2, 4
                 progress = progress_right
@@ -475,12 +474,12 @@ def search_graph_recursive(
             # the idea here is to delay updating the front by one iteration
             # such that the new progress values do not interfer with the original ones
             if ix != -1:
-                front_updated[ix] = previous + reverse_as_sign
+                fronts[front_updated_offset + ix] = previous + reverse_as_sign
 
             previous = progress
             ix = _get_diag_index(diag_, nm)
 
-        front_updated[ix] = previous + reverse_as_sign
+        fronts[front_updated_offset + ix] = previous + reverse_as_sign
 
     if out is not None:
         _fill_no_solution(out, i, j, n, m)

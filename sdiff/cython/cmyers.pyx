@@ -298,17 +298,13 @@ cdef Py_ssize_t _search_graph_recursive(
     char[::1] out,
     Py_ssize_t i,
     Py_ssize_t j,
-    Py_ssize_t* front_forward,
-    Py_ssize_t* front_reverse,
+    Py_ssize_t* fronts,
 ):
     """See the description and details in the pure-python implementation"""
     cdef:
         Py_ssize_t ix, nm, n_m, cost, diag, diag_src, diag_dst, diag_facing_from, diag_facing_to, diag_updated_from,\
             diag_updated_to, diag_, diag_updated_from_, diag_updated_to_, _p, x, y, x2, y2, progress, progress_start,\
-            previous, is_reverse_front, reverse_as_sign, n_calls = 2
-        Py_ssize_t* front_updated
-        Py_ssize_t* front_facing
-        Py_ssize_t** fronts = [front_forward, front_reverse]
+            previous, is_reverse_front, reverse_as_sign, n_calls = 2, front_updated_offset
         Py_ssize_t* dimensions = [0, 0]
         int rtn_script = out.shape[0] != 0
 
@@ -363,8 +359,9 @@ cdef Py_ssize_t _search_graph_recursive(
     nm = min(n, m) + 1
     n_m = n + m
     for ix in range(nm):
-        front_forward[ix] = 0
-        front_reverse[ix] = n_m
+        fronts[ix] = 0
+    for ix in range(nm, 2 * nm):
+        fronts[ix] = n_m
 
     # we, effectively, iterate over the cost itself
     # though it may also be seen as a round counter
@@ -375,8 +372,7 @@ cdef Py_ssize_t _search_graph_recursive(
         reverse_as_sign = 1 - 2 * is_reverse_front  # +- 1 depending on the direction
 
         # one of the fronts is updated, another one we "face"
-        front_updated = fronts[is_reverse_front]
-        front_facing = fronts[1 - is_reverse_front]
+        front_updated_offset = nm * is_reverse_front
 
         # figure out the range of diagonals we are dealing with
         diag_src = dimensions[1 - is_reverse_front]
@@ -402,7 +398,7 @@ cdef Py_ssize_t _search_graph_recursive(
             ix = _get_diag_index(diag, nm)
 
             # remember the progress coordinates: starting, current
-            progress = progress_start = front_updated[ix]
+            progress = progress_start = fronts[front_updated_offset + ix]
 
             # now, turn (diag, progress) coordinates into (x, y)
             # progress = x + y
@@ -427,13 +423,13 @@ cdef Py_ssize_t _search_graph_recursive(
                 progress += 2 * reverse_as_sign
                 x += reverse_as_sign
                 y += reverse_as_sign
-            front_updated[ix] = progress
+            fronts[front_updated_offset + ix] = progress
 
             # if front and reverse overlap we are done
             # to figure this out we first check whether we are facing ANY diagonal
             if diag_facing_from <= diag <= diag_facing_to and (diag - diag_facing_from) % 2 == 0:
                 # second, we are checking the progress
-                if front_forward[ix] >= front_reverse[ix]:  # check if the two fronts (start) overlap
+                if fronts[ix] >= fronts[ix + nm]:  # check if the two fronts (start) overlap
                     if rtn_script:
                         # write the diagonal
                         # cython does not support range(a, b, c)
@@ -465,8 +461,7 @@ cdef Py_ssize_t _search_graph_recursive(
                             out=out,
                             i=i,
                             j=j,
-                            front_forward=front_forward,
-                            front_reverse=front_reverse,
+                            fronts=fronts,
                         )
                         _search_graph_recursive(
                             n=n - x2,
@@ -479,8 +474,7 @@ cdef Py_ssize_t _search_graph_recursive(
                             out=out,
                             i=i + x2,
                             j=j + y2,
-                            front_forward=front_forward,
-                            front_reverse=front_reverse,
+                            fronts=fronts,
                         )
                     return cost
 
@@ -498,8 +492,8 @@ cdef Py_ssize_t _search_graph_recursive(
         for diag_ in range(diag_updated_from_, diag_updated_to_ + 2, 2):
 
             # source and destination indexes for the update
-            progress_left = front_updated[_get_diag_index(diag_ - 1, nm)]
-            progress_right = front_updated[_get_diag_index(diag_ + 1, nm)]
+            progress_left = fronts[front_updated_offset + _get_diag_index(diag_ - 1, nm)]
+            progress_right = fronts[front_updated_offset + _get_diag_index(diag_ + 1, nm)]
 
             if diag_ == diag_updated_from - 1:  # possible in cases 2, 4
                 progress = progress_right
@@ -513,12 +507,12 @@ cdef Py_ssize_t _search_graph_recursive(
             # the idea here is to delay updating the front by one iteration
             # such that the new progress values do not interfer with the original ones
             if ix != -1:
-                front_updated[ix] = previous + reverse_as_sign
+                fronts[front_updated_offset + ix] = previous + reverse_as_sign
 
             previous = progress
             ix = _get_diag_index(diag_, nm)
 
-        front_updated[ix] = previous + reverse_as_sign
+        fronts[front_updated_offset + ix] = previous + reverse_as_sign
 
     if rtn_script:
         _fill_no_solution(out, i, j, n, m)
@@ -547,8 +541,7 @@ def search_graph_recursive(
     cdef:
         char[::1] cout
         Py_ssize_t nm = min(n, m) + 1
-        Py_ssize_t* buffer_1 = <Py_ssize_t *>PyMem_Malloc(8 * nm)
-        Py_ssize_t* buffer_2 = <Py_ssize_t *>PyMem_Malloc(8 * nm)
+        Py_ssize_t* buffer = <Py_ssize_t *>PyMem_Malloc(2 * 8 * nm)
 
     if out is None:
         cout = _null_script
@@ -572,9 +565,7 @@ def search_graph_recursive(
             out=cout,
             i=i,
             j=j,
-            front_forward=buffer_1,
-            front_reverse=buffer_2,
+            fronts=buffer,
         )
     finally:
-        PyMem_Free(buffer_1)
-        PyMem_Free(buffer_2)
+        PyMem_Free(buffer)
