@@ -17,6 +17,32 @@ MAX_CALLS = 0xFFFFFFFF  # maximal calls
 MIN_RATIO = 0.749  # minimal similarity ratio
 
 
+def _get_getter(
+        similarity_ratio_getter: Callable[[int, int], float],
+        ext_2d_kernel: bool = False,
+        ext_2d_kernel_weights: Optional[Sequence[float]] = None,
+) -> Callable[[int, int], float]:
+
+    if isinstance(similarity_ratio_getter, tuple):
+        _a, _b = similarity_ratio_getter
+
+        if ext_2d_kernel and np is not None and isinstance(_a, np.ndarray) and isinstance(_b, np.ndarray) and _a.ndim == 2 and _b.ndim == 2:
+            assert _a.shape[1] == _b.shape[1], "2D extension: arrays a and b have different shape[1]"
+            if ext_2d_kernel_weights is not None:
+                ext_2d_kernel_weights = np.ascontiguousarray(ext_2d_kernel_weights, dtype=float)
+            else:
+                ext_2d_kernel_weights = np.ones(_a.shape[1])
+            assert ext_2d_kernel_weights.shape == (_a.shape[1],), "2D extensions: weights do not match the trailing dimension of a and b"
+
+            def similarity_ratio_getter(_i: int, _j: int, _n: int = _a.shape[1], _weights=ext_2d_kernel_weights) -> float:
+                return ((_a[_i] == _b[_j]) * _weights).sum() / _n
+
+        else:
+            def similarity_ratio_getter(_i: int, _j: int) -> float:
+                return _a[_i] == _b[_j]
+    return similarity_ratio_getter
+
+
 def _get_diag_index(diag: int, nm: int) -> int:
     """Computes the index of a given diagonal"""
     return (diag // 2) % nm
@@ -110,23 +136,11 @@ def search_graph_recursive(
     if eq_only and out is not None:
         warnings.warn("the 'out' argument is ignored for eq_only=True")
 
-    if isinstance(similarity_ratio_getter, tuple):
-        _a, _b = similarity_ratio_getter
-
-        if ext_2d_kernel and np is not None and isinstance(_a, np.ndarray) and isinstance(_b, np.ndarray) and _a.ndim == 2 and _b.ndim == 2:
-            assert _a.shape[1] == _b.shape[1], "2D extension: arrays a and b have different shape[1]"
-            if ext_2d_kernel_weights is not None:
-                ext_2d_kernel_weights = np.ascontiguousarray(ext_2d_kernel_weights, dtype=float)
-            else:
-                ext_2d_kernel_weights = np.ones(_a.shape[1])
-            assert ext_2d_kernel_weights.shape == (_a.shape[1],), "2D extensions: weights do not match the trailing dimension of a and b"
-
-            def similarity_ratio_getter(_i: int, _j: int, _n: int = _a.shape[1], _weights=ext_2d_kernel_weights) -> float:
-                return ((_a[_i] == _b[_j]) * _weights).sum() / _n
-
-        else:
-            def similarity_ratio_getter(_i: int, _j: int) -> float:
-                return _a[_i] == _b[_j]
+    similarity_ratio_getter = _get_getter(
+        similarity_ratio_getter,
+        ext_2d_kernel=ext_2d_kernel,
+        ext_2d_kernel_weights=ext_2d_kernel_weights,
+    )
 
     n_calls = 2  # takes into account additional calls in the two loops below
     max_cost = min(max_cost, n + m)
