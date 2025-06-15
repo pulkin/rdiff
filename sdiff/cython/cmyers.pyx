@@ -243,6 +243,40 @@ cdef inline Py_ssize_t _get_diag_index(Py_ssize_t diag, Py_ssize_t nm) noexcept:
     return (diag // 2) % nm
 
 
+# coordinate transformation
+# progress = x + y
+# diag = x - y + m
+#                  0    0                     progress
+#         ----------- ◉ ---------------     < 0
+#         |    1    ↙   ↘   1         |
+#         |       ◉       ◉           |     < 1
+#         |2    ↙   ↘   ↙   ↘   2     |
+#         |   ◉       ◉       ◉       |     < 2
+#      3  | ↙   ↘   ↙   ↘   ↙   ↘   3 |
+#         ◉       ◉       ◉       ◉   |     < 3
+#         | ↘   ↙   ↘   ↙   ↘   ↙   ↘ | 4
+#         |   ◉       ◉       ◉       ◉     < 4
+#         |     ↘   ↙   ↘   ↙   ↘   ↙ |
+#         |       ◉       ◉       ◉   |     < 5
+#         |         ↘   ↙   ↘   ↙     |
+#         |           ◉       ◉       |     < 6
+#         |             ↘   ↙         |
+#         --------------- ◉ -----------     < 7
+#
+#         ^   ^   ^   ^   ^   ^   ^   ^
+#         0   1   2   3   4   5   6   7       diagonal
+
+
+@cython.cdivision
+cdef inline Py_ssize_t _get_x(Py_ssize_t diag, Py_ssize_t progress, Py_ssize_t m) noexcept:
+    return (progress + diag - m) // 2
+
+
+@cython.cdivision
+cdef inline Py_ssize_t _get_y(Py_ssize_t diag, Py_ssize_t progress, Py_ssize_t m) noexcept:
+    return (progress - diag + m) // 2
+
+
 cdef inline void _fill_no_solution(char[::1] out, Py_ssize_t i, Py_ssize_t  j, Py_ssize_t n, Py_ssize_t m) noexcept:
     """Fills in the script with n horizontal and m vertical moves"""
     cdef Py_ssize_t ix
@@ -375,8 +409,8 @@ cdef Py_ssize_t _search_graph_recursive(
             # diag = x - y + m
             # since the (x, y) -> (x + 1, y + 1) diag is polled through similarity_ratio_getter(x, y)
             # we need to shift the (x, y) coordinates when reverse
-            x = (progress + diag - m) // 2 - is_reverse_front
-            y = (progress - diag + m) // 2 - is_reverse_front
+            x = _get_x(diag, progress, m) - is_reverse_front
+            y = _get_y(diag, progress, m) - is_reverse_front
 
             # slide down the progress coordinate
             while 0 <= x < n and 0 <= y < m:
@@ -412,10 +446,10 @@ cdef Py_ssize_t _search_graph_recursive(
                             ix += 2 * reverse_as_sign
 
                         # recursive calls
-                        x = (progress_start + diag - m) // 2
-                        y = (progress_start - diag + m) // 2
-                        x2 = (progress + diag - m) // 2
-                        y2 = (progress - diag + m) // 2
+                        x = _get_x(diag, progress_start, m)
+                        y = _get_y(diag, progress_start, m)
+                        x2 = _get_x(diag, progress, m)
+                        y2 = _get_y(diag, progress, m)
                         if is_reverse_front:
                             # swap these two around
                             x, y, x2, y2 = x2, y2, x, y
