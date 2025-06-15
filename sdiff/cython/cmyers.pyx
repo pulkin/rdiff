@@ -238,7 +238,17 @@ cdef inline Py_ssize_t labs(long i) noexcept:
 
 
 cdef inline Py_ssize_t _get_diag_index(Py_ssize_t diag, Py_ssize_t nm) noexcept:
+    """Computes the index of a given diagonal"""
     return (diag // 2) % nm
+
+
+cdef inline void _fill_no_solution(char[::1] out, Py_ssize_t i, Py_ssize_t  j, Py_ssize_t n, Py_ssize_t m) noexcept:
+    """Fills in the script with n horizontal and m vertical moves"""
+    cdef Py_ssize_t ix
+    for ix in range(i + j, i + j + n):
+        out[ix] = 1
+    for ix in range(i + j + n, i + j + n + m):
+        out[ix] = 2
 
 
 @cython.cdivision
@@ -309,10 +319,7 @@ cdef Py_ssize_t _search_graph_recursive(
 
     if n * m == 0:
         if rtn_script:
-            for ix in range(i + j, i + j + n):
-                out[ix] = 1
-            for ix in range(i + j + n, i + j + n + m):
-                out[ix] = 2
+            _fill_no_solution(out, i, j, n, m)
         return n + m
 
     # if abs(n - m) > max_cost:
@@ -479,10 +486,7 @@ cdef Py_ssize_t _search_graph_recursive(
         front_updated[ix] = previous + reverse_as_sign
 
     if rtn_script:
-        for ix in range(i + j, i + j + n):
-            out[ix] = 1
-        for ix in range(i + j + n, i + j + n + m):
-            out[ix] = 2
+        _fill_no_solution(out, i, j, n, m)
     return n + m
 
 

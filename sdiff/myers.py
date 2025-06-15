@@ -48,6 +48,14 @@ def _get_diag_index(diag: int, nm: int) -> int:
     return (diag // 2) % nm
 
 
+def _fill_no_solution(out: array, i: int, j: int, n: int, m: int) -> None:
+    """Fills in the script with n horizontal and m vertical moves"""
+    for ix in range(i + j, i + j + n):
+        out[ix] = 1
+    for ix in range(i + j + n, i + j + n + m):
+        out[ix] = 2
+
+
 def search_graph_recursive(
         n: int,
         m: int,
@@ -174,11 +182,7 @@ def search_graph_recursive(
         m -= 1
 
     if n * m == 0:
-        if out is not None:
-            for ix in range(i + j, i + j + n):
-                out[ix] = 1
-            for ix in range(i + j + n, i + j + n + m):
-                out[ix] = 2
+        _fill_no_solution(out, i, j, n, m)
         return n + m
 
     """
@@ -447,8 +451,5 @@ def search_graph_recursive(
         front_updated[ix] = previous + reverse_as_sign
 
     if out is not None:
-        for ix in range(i + j, i + j + n):
-            out[ix] = 1
-        for ix in range(i + j + n, i + j + n + m):
-            out[ix] = 2
+        _fill_no_solution(out, i, j, n, m)
     return n + m
