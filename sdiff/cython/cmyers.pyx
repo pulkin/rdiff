@@ -237,6 +237,10 @@ cdef inline Py_ssize_t labs(long i) noexcept:
     return i if i >= 0 else -i
 
 
+cdef inline Py_ssize_t _get_diag_index(Py_ssize_t diag, Py_ssize_t nm) noexcept:
+    return (diag // 2) % nm
+
+
 @cython.cdivision
 cdef Py_ssize_t _search_graph_recursive(
     Py_ssize_t n,
@@ -353,7 +357,7 @@ cdef Py_ssize_t _search_graph_recursive(
             # you can also keep diag_from to always correspond to the 0th
             # element of the front or any other alignment but having
             # modulo is just the simplest
-            ix = (diag // 2) % nm
+            ix = _get_diag_index(diag, nm)
 
             # remember the progress coordinates: starting, current
             progress = progress_start = front_updated[ix]
@@ -452,8 +456,8 @@ cdef Py_ssize_t _search_graph_recursive(
         for diag_ in range(diag_updated_from_, diag_updated_to_ + 2, 2):
 
             # source and destination indexes for the update
-            progress_left = front_updated[((diag_ - 1) // 2) % nm]
-            progress_right = front_updated[((diag_ + 1) // 2) % nm]
+            progress_left = front_updated[_get_diag_index(diag_ - 1, nm)]
+            progress_right = front_updated[_get_diag_index(diag_ + 1, nm)]
 
             if diag_ == diag_updated_from - 1:  # possible in cases 2, 4
                 progress = progress_right
@@ -470,7 +474,7 @@ cdef Py_ssize_t _search_graph_recursive(
                 front_updated[ix] = previous + reverse_as_sign
 
             previous = progress
-            ix = (diag_ // 2) % nm
+            ix = _get_diag_index(diag_, nm)
 
         front_updated[ix] = previous + reverse_as_sign
 
