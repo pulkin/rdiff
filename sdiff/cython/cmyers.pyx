@@ -237,6 +237,7 @@ cdef inline Py_ssize_t labs(long i) noexcept:
     return i if i >= 0 else -i
 
 
+@cython.cdivision
 cdef inline Py_ssize_t _get_diag_index(Py_ssize_t diag, Py_ssize_t nm) noexcept:
     """Computes the index of a given diagonal"""
     return (diag // 2) % nm
